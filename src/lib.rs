@@ -75,7 +75,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         } else {
             ((nx as i64) + x) as usize
         }
-    } 
+    }
 
     fn convolve<'py>(
         u: ArrayView2<'py, f64>,
@@ -99,14 +99,16 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                 let mut fy = 0.5;
                 let mut k = kernellen / 2;
 
-                output[[i, j]] += kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
+                output[[i, j]] +=
+                    kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
 
                 while k < kernellen - 1 {
                     let ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
                     let vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
                     advance(ui, vi, &mut x, &mut y, &mut fx, &mut fy, w, h);
                     k += 1;
-                    output[[i, j]] += kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    output[[i, j]] +=
+                        kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
                 }
 
                 let mut x: i64 = j.try_into().unwrap();
@@ -120,7 +122,8 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     let vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
                     advance(-ui, -vi, &mut x, &mut y, &mut fx, &mut fy, w, h);
                     k -= 1;
-                    output[[i, j]] += kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    output[[i, j]] +=
+                        kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
                 }
             }
         }
