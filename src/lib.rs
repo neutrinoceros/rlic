@@ -61,7 +61,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         input: &Array2<f64>,
         output: &Array2<f64>,
     ) {
-        //out[:] = texture[:];
+        //output.fill(1.0);
     }
 
     #[pyfn(m)]
@@ -85,9 +85,11 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         let mut it_count = 0;
         while it_count < iterations {
             convolve(u, v, kernel, &input, &output);
-            input.assign(&output);
-            output.fill(0.0);
             it_count += 1;
+            if it_count < iterations {
+                input.assign(&output);
+                output.fill(0.0);
+            }
         }
 
         output.to_pyarray_bound(py)
