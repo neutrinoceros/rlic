@@ -60,8 +60,8 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     }
 
     #[pyfn(m)]
-    #[pyo3(name = "convolve_loop")]
-    fn convolve_loop_py<'py>(
+    #[pyo3(name = "convolve_iteratively")]
+    fn convolve_interatively_py<'py>(
         py: Python<'py>,
         image: PyReadonlyArray2<'py, f64>,
         u: PyReadonlyArray2<'py, f64>,

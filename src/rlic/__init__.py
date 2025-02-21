@@ -1,8 +1,8 @@
-from lick_core._core import convolve_loop
+from rlic._core import convolve_iteratively
 
 __all__ = ["convolve"]
 
 def convolve(
-    image, u, v, *, kernel, iterations: int = 1
+    image, u, v, *, kernel, iterations: int = 1,
 ):
-    return convolve_loop(image, u, v, kernel, iterations)
+    return convolve_iteratively(image, u, v, kernel, iterations)
