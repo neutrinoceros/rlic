@@ -1,7 +1,6 @@
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
-use pyo3::prelude::*;
 use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
 
 /// A Python module implemented in Rust. The name of this function must match
