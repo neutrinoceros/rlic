@@ -86,7 +86,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     ) {
         let ny = u.shape()[0];
         let nx = u.shape()[1];
-        let kernellen = kernel.shape()[0];
+        let kernellen = kernel.len();
 
         let w = nx as i64;
         let h = ny as i64;
