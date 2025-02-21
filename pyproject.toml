@@ -17,3 +17,8 @@ python-source = "src"
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
+
+[dependency-groups]
+test = [
+    "pytest>=8.1.0",
+]
