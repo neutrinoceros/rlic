@@ -59,9 +59,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         v: ArrayView2<'py, f64>,
         kernel: ArrayView1<'py, f64>,
         input: &Array2<f64>,
-        output: &Array2<f64>,
+        output: &mut Array2<f64>,
     ) {
-        //output.fill(1.0);
+        output.fill(1.0);
     }
 
     #[pyfn(m)]
@@ -84,7 +84,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
 
         let mut it_count = 0;
         while it_count < iterations {
-            convolve(u, v, kernel, &input, &output);
+            convolve(u, v, kernel, &input, &mut output);
             it_count += 1;
             if it_count < iterations {
                 input.assign(&output);
