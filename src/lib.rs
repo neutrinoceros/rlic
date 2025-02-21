@@ -65,22 +65,22 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     }
 
     #[pyfn(m)]
-    #[pyo3(name = "convolve")]
-    fn convolve_py<'py>(
+    #[pyo3(name = "convolve_loop")]
+    fn convolve_loop_py<'py>(
         py: Python<'py>,
+        image: PyReadonlyArray2<'py, f64>,
         u: PyReadonlyArray2<'py, f64>,
         v: PyReadonlyArray2<'py, f64>,
         kernel: PyReadonlyArray1<'py, f64>,
-        texture: PyReadonlyArray2<'py, f64>,
         iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
         let u = u.as_array();
         let v = v.as_array();
         let kernel = kernel.as_array();
-        let texture = texture.as_array();
+        let image = image.as_array();
         let mut input =
-            Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
-        let mut output = Array2::<f64>::zeros(texture.raw_dim());
+            Array2::from_shape_vec(image.raw_dim(), image.iter().cloned().collect()).unwrap();
+        let mut output = Array2::<f64>::zeros(image.raw_dim());
 
         let mut it_count = 0;
         while it_count < iterations {

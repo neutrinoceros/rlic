@@ -1,5 +1,5 @@
 [project]
-name = "lick-core"
+name = "rlic"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -10,8 +10,8 @@ requires-python = ">=3.13"
 dependencies = ["numpy>=2.0.0"]
 
 [tool.maturin]
-module-name = "lick_core._core"
-python-packages = ["lick_core"]
+module-name = "rlic._core"
+python-packages = ["rlic"]
 python-source = "src"
 
 [build-system]
