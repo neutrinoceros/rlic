@@ -2,12 +2,13 @@ use std::array::from_ref;
 
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{
-    Array2, ArrayBase, ArrayD, ArrayView1, ArrayView2, ArrayViewD, ArrayViewMut2, ArrayViewMutD, ViewRepr, OwnedRepr
+    Array2, ArrayBase, ArrayD, ArrayView1, ArrayView2, ArrayViewD, ArrayViewMut2, ArrayViewMutD,
+    OwnedRepr, ViewRepr,
 };
+use numpy::ToPyArray;
 use numpy::{IntoPyArray, PyArray2, PyArrayDyn, PyArrayMethods, PyReadonlyArrayDyn};
 use pyo3::prelude::*;
 use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
-use numpy::ToPyArray;
 #[pyfunction]
 fn hello_from_bin() -> String {
     "Hello from lick-core!".to_string()
@@ -58,7 +59,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         v: ArrayView2<'py, f64>,
         kernel: ArrayView1<'py, f64>,
         input: &Array2<f64>,
-        output: &ArrayViewMut2<'py, f64>,
+        output: &Array2<f64>,
     ) {
         //out[:] = texture[:];
     }
@@ -77,13 +78,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         let v = v.as_array();
         let kernel = kernel.as_array();
         let texture = texture.as_array();
-        let mut input = Array2::from_shape_vec(
-            texture.raw_dim(),
-            texture.iter().cloned().collect(),
-        ).unwrap();
-
-        let mut out = PyArray2::<f64>::zeros_bound(py, input.dim(), false);
-        let mut output = unsafe { out.as_array_mut() };
+        let mut input =
+            Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
+        let mut output = Array2::<f64>::zeros(texture.raw_dim());
 
         let mut it_count = 0;
         while it_count < iterations {
