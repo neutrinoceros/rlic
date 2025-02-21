@@ -9,6 +9,9 @@ use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
 #[pymodule]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     // TODO: parametrize dtype (support f32 too)
+
+    fn advance(vx: f64, vy: f64, x: usize, y: usize, fx: f64, fy: f64, w: usize, h: usize) {}
+
     fn convolve<'py>(
         u: ArrayView2<'py, f64>,
         v: ArrayView2<'py, f64>,
@@ -16,6 +19,43 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         input: &Array2<f64>,
         output: &mut Array2<f64>,
     ) {
+        let ny = u.shape()[0];
+        let nx = u.shape()[1];
+        let kernellen = kernel.shape()[0];
+
+        for i in 0..ny {
+            for j in 0..nx {
+                let x = j;
+                let y = i;
+                let fx = 0.5;
+                let fy = 0.5;
+                let mut k = kernellen / 2;
+
+                output[[i, j]] += kernel[[k]] * input[[y, x]];
+
+                while k < kernellen - 1 {
+                    let ui = u[[y, x]];
+                    let vi = v[[y, x]];
+                    advance(ui, vi, x, y, fx, fy, nx, ny);
+                    k += 1;
+                    output[[i, j]] += kernel[[k]] * input[[y, x]];
+                }
+
+                let x = j;
+                let y = i;
+                let fx = 0.5;
+                let fy = 0.5;
+                k = kernellen / 2;
+
+                while k > 0 {
+                    let ui = u[[y, x]];
+                    let vi = v[[y, x]];
+                    advance(-ui, -vi, x, y, fx, fy, nx, ny);
+                    k -= 1;
+                    output[[i, j]] += kernel[[k]] * input[[y, x]];
+                }
+            }
+        }
         output.fill(1.0);
     }
 
