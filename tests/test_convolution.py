@@ -16,4 +16,4 @@ def test_no_iterations():
 
 def test_single_iteration():
     out = rlic.convolve(img, img, img, kernel=kernel, iterations=1)
-    # TODO: add some assertions
+    assert np.all(np.diag(out) == out[0,0])
