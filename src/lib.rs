@@ -13,12 +13,12 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     fn advance(
         vx: f64,
         vy: f64,
-        x: &mut usize,
-        y: &mut usize,
+        x: &mut i64,
+        y: &mut i64,
         fx: &mut f64,
         fy: &mut f64,
-        w: usize,
-        h: usize,
+        w: i64,
+        h: i64,
     ) {
         if (vx == 0.0) && (vy == 0.0) {
             return;
@@ -69,6 +69,14 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         *y = max(0, min(h - 1, *y));
     }
 
+    fn as_array_index(x: i64, nx: usize) -> usize {
+        if x >= 0 {
+            x as usize
+        } else {
+            ((nx as i64) + x) as usize
+        }
+    } 
+
     fn convolve<'py>(
         u: ArrayView2<'py, f64>,
         v: ArrayView2<'py, f64>,
@@ -80,36 +88,39 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         let nx = u.shape()[1];
         let kernellen = kernel.shape()[0];
 
+        let w = nx as i64;
+        let h = ny as i64;
+
         for i in 0..ny {
             for j in 0..nx {
-                let mut x = j;
-                let mut y = i;
+                let mut x: i64 = j.try_into().unwrap();
+                let mut y: i64 = i.try_into().unwrap();
                 let mut fx = 0.5;
                 let mut fy = 0.5;
                 let mut k = kernellen / 2;
 
-                output[[i, j]] += kernel[[k]] * input[[y, x]];
+                output[[i, j]] += kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
 
                 while k < kernellen - 1 {
-                    let ui = u[[y, x]];
-                    let vi = v[[y, x]];
-                    advance(ui, vi, &mut x, &mut y, &mut fx, &mut fy, nx, ny);
+                    let ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    let vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    advance(ui, vi, &mut x, &mut y, &mut fx, &mut fy, w, h);
                     k += 1;
-                    output[[i, j]] += kernel[[k]] * input[[y, x]];
+                    output[[i, j]] += kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
                 }
 
-                let mut x = j;
-                let mut y = i;
+                let mut x: i64 = j.try_into().unwrap();
+                let mut y: i64 = i.try_into().unwrap();
                 let mut fx = 0.5;
                 let mut fy = 0.5;
                 let mut k = kernellen / 2;
 
                 while k > 0 {
-                    let ui = u[[y, x]];
-                    let vi = v[[y, x]];
-                    advance(-ui, -vi, &mut x, &mut y, &mut fx, &mut fy, nx, ny);
+                    let ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    let vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    advance(-ui, -vi, &mut x, &mut y, &mut fx, &mut fy, w, h);
                     k -= 1;
-                    output[[i, j]] += kernel[[k]] * input[[y, x]];
+                    output[[i, j]] += kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
                 }
             }
         }
