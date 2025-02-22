@@ -133,11 +133,11 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                         kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
                 }
 
-                let mut x: i64 = j.try_into().unwrap();
-                let mut y: i64 = i.try_into().unwrap();
-                let mut fx = 0.5;
-                let mut fy = 0.5;
-                let mut k = kernellen / 2;
+                x = j.try_into().unwrap();
+                y = i.try_into().unwrap();
+                fx = 0.5;
+                fy = 0.5;
+                k = kernellen / 2;
                 last_ui = 0.0;
                 last_vi = 0.0;
 
