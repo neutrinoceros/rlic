@@ -177,7 +177,7 @@ jobs:
         uv tool install coverage
         coverage combine
         coverage html --skip-covered --skip-empty
-        coverage report --fail-under=99 # >> $GITHUB_STEP_SUMMARY
+        coverage report --fail-under=100 # >> $GITHUB_STEP_SUMMARY
 
     - name: Upload HTML report if check failed.
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
