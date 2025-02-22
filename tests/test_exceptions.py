@@ -12,8 +12,8 @@ def test_invalid_iterations():
         rlic.convolve(img, img, img, kernel=kernel, iterations=-1)
 
 
-@pytest.parametrize(
-    "uv_mode, noop_size, min_size", [[("velocity", 3, 4), ("polarization", 3, 5)]]
+@pytest.mark.parametrize(
+    "uv_mode, noop_size, min_size", [("velocity", 3, 4), ("polarization", 3, 5)]
 )
 def test_warn_noop_kernel_too_small(uv_mode, noop_size, min_size):
     with pytest.warns(UserWarning, match="..."):
