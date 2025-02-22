@@ -38,6 +38,7 @@ python-source = "src"
 filterwarnings = [
   "error",
 ]
+addopts = "-ra"
 xfail_strict = true
 
 [tool.coverage.report]
