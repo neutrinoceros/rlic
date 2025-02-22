@@ -110,7 +110,8 @@ def test_invalid_image_dtype():
         TypeError,
         match=(
             r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
-            r"Expected image, u, v and kernel with identical dtype, from \[dtype\('float64'\)\]\. "
+            r"Expected image, u, v and kernel with identical dtype, from "
+            r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
             r"Got image\.dtype=dtype\('complex128'\), u\.dtype=dtype\('float64'\), "
             r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$"
         ),
@@ -123,7 +124,8 @@ def test_invalid_kernel_dtype():
         TypeError,
         match=(
             r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
-            r"Expected image, u, v and kernel with identical dtype, from \[dtype\('float64'\)\]\. "
+            r"Expected image, u, v and kernel with identical dtype, from "
+            r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
             r"Got image\.dtype=dtype\('float64'\), u\.dtype=dtype\('float64'\), "
             r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('complex128'\)$"
         ),
