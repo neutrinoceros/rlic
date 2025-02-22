@@ -3,12 +3,18 @@ import pytest
 
 import rlic
 
-img = np.eye(5)
+img = np.eye(64)
 kernel = np.linspace(0, 1, 10)
 
 
 def test_invalid_iterations():
-    with pytest.raises(ValueError, match="..."):
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"^Invalid number of iterations: -1\n"
+            r"Expected a strictly positive integer\.$"
+        ),
+    ):
         rlic.convolve(img, img, img, kernel=kernel, iterations=-1)
 
 

@@ -33,7 +33,7 @@ def convolve(
 
     if iterations < 0:
         raise ValueError(
-            f"Invalid number of iterations {iterations}. "
+            f"Invalid number of iterations: {iterations}\n"
             "Expected a strictly positive integer."
         )
     if iterations == 0:
