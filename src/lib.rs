@@ -19,10 +19,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         w: i64,
         h: i64,
     ) {
-        if (vx == 0.0) && (vy == 0.0) {
-            return;
-        }
-
         let mut zeros: i64 = 0;
 
         // Think of tx (ty) as the time it takes to reach the next pixel along x (y).
@@ -45,6 +41,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             ty = 1e100;
         }
 
+        if zeros == 2 {
+            return
+        }
 
         if tx < ty {
             // We reached the next pixel along x first.
