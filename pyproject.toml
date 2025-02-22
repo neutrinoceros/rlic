@@ -24,6 +24,10 @@ covcheck = [
 test = [
     "pytest>=8.1.0",
 ]
+typecheck = [
+    "mypy>=1.13.0",
+    "pyright>=1.1.391",
+]
 
 [tool.maturin]
 module-name = "rlic._core"
@@ -35,6 +39,23 @@ filterwarnings = [
   "error",
 ]
 xfail_strict = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    # a more strict default pragma
+    "\\# pragma: no cover\\b",
+
+    # allow defensive code
+    "^\\s*raise NotImplementedError\\b",
+
+    # typing-related code
+    "^if TYPE_CHECKING:",
+    ": \\.\\.\\.(\\s*#.*)?$",
+    "^ +\\.\\.\\.$",
+    "-> ['\"]?NoReturn['\"]?:",
+]
 
 [tool.ruff.lint]
 ignore = ["E501", "D101"]
