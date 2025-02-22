@@ -1,7 +1,7 @@
 [project]
 name = "rlic"
 version = "0.1.0"
-description = "Add your description here"
+description = "A minimal Line Integral Convolution extension for NumPy, written in Rust"
 readme = "README.md"
 authors = [
     { name = "Clément Robert", email = "cr52@protonmail.com" }
