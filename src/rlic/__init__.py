@@ -46,9 +46,6 @@ def convolve(
             f"{dtype_error_expectations}"
         )
 
-    if len(input_dtypes) != 1:
-        raise TypeError(f"Data types mismatch. {dtype_error_expectations}")
-
     if image.ndim != 2:
         raise ValueError(
             f"Expected an image with exactly two dimensions. Got {image.ndim=}"
