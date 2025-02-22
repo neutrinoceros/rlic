@@ -10,6 +10,14 @@ use std::cmp::{max, min};
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     // TODO: parametrize dtype (support f32 too)
 
+    fn signbitf64(x: f64) -> f64 {
+        if x >= 0.0 {
+            1.0
+        } else {
+            0.0
+        }
+    }
+
     fn advance(
         vx: f64,
         vy: f64,
@@ -25,24 +33,8 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         }
 
         // Think of tx (ty) as the time it takes to reach the next pixel along x (y).
-        let tx: f64 = {
-            -(*fx + {
-                if vx >= 0.0 {
-                    1.0
-                } else {
-                    0.0
-                }
-            }) / vx
-        };
-        let ty: f64 = {
-            -(*fy + {
-                if vy >= 0.0 {
-                    1.0
-                } else {
-                    0.0
-                }
-            }) / vy
-        };
+        let tx: f64 = (signbitf64(-vx) - *fx) / vx;
+        let ty: f64 = (signbitf64(-vy) - *fy) / vy;
 
         if tx < ty {
             // We reached the next pixel along x first.
