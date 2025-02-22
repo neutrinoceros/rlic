@@ -4,6 +4,8 @@ on:
     branches:
     - main
   pull_request:
+    paths-ignore:
+    - README.md
   schedule:
   # run this every Wednesday at 3 am UTC
   - cron: 0 3 * * 3
