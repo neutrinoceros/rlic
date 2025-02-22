@@ -9,11 +9,6 @@ authors = [
 requires-python = ">=3.9"
 dependencies = ["numpy>=2.0.0"]
 
-[tool.maturin]
-module-name = "rlic._core"
-python-packages = ["rlic"]
-python-source = "src"
-
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
@@ -22,3 +17,14 @@ build-backend = "maturin"
 test = [
     "pytest>=8.1.0",
 ]
+
+[tool.maturin]
+module-name = "rlic._core"
+python-packages = ["rlic"]
+python-source = "src"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "error",
+]
+xfail_strict = true

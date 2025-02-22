@@ -3,6 +3,13 @@ use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
 use std::cmp::{max, min};
+
+enum UVMode {
+    Velocity,
+    Polarization,
+}
+
+
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -84,6 +91,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         kernel: ArrayView1<'py, f64>,
         input: &Array2<f64>,
         output: &mut Array2<f64>,
+        uv_mode: &UVMode,
     ) {
         let ny = u.shape()[0];
         let nx = u.shape()[1];
@@ -99,13 +107,26 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                 let mut fx = 0.5;
                 let mut fy = 0.5;
                 let mut k = kernellen / 2;
+                let mut last_ui = 0.0;
+                let mut last_vi = 0.0;
 
                 output[[i, j]] +=
                     kernel[[k]] * input[[as_array_index(y, ny), as_array_index(x, nx)]];
 
                 while k < kernellen - 1 {
-                    let ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
-                    let vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    let mut ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    let mut vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    match uv_mode {
+                        UVMode::Polarization => {
+                            if (ui*last_ui+vi*last_vi)<0.0 {
+                                ui = -ui;
+                                vi = -vi;
+                            }
+                            last_ui = ui;
+                            last_vi = vi;
+                        }
+                        UVMode::Velocity => {}
+                    };
                     advance(ui, vi, &mut x, &mut y, &mut fx, &mut fy, w, h);
                     k += 1;
                     output[[i, j]] +=
@@ -117,10 +138,23 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                 let mut fx = 0.5;
                 let mut fy = 0.5;
                 let mut k = kernellen / 2;
+                last_ui = 0.0;
+                last_vi = 0.0;
 
                 while k > 0 {
-                    let ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
-                    let vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    let mut ui = u[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    let mut vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
+                    match uv_mode {
+                        UVMode::Polarization => {
+                            if (ui*last_ui+vi*last_vi)<0.0 {
+                                ui = -ui;
+                                vi = -vi;
+                            }
+                            last_ui = ui;
+                            last_vi = vi;
+                        }
+                        UVMode::Velocity => {}
+                    };
                     advance(-ui, -vi, &mut x, &mut y, &mut fx, &mut fy, w, h);
                     k -= 1;
                     output[[i, j]] +=
@@ -139,6 +173,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         v: PyReadonlyArray2<'py, f64>,
         kernel: PyReadonlyArray1<'py, f64>,
         iterations: i64,
+        uv_mode: String,
     ) -> Bound<'py, PyArray2<f64>> {
         let u = u.as_array();
         let v = v.as_array();
@@ -148,9 +183,18 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             Array2::from_shape_vec(image.raw_dim(), image.iter().cloned().collect()).unwrap();
         let mut output = Array2::<f64>::zeros(image.raw_dim());
 
+        let uv_mode_enum: UVMode;
+        if uv_mode == "polarization" {
+            uv_mode_enum = UVMode::Polarization;
+        } else if uv_mode == "velocity" {
+            uv_mode_enum = UVMode::Velocity;
+        } else {
+            panic!("unknown uv_mode")
+        }
+
         let mut it_count = 0;
         while it_count < iterations {
-            convolve(u, v, kernel, &input, &mut output);
+            convolve(u, v, kernel, &input, &mut output, &uv_mode_enum);
             it_count += 1;
             if it_count < iterations {
                 input.assign(&output);
