@@ -3,6 +3,10 @@ name = "rlic"
 version = "0.1.0"
 description = "A minimal Line Integral Convolution extension for NumPy, written in Rust"
 readme = "README.md"
+license = "MIT"
+license-files = [
+    "LICENSE/*"
+]
 authors = [
     { name = "Clément Robert", email = "cr52@protonmail.com" }
 ]
