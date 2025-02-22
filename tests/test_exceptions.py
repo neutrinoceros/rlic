@@ -36,5 +36,8 @@ def test_kernel_too_long():
 
 
 def test_invalid_kernel_values():
-    with pytest.raises(ValueError, match="..."):
+    with pytest.raises(
+        ValueError,
+        match=r"^Found invalid kernel element\(s\)\. Expected only positive values\.$",
+    ):
         rlic.convolve(img, img, img, kernel=-np.ones(5, dtype="float64"))
