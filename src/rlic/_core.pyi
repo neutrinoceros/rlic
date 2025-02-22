@@ -1,5 +1,14 @@
+from typing import Literal
+
 from numpy.typing import NDArray
 
+from rlic._typing import FloatT
+
 def convolve_iteratively(
-    image: NDArray, u: NDArray, v: NDArray, kernel: NDArray, iterations: int
+    image: NDArray[FloatT],
+    u: NDArray[FloatT],
+    v: NDArray[FloatT],
+    kernel: NDArray[FloatT],
+    iterations: int = 1,
+    uv_mode: Literal["velocity", "polarization"] = "velocity",
 ) -> NDArray: ...

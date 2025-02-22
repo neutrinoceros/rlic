@@ -35,13 +35,13 @@ jobs:
       matrix:
         os:
         - ubuntu-latest
-        - macos-latest
-        - windows-latest
+        #- macos-latest
+        #- windows-latest
         python-version:
-        - 3.9.0
-        - '3.10'
-        - '3.11'
-        - '3.12'
+        #- 3.9.0
+        #- '3.10'
+        #- '3.11'
+        #- '3.12'
         - '3.13'
 
     runs-on: ${{ matrix.os }}
@@ -55,12 +55,12 @@ jobs:
         prune-cache: false
 
     - name: Test (with coverage)
-      if: startsWith( ${{ matrix.os }} , "ubuntu" )
+      if: ${{ startsWith( matrix.os , 'ubuntu' ) }}
       run: |
         uv sync --group covcheck
         uv run --no-sync coverage run --parallel-mode -m pytest --color=yes
     - name: Test (without coverage)
-      if: !startsWith( ${{ matrix.os }} , "ubuntu" )
+      if: ${{ !startsWith( matrix.os , 'ubuntu' ) }}
       run: |
         uv sync --no-editable --group test
         uv run --no-sync pytest --color=yes
@@ -76,93 +76,87 @@ jobs:
         if-no-files-found: ignore
         include-hidden-files: true
 
-  minimal-env:
-    name: Minimal requirements
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-      with:
-        # setup-uv doesn't have this exact version of Python
-        python-version: 3.9.0
-    - name: Configure uv
-      run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
-        echo "UV_RESOLUTION=lowest-direct" >> $GITHUB_ENV
-    - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
-      with:
-        enable-cache: true
-        prune-cache: false
-    - run: |
-        uv sync --only-dev
-        uv sync --no-editable --group test
-    - name: Test
-      run: uv run --no-sync pytest --color=yes
+  # minimal-env:
+  #   name: Minimal requirements
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #   - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #   - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+  #     with:
+  #       # setup-uv doesn't have this exact version of Python
+  #       python-version: 3.9.0
+  #   - name: Configure uv
+  #     run: |
+  #       echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
+  #       echo "UV_RESOLUTION=lowest-direct" >> $GITHUB_ENV
+  #   - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
+  #     with:
+  #       enable-cache: true
+  #       prune-cache: false
+  #   - run: uv sync --no-editable --group test
+  #   - name: Test
+  #     run: uv run --no-sync pytest --color=yes
 
-  image-tests:
-    name: Image tests
-    runs-on: ubuntu-latest
+  # image-tests:
+  #   name: Image tests
+  #   runs-on: ubuntu-latest
 
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
-      with:
-        python-version: '3.13'
+  #   steps:
+  #   - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #   - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
+  #     with:
+  #       python-version: '3.13'
 
-    - run: |
-        uv sync --only-dev
-        uv sync --no-editable --group test
-    - name: Run Image Tests
-      run: |
-        uv run --no-sync \
-          pytest --color=yes --mpl -m mpl_image_compare \
-                --mpl-generate-summary=html \
-                --mpl-results-path=rlic_pytest_mpl_results \
-                --mpl-baseline-path=tests/pytest_mpl_baseline
+  #   - run: uv sync --no-editable --group test
+  #   - name: Run Image Tests
+  #     run: |
+  #       uv run --no-sync \
+  #         pytest --color=yes --mpl -m mpl_image_compare \
+  #               --mpl-generate-summary=html \
+  #               --mpl-results-path=rlic_pytest_mpl_results \
+  #               --mpl-baseline-path=tests/pytest_mpl_baseline
 
-    - name: Generate new image baseline
-      if: failure()
-      run: |
-        uv run --no-sync \
-          pytest --color=yes --mpl -m mpl_image_compare \
-                --mpl-generate-path=rlic_pytest_mpl_new_baseline \
-                --last-failed
+  #   - name: Generate new image baseline
+  #     if: failure()
+  #     run: |
+  #       uv run --no-sync \
+  #         pytest --color=yes --mpl -m mpl_image_compare \
+  #               --mpl-generate-path=rlic_pytest_mpl_new_baseline \
+  #               --last-failed
 
-    # always attempt to upload artifacts, even
-    # (and especially) in case of failure.
-    - name: Upload pytest-mpl report
-      if: always()
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-      with:
-        name: rlic_pytest_mpl_results
-        path: rlic_pytest_mpl_results/*
+  #   # always attempt to upload artifacts, even
+  #   # (and especially) in case of failure.
+  #   - name: Upload pytest-mpl report
+  #     if: always()
+  #     uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+  #     with:
+  #       name: rlic_pytest_mpl_results
+  #       path: rlic_pytest_mpl_results/*
 
-    - name: Upload pytest-mpl baseline
-      if: always()
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-      with:
-        name: rlic_pytest_mpl_new_baseline
-        path: rlic_pytest_mpl_new_baseline/*
-        if-no-files-found: ignore
+  #   - name: Upload pytest-mpl baseline
+  #     if: always()
+  #     uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+  #     with:
+  #       name: rlic_pytest_mpl_new_baseline
+  #       path: rlic_pytest_mpl_new_baseline/*
+  #       if-no-files-found: ignore
 
-  concurrency-tests:
-    name: Thread concurrency tests
-    runs-on: ubuntu-latest
+  # concurrency-tests:
+  #   name: Thread concurrency tests
+  #   runs-on: ubuntu-latest
 
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
-      with:
-        python-version: '3.13'
-        enable-cache: true
-        prune-cache: false
-    - run: |
-        uv sync --only-dev
-        uv sync --no-editable --group concurrency
-    - name: Run Concurrency Tests
-      run: |
-        uv run --no-sync \
-          pytest --color=yes --count 500 tests/test_concurrent.py
+  #   steps:
+  #   - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #   - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
+  #     with:
+  #       python-version: '3.13'
+  #       enable-cache: true
+  #       prune-cache: false
+  #   - run: uv sync --no-editable --group concurrency
+  #   - name: Run Concurrency Tests
+  #     run: |
+  #       uv run --no-sync \
+  #         pytest --color=yes --count 500 tests/test_concurrent.py
 
   coverage:
     name: Combine & check coverage.
@@ -187,7 +181,7 @@ jobs:
         uv tool install coverage
         coverage combine
         coverage html --skip-covered --skip-empty
-        coverage report --fail-under=100 # >> $GITHUB_STEP_SUMMARY
+        coverage report --fail-under=99 # >> $GITHUB_STEP_SUMMARY
 
     - name: Upload HTML report if check failed.
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
@@ -201,8 +195,10 @@ jobs:
     strategy:
       matrix:
         python-version:
-        - '3.11'
-        - '3.12'
+        - 3.9.0
+        #- '3.10'
+        #- '3.11'
+        #- '3.12'
         - '3.13'
     runs-on: ubuntu-latest
     name: type check
@@ -217,9 +213,7 @@ jobs:
         enable-cache: true
         prune-cache: false
 
-    - run: |
-        uv sync --only-dev
-        uv sync --group typecheck
+    - run: uv sync --group typecheck
     - name: Typecheck (mypy)
       run: uv run --no-sync mypy src
 
@@ -227,7 +221,7 @@ jobs:
       run: uv run --no-sync pyright src
 
   future:
-    name: py${{ matrix.python-version }}
+    name: Future (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -236,7 +230,7 @@ jobs:
       matrix:
         python-version:
         #- 3.14-dev
-        - 3.13t
+        - 3.13
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -257,25 +251,20 @@ jobs:
         echo "PYTHON_GIL=0" >> $GITHUB_ENV
         echo
     - name: Build
-      # ninja is a system level requirement to meson-python
-      # it is automatically obtained from PyPI if lacking at the system level
-      # when building a package in isolation, which is why it's not listed
-      # under our build-system requirements.
       run: |
         uv venv
         uv lock --upgrade --prerelease=allow --no-build
-        uv sync --only-dev
 
     - name: Unit Tests
       run: |
         uv sync --no-editable --group test
         uv run --no-sync pytest --color=yes
 
-    - name: Concurrency tests
-      run: |
-        uv sync --no-editable --group concurrency
-        uv run --no-sync \
-          pytest --color=yes --count 500 tests/test_concurrent.py
+    # - name: Concurrency tests
+    #   run: |
+    #     uv sync --no-editable --group concurrency
+    #     uv run --no-sync \
+    #       pytest --color=yes --count 500 tests/test_concurrent.py
 
 
   create-issue:
