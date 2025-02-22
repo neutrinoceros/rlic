@@ -131,3 +131,18 @@ def test_invalid_kernel_dtype():
         ),
     ):
         rlic.convolve(img, u, v, kernel=-np.ones(5, dtype="complex128"))
+
+
+def test_mismatched_dtypes():
+    img = np.ones((64, 64), dtype="float32")
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"^Data types mismatch. "
+            r"Expected image, u, v and kernel with identical dtype, from "
+            r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
+            r"Got image\.dtype=dtype\('float32'\), u\.dtype=dtype\('float64'\), "
+            r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$"
+        ),
+    ):
+        rlic.convolve(img, u, v, kernel=kernel)

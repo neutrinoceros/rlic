@@ -9,7 +9,7 @@ from rlic._core import convolve_f32, convolve_f64
 from rlic._typing import ConvolveClosure, FloatT, f32, f64
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
-_SUPPORTED_DTYPES = [np.dtype("float64")]
+_SUPPORTED_DTYPES = [np.dtype("float32"), np.dtype("float64")]
 
 
 class _ConvolveF32:
@@ -21,7 +21,7 @@ class _ConvolveF32:
         kernel: NDArray[f32],
         iterations: int = 1,
         uv_mode: Literal["velocity", "polarization"] = "velocity",
-    ) -> NDArray[f32]:  # pragma: no cover
+    ) -> NDArray[f32]:
         return convolve_f32(image, u, v, kernel, iterations, uv_mode)
 
 
@@ -72,6 +72,9 @@ def convolve(
             f"{dtype_error_expectations}"
         )
 
+    if len(input_dtypes) != 1:
+        raise TypeError(f"Data types mismatch. {dtype_error_expectations}")
+
     if image.ndim != 2:
         raise ValueError(
             f"Expected an image with exactly two dimensions. Got {image.ndim=}"
@@ -103,7 +106,7 @@ def convolve(
 
     input_dtype = image.dtype
     cc: ConvolveClosure[FloatT]
-    if input_dtype == np.dtype("float32"):  # pragma: no cover
+    if input_dtype == np.dtype("float32"):
         cc = _ConvolveF32  # type: ignore[assignment] # pyright: ignore reportAssignmentType
     elif input_dtype == np.dtype("float64"):
         cc = _ConvolveF64  # type: ignore[assignment] # pyright: ignore reportAssignmentType
