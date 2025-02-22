@@ -28,3 +28,26 @@ filterwarnings = [
   "error",
 ]
 xfail_strict = true
+
+[tool.ruff.lint]
+ignore = ["E501", "D101"]
+select = [
+    "E",
+    "F",
+    "W",
+    #"D",   # pydocstyle
+    "C4",  # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "TCH", # flake8-type-checking
+    "YTT", # flake8-2020
+    "I",   # isort
+    "UP",  # pyupgrade
+    "NPY", # numpy specific rules
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["gpgi"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

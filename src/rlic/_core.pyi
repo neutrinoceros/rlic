@@ -1,3 +1,5 @@
 from numpy.typing import NDArray
 
-def convolve_iteratively(image: NDArray, u: NDArray, v: NDArray, kernel: NDArray, iterations: int) -> NDArray: ...
+def convolve_iteratively(
+    image: NDArray, u: NDArray, v: NDArray, kernel: NDArray, iterations: int
+) -> NDArray: ...
