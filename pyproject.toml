@@ -1,5 +1,5 @@
 [project]
-name = "rlic"
+name = "rLIC"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -30,8 +30,8 @@ typecheck = [
 ]
 
 [tool.maturin]
-module-name = "rlic._core"
-python-packages = ["rlic"]
+module-name = "rLIC._core"
+python-packages = ["rLIC"]
 python-source = "src"
 
 [tool.pytest.ini_options]

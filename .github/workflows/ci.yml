@@ -278,7 +278,7 @@ jobs:
         title: 'TST: Upcoming dependency test failures'
         body: |
           The weekly build with future dependencies has failed.
-          Check the logs for any updates that need to be made in rlic.
+          Check the logs for any updates that need to be made in rLIC.
           https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
 
         pinned: false

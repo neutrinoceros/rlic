@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import rlic
+import rLIC
 
 img = u = v = np.eye(64)
 kernel = np.linspace(0, 1, 10)
@@ -15,7 +15,7 @@ def test_invalid_iterations():
             r"Expected a strictly positive integer\.$"
         ),
     ):
-        rlic.convolve(img, u, v, kernel=kernel, iterations=-1)
+        rLIC.convolve(img, u, v, kernel=kernel, iterations=-1)
 
 
 def test_invalid_uv_mode():
@@ -25,7 +25,7 @@ def test_invalid_uv_mode():
             r"^Invalid uv_mode 'astral'\. Expected one of \['velocity', 'polarization'\]$"
         ),
     ):
-        rlic.convolve(img, u, v, kernel=kernel, uv_mode="astral")
+        rLIC.convolve(img, u, v, kernel=kernel, uv_mode="astral")
 
 
 def test_invalid_image_ndim():
@@ -34,7 +34,7 @@ def test_invalid_image_ndim():
         ValueError,
         match=r"^Expected an image with exactly two dimensions\. Got image\.ndim=3$",
     ):
-        rlic.convolve(img, u, v, kernel=kernel)
+        rLIC.convolve(img, u, v, kernel=kernel)
 
 
 def test_invalid_image_values():
@@ -43,7 +43,7 @@ def test_invalid_image_values():
         ValueError,
         match=(r"^Found invalid image element\(s\)\. Expected only positive values\.$"),
     ):
-        rlic.convolve(img, v, v, kernel=kernel)
+        rLIC.convolve(img, v, v, kernel=kernel)
 
 
 @pytest.mark.parametrize(
@@ -68,7 +68,7 @@ def test_mismatched_shapes(image_shape, u_shape, v_shape):
             rf"v.shape=\({v.shape[0]}, {v.shape[1]}\)$"
         ),
     ):
-        rlic.convolve(image, u, v, kernel=kernel)
+        rLIC.convolve(image, u, v, kernel=kernel)
 
 
 def test_invalid_kernel_ndim():
@@ -76,7 +76,7 @@ def test_invalid_kernel_ndim():
         ValueError,
         match=r"^Expected a kernel with exactly one dimension\. Got kernel\.ndim=2$",
     ):
-        rlic.convolve(img, u, v, kernel=np.ones((5, 5)))
+        rLIC.convolve(img, u, v, kernel=np.ones((5, 5)))
 
 
 def test_kernel_too_small():
@@ -84,8 +84,8 @@ def test_kernel_too_small():
         ValueError,
         match=r"^Expected a kernel with size 3 or more\. Got kernel\.size=2$",
     ):
-        rlic.convolve(img, u, v, kernel=np.ones(2))
-    rlic.convolve(img, u, v, kernel=np.ones(3))
+        rLIC.convolve(img, u, v, kernel=np.ones(2))
+    rLIC.convolve(img, u, v, kernel=np.ones(3))
 
 
 def test_kernel_too_long():
@@ -93,7 +93,7 @@ def test_kernel_too_long():
         ValueError,
         match=rf"^kernel\.size={img.size} exceeds the smallest dim of the image \({len(img)}\)$",
     ):
-        rlic.convolve(img, u, v, kernel=np.ones(img.size, dtype="float64"))
+        rLIC.convolve(img, u, v, kernel=np.ones(img.size, dtype="float64"))
 
 
 def test_invalid_kernel_values():
@@ -101,7 +101,7 @@ def test_invalid_kernel_values():
         ValueError,
         match=r"^Found invalid kernel element\(s\)\. Expected only positive values\.$",
     ):
-        rlic.convolve(img, u, v, kernel=-np.ones(5, dtype="float64"))
+        rLIC.convolve(img, u, v, kernel=-np.ones(5, dtype="float64"))
 
 
 def test_invalid_image_dtype():
@@ -115,7 +115,7 @@ def test_invalid_image_dtype():
             r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$"
         ),
     ):
-        rlic.convolve(img, u, v, kernel=kernel)
+        rLIC.convolve(img, u, v, kernel=kernel)
 
 
 def test_invalid_kernel_dtype():
@@ -128,7 +128,7 @@ def test_invalid_kernel_dtype():
             r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('complex128'\)$"
         ),
     ):
-        rlic.convolve(img, u, v, kernel=-np.ones(5, dtype="complex128"))
+        rLIC.convolve(img, u, v, kernel=-np.ones(5, dtype="complex128"))
 
 
 @pytest.mark.xfail(reason="support for float32 is pending")
@@ -143,4 +143,4 @@ def test_mismatched_dtypes():
             r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$"
         ),
     ):
-        rlic.convolve(img, u, v, kernel=kernel)
+        rLIC.convolve(img, u, v, kernel=kernel)

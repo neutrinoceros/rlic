@@ -65,7 +65,7 @@ jobs:
   #   - build_sdist
   #   environment:
   #     name: pypi
-  #     url: https://pypi.org/p/rlic
+  #     url: https://pypi.org/p/rLIC
   #   permissions:
   #     id-token: write
 
