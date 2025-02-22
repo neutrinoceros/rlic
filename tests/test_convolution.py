@@ -58,7 +58,7 @@ def test_uv_modes_diff():
     assert np.ptp(diff) > 1
 
 
-@pytest.mark.parametrize("kernel_size", [1, 2, 3, 4])
+@pytest.mark.parametrize("kernel_size", [3, 4])
 def test_uv_modes_equiv(kernel_size):
     # with a kernel shorter than 5, uv_mode='polarization' doesn't do anything more or
     # different than uv_mode='velocity'

@@ -7,7 +7,9 @@ authors = [
     { name = "Clément Robert", email = "cr52@protonmail.com" }
 ]
 requires-python = ">=3.9"
-dependencies = ["numpy>=2.0.0"]
+dependencies = [
+    "numpy>=2.0.0",
+]
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]

@@ -8,21 +8,24 @@ kernel = np.linspace(0, 1, 10)
 
 
 def test_invalid_iterations():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="..."):
         rlic.convolve(img, img, img, kernel=kernel, iterations=-1)
 
 
-@pytest.mark.parametrize(
-    "uv_mode, noop_size, min_size", [("velocity", 3, 4), ("polarization", 3, 5)]
-)
-def test_warn_noop_kernel_too_small(uv_mode, noop_size, min_size):
-    with pytest.warns(UserWarning, match="..."):
-        rlic.convolve(img, img, img, kernel=np.ones(noop_size), uv_mode=uv_mode)
-    rlic.convolve(img, img, img, kernel=np.ones(min_size), uv_mode=uv_mode)
+def test_kernel_too_small():
+    with pytest.raises(
+        ValueError,
+        match=r"^Expected a kernel with size 3 or more\. Got kernel\.size=2$",
+    ):
+        rlic.convolve(img, img, img, kernel=np.ones(2))
+    rlic.convolve(img, img, img, kernel=np.ones(3))
 
 
-def test_invalid_kernel_size():
-    with pytest.raises(ValueError, match="..."):
+def test_kernel_too_long():
+    with pytest.raises(
+        ValueError,
+        match=rf"^kernel\.size={img.size} exceeds the smallest dim of the image \({len(img)}\)$",
+    ):
         rlic.convolve(img, img, img, kernel=np.ones(img.size, dtype="float64"))
 
 
