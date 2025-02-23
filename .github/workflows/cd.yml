@@ -82,6 +82,7 @@ jobs:
     name: Publish to PyPI
     needs:
     - build-sdist
+    - test-sdist
     #- build-wheels
     environment:
       name: pypi
