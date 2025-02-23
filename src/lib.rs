@@ -201,7 +201,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             }
         }
 
-        output.to_pyarray_bound(py)
+        output.to_pyarray(py)
     }
 
     Ok(())
