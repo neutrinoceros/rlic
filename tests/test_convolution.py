@@ -68,7 +68,6 @@ def test_uv_modes_equiv(kernel_size):
     assert_array_equal(out_pol, out_vel)
 
 
-
 def test_uv_mode_polarization_sym():
     NX = 5
     kernel = np.array([1, 1, 1, 1, 1], dtype="float64")
