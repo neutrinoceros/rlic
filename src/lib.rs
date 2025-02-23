@@ -15,7 +15,6 @@ enum UVMode {
 /// import the module.
 #[pymodule]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
-    // TODO: parametrize dtype (support f32 too)
     fn advance(
         vx: f64,
         vy: f64,

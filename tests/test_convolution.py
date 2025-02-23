@@ -68,10 +68,6 @@ def test_uv_modes_equiv(kernel_size):
     assert_array_equal(out_pol, out_vel)
 
 
-# TODO:
-# - test that with kernel size < 5, both uv_mode options are equivalent
-# - document it
-
 
 def test_uv_mode_polarization_sym():
     NX = 5
