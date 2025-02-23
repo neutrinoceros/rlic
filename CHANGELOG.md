@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+...
+
+## 0.1.1 - 2025-02-23
+
 - DEP: add support for numpy 1.x
 - REL: ensure source distribution is testable and enable auto-publishing
 
