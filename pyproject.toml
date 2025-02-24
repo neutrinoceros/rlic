@@ -78,28 +78,6 @@ exclude_lines = [
     "-> ['\"]?NoReturn['\"]?:",
 ]
 
-[tool.cibuildwheel]
-build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
-build-frontend = "build[uv]"
-build-verbosity = 1
-test-groups = ["test"] #, "concurrency"]
-test-command = [
-    "pytest --color=yes {project}/tests",
-    #"pytest --color=yes --count 500 {project}/tests/test_concurrent.py",
-]
-
-[tool.cibuildwheel.linux]
-archs = "x86_64"
-before-all = "curl -sSf https://sh.rustup.rs | sh -s -- -y"
-environment = { "PATH" = "$HOME/.cargo/bin:$PATH" }
-
-[tool.cibuildwheel.macos]
-archs = "auto64"
-# 10.12 is my minimal requirement on x86_64 at the time of writing,
-# but 11.0 is the absolute minimum on arm64. Luckily, cibuildwheel knows
-# to bump it on amr64, but warnings should be expected.
-environment = { "MACOSX_DEPLOYMENT_TARGET" = "10.12" }
-
 [tool.cibuildwheel.windows]
 archs = "AMD64"
 
