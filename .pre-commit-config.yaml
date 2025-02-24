@@ -35,3 +35,18 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent, '2']
+
+
+- repo: local
+  hooks:
+  - id: cargo-fmt
+    name: cargo-fmt
+    language: system
+    files: \.rs$
+    entry: cargo fmt -- --check
+  # - id: cargo-clippy
+  #   name: cargo-clippy
+  #   language: system
+  #   files: \.rs$
+  #   entry: cargo clippy --all-targets --all -- -D warnings   # Use -D warnings option to ensure the job fails when encountering warnings
+  #   pass_filenames: false

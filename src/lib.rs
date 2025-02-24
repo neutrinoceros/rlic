@@ -9,7 +9,6 @@ enum UVMode {
     Polarization,
 }
 
-
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -30,25 +29,25 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         // Think of tx (ty) as the time it takes to reach the next pixel along x (y).
         let tx: f64;
         let ty: f64;
-        if vx>0.0 {
-            tx = (1.0-*fx)/vx;
-        } else if vx<0.0 {
-            tx = -*fx/vx;
+        if vx > 0.0 {
+            tx = (1.0 - *fx) / vx;
+        } else if vx < 0.0 {
+            tx = -*fx / vx;
         } else {
             zeros += 1;
             tx = 1e100;
         }
-        if vy>0.0 {
-            ty = (1.0-*fy)/vy;
-        } else if vy<0.0 {
-            ty = -*fy/vy;
+        if vy > 0.0 {
+            ty = (1.0 - *fy) / vy;
+        } else if vy < 0.0 {
+            ty = -*fy / vy;
         } else {
             zeros += 1;
             ty = 1e100;
         }
 
         if zeros == 2 {
-            return
+            return;
         }
 
         if tx < ty {
@@ -117,7 +116,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     let mut vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
                     match uv_mode {
                         UVMode::Polarization => {
-                            if (ui*last_ui+vi*last_vi)<0.0 {
+                            if (ui * last_ui + vi * last_vi) < 0.0 {
                                 ui = -ui;
                                 vi = -vi;
                             }
@@ -145,7 +144,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     let mut vi = v[[as_array_index(y, ny), as_array_index(x, nx)]];
                     match uv_mode {
                         UVMode::Polarization => {
-                            if (ui*last_ui+vi*last_vi)<0.0 {
+                            if (ui * last_ui + vi * last_vi) < 0.0 {
                                 ui = -ui;
                                 vi = -vi;
                             }
