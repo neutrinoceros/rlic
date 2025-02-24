@@ -18,3 +18,4 @@ crate-type = ["cdylib"]
 # keep in sync with requires-python (pyproject.toml)
 pyo3 = { version = "0.23.4", features = ["extension-module", "abi3-py39"] }
 numpy = "0.23.0"
+num-traits = "0.2.19"

@@ -1,14 +1,21 @@
 from typing import Literal
 
+from numpy import float32 as f32, float64 as f64
 from numpy.typing import NDArray
 
-from rlic._typing import FloatT
-
-def convolve_iteratively(
-    image: NDArray[FloatT],
-    u: NDArray[FloatT],
-    v: NDArray[FloatT],
-    kernel: NDArray[FloatT],
+def convolve_f32(
+    image: NDArray[f32],
+    u: NDArray[f32],
+    v: NDArray[f32],
+    kernel: NDArray[f32],
     iterations: int = 1,
     uv_mode: Literal["velocity", "polarization"] = "velocity",
-) -> NDArray: ...
+) -> NDArray[f32]: ...
+def convolve_f64(
+    image: NDArray[f64],
+    u: NDArray[f64],
+    v: NDArray[f64],
+    kernel: NDArray[f64],
+    iterations: int = 1,
+    uv_mode: Literal["velocity", "polarization"] = "velocity",
+) -> NDArray[f64]: ...
