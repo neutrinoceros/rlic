@@ -5,11 +5,37 @@ from typing import Literal
 import numpy as np
 from numpy.typing import NDArray
 
-from rlic._core import convolve_iteratively
-from rlic._typing import FloatT
+from rlic._core import convolve_f32, convolve_f64
+from rlic._typing import ConvolveClosure, FloatT, f32, f64
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES = [np.dtype("float64")]
+
+
+class _ConvolveF32:
+    @staticmethod
+    def closure(
+        image: NDArray[f32],
+        u: NDArray[f32],
+        v: NDArray[f32],
+        kernel: NDArray[f32],
+        iterations: int = 1,
+        uv_mode: Literal["velocity", "polarization"] = "velocity",
+    ) -> NDArray[f32]:  # pragma: no cover
+        return convolve_f32(image, u, v, kernel, iterations, uv_mode)
+
+
+class _ConvolveF64:
+    @staticmethod
+    def closure(
+        image: NDArray[f64],
+        u: NDArray[f64],
+        v: NDArray[f64],
+        kernel: NDArray[f64],
+        iterations: int = 1,
+        uv_mode: Literal["velocity", "polarization"] = "velocity",
+    ) -> NDArray[f64]:
+        return convolve_f64(image, u, v, kernel, iterations, uv_mode)
 
 
 def convolve(
@@ -75,4 +101,12 @@ def convolve(
             "Found invalid kernel element(s). Expected only positive values."
         )
 
-    return convolve_iteratively(image, u, v, kernel, iterations, uv_mode)
+    input_dtype = image.dtype
+    cc: ConvolveClosure[FloatT]
+    if input_dtype == np.dtype("float32"):  # pragma: no cover
+        cc = _ConvolveF32  # type: ignore[assignment] # pyright: ignore reportAssignmentType
+    elif input_dtype == np.dtype("float64"):
+        cc = _ConvolveF64  # type: ignore[assignment] # pyright: ignore reportAssignmentType
+    else:
+        raise RuntimeError  # pragma: no cover
+    return cc.closure(image, u, v, kernel, iterations, uv_mode)
