@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-...
+- ENH: add support for single precision (`float32`) input data
 
 ## 0.1.1 - 2025-02-23
 
