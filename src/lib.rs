@@ -71,15 +71,14 @@ impl PixelSelector {
 trait ParticularValues: From<f32> + Zero + One {
     fn ceil(&self) -> Self;
 }
-
-impl ParticularValues for f64 {
-    fn ceil(&self) -> Self {
-        1e100f64
-    }
-}
 impl ParticularValues for f32 {
     fn ceil(&self) -> Self {
         1e10f32
+    }
+}
+impl ParticularValues for f64 {
+    fn ceil(&self) -> Self {
+        1e100f64
     }
 }
 
