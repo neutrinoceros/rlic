@@ -9,10 +9,18 @@ import rlic
 prng = np.random.default_rng(0)
 
 NX = 128
-img = prng.random((NX, NX))
-u = prng.random((NX, NX))
-v = prng.random((NX, NX))
-kernel = np.linspace(0, 1, 10)
+
+
+def get_convolve_args(nx=NX, dtype="float64"):
+    return (
+        prng.random((nx, nx), dtype=dtype),
+        prng.random((nx, nx), dtype=dtype),
+        prng.random((nx, nx), dtype=dtype),
+        np.linspace(0, 1, 10, dtype=dtype),
+    )
+
+
+img, u, v, kernel = get_convolve_args()
 
 
 def test_no_iterations():
@@ -20,7 +28,9 @@ def test_no_iterations():
     assert_array_equal(out, img)
 
 
-def test_single_iteration():
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_single_iteration(dtype):
+    img, u, v, kernel = get_convolve_args(dtype=dtype)
     out_impl = rlic.convolve(img, u, v, kernel=kernel)
     out_expl = rlic.convolve(img, u, v, kernel=kernel, iterations=1)
     assert_array_equal(out_impl, out_expl)
