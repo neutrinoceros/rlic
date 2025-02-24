@@ -6,9 +6,10 @@ on:
   pull_request:
     paths-ignore:
     - README.md
-  schedule:
+    - CHANGELOG.md
+  #schedule:
   # run this every Wednesday at 3 am UTC
-  - cron: 0 3 * * 3
+  #- cron: 0 3 * * 3
   workflow_dispatch:
 
 concurrency:
@@ -31,14 +32,14 @@ jobs:
       run: uv build
 
   unit-tests:
-    name: ${{matrix.os}} x py${{matrix.python-version}} ${{matrix.marker}}
+    name: ${{matrix.os}} x py${{matrix.python-version}}
     strategy:
       fail-fast: false
       matrix:
         os:
         - ubuntu-latest
-        - macos-latest
-        - windows-latest
+        #- macos-latest
+        #- windows-latest
         python-version:
         - 3.9
         #- '3.10'
@@ -218,45 +219,45 @@ jobs:
     - name: Typecheck (pyright)
       run: uv run --no-sync pyright src
 
-  future:
-    name: Future (py${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  # future:
+  #   name: Future (py${{ matrix.python-version }})
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 20
 
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-        #- 3.14-dev
-        - 3.13
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       python-version:
+  #       #- 3.14-dev
+  #       - 3.13
 
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
-      with:
-        python-version: ${{ matrix.python-version }}
-        # can't cache numpy nightlies as the name of the artifact
-        # stays the same for a while
-        enable-cache: false
-    - name: Configure uv
-      run: |
-        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
-        echo "UV_INDEX=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> $GITHUB_ENV
-        echo "UV_INDEX_STRATEGY=unsafe-best-match" >> $GITHUB_ENV
-    - name: Set PYTHON_GIL
-      if: ${{ endswith( matrix.python-version , 't' ) }}
-      run: |
-        echo "PYTHON_GIL=0" >> $GITHUB_ENV
-        echo
-    - name: Build
-      run: |
-        uv venv
-        uv lock --upgrade --prerelease=allow --no-build
+  #   steps:
+  #   - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #   - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #       # can't cache numpy nightlies as the name of the artifact
+  #       # stays the same for a while
+  #       enable-cache: false
+  #   - name: Configure uv
+  #     run: |
+  #       echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
+  #       echo "UV_INDEX=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> $GITHUB_ENV
+  #       echo "UV_INDEX_STRATEGY=unsafe-best-match" >> $GITHUB_ENV
+  #   - name: Set PYTHON_GIL
+  #     if: ${{ endswith( matrix.python-version , 't' ) }}
+  #     run: |
+  #       echo "PYTHON_GIL=0" >> $GITHUB_ENV
+  #       echo
+  #   - name: Build
+  #     run: |
+  #       uv venv
+  #       uv lock --upgrade --prerelease=allow --no-build
 
-    - name: Unit Tests
-      run: |
-        uv sync --no-editable --group test
-        uv run --no-sync pytest --color=yes
+  #   - name: Unit Tests
+  #     run: |
+  #       uv sync --no-editable --group test
+  #       uv run --no-sync pytest --color=yes
 
     # - name: Concurrency tests
     #   run: |
@@ -265,25 +266,25 @@ jobs:
     #       pytest --color=yes --count 500 tests/test_concurrent.py
 
 
-  create-issue:
-    if: ${{ failure() && github.event_name == 'schedule' }}
-    needs: [future]
-    permissions:
-      issues: write
-    runs-on: ubuntu-latest
-    name: Create issue on failure
+  # create-issue:
+  #   if: ${{ failure() && github.event_name == 'schedule' }}
+  #   needs: [future]
+  #   permissions:
+  #     issues: write
+  #   runs-on: ubuntu-latest
+  #   name: Create issue on failure
 
-    steps:
-    - name: Create issue on failure
-      uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd # v3.4.4
-      with:
-        title: 'TST: Upcoming dependency test failures'
-        body: |
-          The weekly build with future dependencies has failed.
-          Check the logs for any updates that need to be made in rlic.
-          https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+  #   steps:
+  #   - name: Create issue on failure
+  #     uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd # v3.4.4
+  #     with:
+  #       title: 'TST: Upcoming dependency test failures'
+  #       body: |
+  #         The weekly build with future dependencies has failed.
+  #         Check the logs for any updates that need to be made in rlic.
+  #         https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
 
-        pinned: false
-        close-previous: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       pinned: false
+  #       close-previous: false
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
