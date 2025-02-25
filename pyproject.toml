@@ -82,12 +82,12 @@ exclude_lines = [
 archs = "AMD64"
 
 [tool.ruff.lint]
-ignore = ["E501", "D101"]
+ignore = ["E501"]
 select = [
     "E",
     "F",
     "W",
-    #"D",   # pydocstyle
+    "D",   # pydocstyle
     "C4",  # flake8-comprehensions
     "B",   # flake8-bugbear
     "TCH", # flake8-type-checking
@@ -97,9 +97,8 @@ select = [
     "NPY", # numpy specific rules
 ]
 
-[tool.ruff.lint.isort]
-combine-as-imports = true
-known-first-party = ["gpgi"]
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
