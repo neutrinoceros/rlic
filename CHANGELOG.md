@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- WHL: build and publish `abi3` wheels for all platforms + achitecture combos
+- WHL: build and publish `abi3` wheels for all platforms + architecture combos
   supported by NumPy as of 2.2.3
 - API: rename the first argument to `rlic.convolve` from `image` to `texture`,
   and make it positional-only.
