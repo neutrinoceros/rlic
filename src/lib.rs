@@ -107,7 +107,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         T: Copy + PartialOrd + Mul<Output = T> + AddAssign<<T as Mul>::Output> + ParticularValues,
     >(
         velocity_parallel: &T,
-        velocity_orhtogonal: &T,
+        velocity_orthogonal: &T,
         coord_parallel: &mut i64,
         frac_parallel: &mut T,
         frac_orthogonal: &mut T,
@@ -120,7 +120,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             *coord_parallel -= 1;
             *frac_parallel = 1.0.into();
         }
-        *frac_orthogonal += *time_parallel * *velocity_orhtogonal;
+        *frac_orthogonal += *time_parallel * *velocity_orthogonal;
     }
 
     fn advance<
@@ -270,7 +270,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             }
         }
     }
-    fn convolve_interatively_impl<
+    fn convolve_iteratively_impl<
         'py,
         T: numpy::Element
             + Clone
@@ -324,7 +324,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
 
     #[pyfn(m)]
     #[pyo3(name = "convolve_f32")]
-    fn convolve_interatively_f32_py<'py>(
+    fn convolve_iteratively_f32_py<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f32>,
         u: PyReadonlyArray2<'py, f32>,
@@ -333,12 +333,12 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
         uv_mode: String,
     ) -> Bound<'py, PyArray2<f32>> {
-        convolve_interatively_impl(py, texture, u, v, kernel, iterations, uv_mode)
+        convolve_iteratively_impl(py, texture, u, v, kernel, iterations, uv_mode)
     }
 
     #[pyfn(m)]
     #[pyo3(name = "convolve_f64")]
-    fn convolve_interatively_f64_py<'py>(
+    fn convolve_iteratively_f64_py<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f64>,
         u: PyReadonlyArray2<'py, f64>,
@@ -347,7 +347,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
         uv_mode: String,
     ) -> Bound<'py, PyArray2<f64>> {
-        convolve_interatively_impl(py, texture, u, v, kernel, iterations, uv_mode)
+        convolve_iteratively_impl(py, texture, u, v, kernel, iterations, uv_mode)
     }
     Ok(())
 }
