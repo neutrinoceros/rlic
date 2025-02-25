@@ -42,6 +42,7 @@ test = [
     "pytest>=8.1.0",
 ]
 typecheck = [
+    "basedpyright>=1.26.0",
     "mypy>=1.13.0",
     "pyright>=1.1.391",
 ]
@@ -78,8 +79,17 @@ exclude_lines = [
     "-> ['\"]?NoReturn['\"]?:",
 ]
 
-[tool.cibuildwheel.windows]
-archs = "AMD64"
+[tool.pyright]
+reportImplicitStringConcatenation = false
+
+[tool.mypy]
+python_version = "3.9"
+show_error_codes = true
+show_error_context = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
 
 [tool.ruff.lint]
 ignore = ["E501"]
