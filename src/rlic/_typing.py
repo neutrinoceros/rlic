@@ -9,10 +9,10 @@ FloatT = TypeVar("FloatT", f32, f64)
 class ConvolveClosure(Protocol[FloatT]):
     @staticmethod
     def closure(
-        image: NDArray[FloatT],
+        texture: NDArray[FloatT],
         u: NDArray[FloatT],
         v: NDArray[FloatT],
         kernel: NDArray[FloatT],
-        iterations: int = 1,
-        uv_mode: Literal["velocity", "polarization"] = "velocity",
+        iterations: int,
+        uv_mode: Literal["velocity", "polarization"],
     ) -> NDArray[FloatT]: ...
