@@ -1,6 +1,7 @@
 from typing import Literal, Protocol, TypeVar
 
-from numpy import float32 as f32, float64 as f64
+from numpy import float32 as f32
+from numpy import float64 as f64
 from numpy.typing import NDArray
 
 FloatT = TypeVar("FloatT", f32, f64)

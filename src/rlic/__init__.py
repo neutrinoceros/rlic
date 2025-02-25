@@ -1,3 +1,5 @@
+"""Line Integral Convolution, implemented in Rust."""
+
 __all__ = ["convolve"]
 
 from typing import Literal
@@ -45,9 +47,49 @@ def convolve(
     v: NDArray[FloatT],
     *,
     kernel: NDArray[FloatT],
-    iterations: int = 1,
     uv_mode: Literal["velocity", "polarization"] = "velocity",
-):
+    iterations: int = 1,
+) -> NDArray[FloatT]:
+    """2-dimensional line integral convolution.
+
+    Apply Line Integral Convolution to a texture array, against a 2D flow
+    (u, v) and via a 1D kernel.
+
+    Arguments
+    ---------
+    texture: 2D numpy array (positional-only)
+      Usually, random noise serves as input.
+
+    u, v: 2D numpy arrays
+      Represent the horizontal and vertical components of a vector field,
+      respectively.
+
+    kernel: 1D numpy array
+      This is the convolution kernel.
+
+    uv_mode: 'velocity' (default), or 'polarization', keyword-only
+      By default, the vector (u, v) field is assumed to be velocity-like, i.e.,
+      its direction matters. With uv_mode='polarization', direction is
+      effectively ignored.
+
+    iterations: (positive) int (default: 1)
+      Perform multiple iterations in a loop where the output array texture
+      is fed back as the input to the next iteration.
+      Looping is done at the native-code level.
+
+    Raises
+    ------
+    TypeError
+      If input arrays' dtypes are mismatched.
+    ValueError:
+      If non-sensical or unknown values are received.
+
+    Notes
+    -----
+    With a kernel.size < 5, uv_mode='polarization' is effectively equivalent to
+    uv_mode='velocity'. However, this is still a valid use case, so, no warning
+    is emitted.
+    """
     if iterations < 0:
         raise ValueError(
             f"Invalid number of iterations: {iterations}\n"
