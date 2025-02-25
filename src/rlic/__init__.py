@@ -1,17 +1,25 @@
 """Line Integral Convolution, implemented in Rust."""
 
+from __future__ import annotations
+
 __all__ = ["convolve"]
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-from numpy.typing import NDArray
 
 from rlic._core import convolve_f32, convolve_f64
-from rlic._typing import ConvolveClosure, FloatT, f32, f64
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+    from rlic._typing import ConvolveClosure, FloatT, f32, f64
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
-_SUPPORTED_DTYPES = [np.dtype("float32"), np.dtype("float64")]
+_SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
+    np.dtype("float32"),
+    np.dtype("float64"),
+]
 
 
 class _ConvolveF32:
@@ -149,10 +157,11 @@ def convolve(
 
     input_dtype = texture.dtype
     cc: ConvolveClosure[FloatT]
+    # mypy ignores can be removed once Python 3.9 is dropped.
     if input_dtype == np.dtype("float32"):
-        cc = _ConvolveF32  # type: ignore[assignment] # pyright: ignore reportAssignmentType
+        cc = _ConvolveF32  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
     elif input_dtype == np.dtype("float64"):
-        cc = _ConvolveF64  # type: ignore[assignment] # pyright: ignore reportAssignmentType
+        cc = _ConvolveF64  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
     else:
         raise RuntimeError  # pragma: no cover
     return cc.closure(texture, u, v, kernel, iterations, uv_mode)
