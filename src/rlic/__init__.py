@@ -11,9 +11,16 @@ import numpy as np
 from rlic._core import convolve_f32, convolve_f64
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
-
-    from rlic._typing import ConvolveClosure, FloatT, f32, f64
+    from rlic._typing import (
+        D1,
+        D2,
+        ConvolveClosure,
+        FloatArray1D,
+        FloatArray2D,
+        FloatT,
+        f32,
+        f64,
+    )
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
@@ -25,39 +32,39 @@ _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
 class _ConvolveF32:
     @staticmethod
     def closure(
-        texture: NDArray[f32],
-        u: NDArray[f32],
-        v: NDArray[f32],
-        kernel: NDArray[f32],
+        texture: FloatArray2D[D1, D2, f32],
+        u: FloatArray2D[D1, D2, f32],
+        v: FloatArray2D[D1, D2, f32],
+        kernel: FloatArray1D[int, f32],
         iterations: int,
         uv_mode: Literal["velocity", "polarization"],
-    ) -> NDArray[f32]:
+    ) -> FloatArray2D[D1, D2, f32]:
         return convolve_f32(texture, u, v, kernel, iterations, uv_mode)
 
 
 class _ConvolveF64:
     @staticmethod
     def closure(
-        texture: NDArray[f64],
-        u: NDArray[f64],
-        v: NDArray[f64],
-        kernel: NDArray[f64],
+        texture: FloatArray2D[D1, D2, f64],
+        u: FloatArray2D[D1, D2, f64],
+        v: FloatArray2D[D1, D2, f64],
+        kernel: FloatArray1D[int, f64],
         iterations: int,
         uv_mode: Literal["velocity", "polarization"],
-    ) -> NDArray[f64]:
+    ) -> FloatArray2D[D1, D2, f64]:
         return convolve_f64(texture, u, v, kernel, iterations, uv_mode)
 
 
 def convolve(
-    texture: NDArray[FloatT],
+    texture: FloatArray2D[D1, D2, FloatT],
     /,
-    u: NDArray[FloatT],
-    v: NDArray[FloatT],
+    u: FloatArray2D[D1, D2, FloatT],
+    v: FloatArray2D[D1, D2, FloatT],
     *,
-    kernel: NDArray[FloatT],
-    uv_mode: Literal["velocity", "polarization"] = "velocity",
+    kernel: FloatArray1D[int, FloatT],
     iterations: int = 1,
-) -> NDArray[FloatT]:
+    uv_mode: Literal["velocity", "polarization"] = "velocity",
+) -> FloatArray2D[D1, D2, FloatT]:
     """2-dimensional line integral convolution.
 
     Apply Line Integral Convolution to a texture array, against a 2D flow
@@ -156,8 +163,8 @@ def convolve(
         )
 
     input_dtype = texture.dtype
-    cc: ConvolveClosure[FloatT]
     # mypy ignores can be removed once Python 3.9 is dropped.
+    cc: ConvolveClosure[D1, D2, FloatT]
     if input_dtype == np.dtype("float32"):
         cc = _ConvolveF32  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
     elif input_dtype == np.dtype("float64"):
