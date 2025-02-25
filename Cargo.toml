@@ -1,6 +1,6 @@
 [package]
 name = "rlic"
-version = "0.1.2" # keep in sync with pyproject.toml
+version = "0.2.0" # keep in sync with pyproject.toml
 edition = "2021"
 # 1.71 is the oldest version I was able to check for via cargo-msrv.
 # However, dependencies support 1.63 .
