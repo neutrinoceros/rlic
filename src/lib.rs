@@ -285,7 +285,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             + ParticularValues,
     >(
         py: Python<'py>,
-        image: PyReadonlyArray2<'py, T>,
+        texture: PyReadonlyArray2<'py, T>,
         u: PyReadonlyArray2<'py, T>,
         v: PyReadonlyArray2<'py, T>,
         kernel: PyReadonlyArray1<'py, T>,
@@ -295,10 +295,10 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         let u = u.as_array();
         let v = v.as_array();
         let kernel = kernel.as_array();
-        let image = image.as_array();
+        let texture = texture.as_array();
         let mut input =
-            Array2::from_shape_vec(image.raw_dim(), image.iter().cloned().collect()).unwrap();
-        let mut output = Array2::<T>::zeros(image.raw_dim());
+            Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
+        let mut output = Array2::<T>::zeros(texture.raw_dim());
 
         let uv_mode_enum: UVMode;
         if uv_mode == "polarization" {
@@ -326,28 +326,28 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     #[pyo3(name = "convolve_f32")]
     fn convolve_interatively_f32_py<'py>(
         py: Python<'py>,
-        image: PyReadonlyArray2<'py, f32>,
+        texture: PyReadonlyArray2<'py, f32>,
         u: PyReadonlyArray2<'py, f32>,
         v: PyReadonlyArray2<'py, f32>,
         kernel: PyReadonlyArray1<'py, f32>,
         iterations: i64,
         uv_mode: String,
     ) -> Bound<'py, PyArray2<f32>> {
-        convolve_interatively_impl(py, image, u, v, kernel, iterations, uv_mode)
+        convolve_interatively_impl(py, texture, u, v, kernel, iterations, uv_mode)
     }
 
     #[pyfn(m)]
     #[pyo3(name = "convolve_f64")]
     fn convolve_interatively_f64_py<'py>(
         py: Python<'py>,
-        image: PyReadonlyArray2<'py, f64>,
+        texture: PyReadonlyArray2<'py, f64>,
         u: PyReadonlyArray2<'py, f64>,
         v: PyReadonlyArray2<'py, f64>,
         kernel: PyReadonlyArray1<'py, f64>,
         iterations: i64,
         uv_mode: String,
     ) -> Bound<'py, PyArray2<f64>> {
-        convolve_interatively_impl(py, image, u, v, kernel, iterations, uv_mode)
+        convolve_interatively_impl(py, texture, u, v, kernel, iterations, uv_mode)
     }
     Ok(())
 }
