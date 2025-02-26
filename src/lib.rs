@@ -86,6 +86,42 @@ impl PixelSelector {
     }
 }
 
+#[cfg(test)]
+mod test_pixel_selector {
+    use numpy::ndarray::array;
+
+    use crate::{ImageDimensions, PixelCoordinates, PixelSelector};
+    #[test]
+    fn from_array() {
+        let arr = array![[1.0, 2.0], [3.0, 4.0]];
+        let dims = ImageDimensions {
+            nx: 4,
+            ny: 4,
+            width: 4,
+            height: 4,
+        };
+        let coords = PixelCoordinates { x: 1, y: 1 };
+        let ps = PixelSelector {};
+        let res = ps.get(&arr, &coords, &dims);
+        assert_eq!(res, 4.0);
+    }
+    #[test]
+    fn from_view() {
+        let arr = array![[1.0, 2.0], [3.0, 4.0]];
+        let view = arr.view();
+        let dims = ImageDimensions {
+            nx: 4,
+            ny: 4,
+            width: 4,
+            height: 4,
+        };
+        let coords = PixelCoordinates { x: 1, y: 1 };
+        let ps = PixelSelector {};
+        let res = ps.get_v(&view, &coords, &dims);
+        assert_eq!(res, 4.0);
+    }
+}
+
 trait ParticularValues: From<f32> + Zero + One {}
 impl ParticularValues for f32 {}
 impl ParticularValues for f64 {}
