@@ -89,10 +89,19 @@ fn time_to_next_pixel<
 }
 
 #[cfg(test)]
-mod test {
+mod test_time_to_next_pixel {
     use std::assert_eq;
-
-    use super::*;
+    use super::time_to_next_pixel;
+    #[test]
+    fn positive_vel() {
+        let res = time_to_next_pixel(1.0, 0.0);
+        assert_eq!(res, 1.0);
+    }
+    #[test]
+    fn negative_vel() {
+        let res = time_to_next_pixel(-1.0, 1.0);
+        assert_eq!(res, 1.0);
+    }
     #[test]
     fn infinite_time_f32() {
         let res = time_to_next_pixel(0.0f32, 0.5f32);
