@@ -122,14 +122,24 @@ mod test_pixel_selector {
     }
 }
 
-trait FloatLike: PartialOrd + From<f32> + Zero + One {}
+trait FloatLike:
+    PartialOrd
+    + Neg<Output = Self>
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + AddAssign<<Self as Mul>::Output>
+    + Copy
+    + From<f32>
+    + Zero
+    + One
+{
+}
 impl FloatLike for f32 {}
 impl FloatLike for f64 {}
 
-fn time_to_next_pixel<T: FloatLike + Neg<Output = T> + Div<Output = T> + Sub<Output = T>>(
-    velocity: T,
-    current_frac: T,
-) -> T {
+fn time_to_next_pixel<T: FloatLike>(velocity: T, current_frac: T) -> T {
     if velocity > 0.0.into() {
         let one: T = 1.0.into();
         (one - current_frac) / velocity
@@ -171,7 +181,7 @@ mod test_time_to_next_pixel {
 /// import the module.
 #[pymodule]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
-    fn update_state<T: FloatLike + Copy + Mul<Output = T> + AddAssign<<T as Mul>::Output>>(
+    fn update_state<T: FloatLike>(
         velocity_parallel: &T,
         velocity_orthogonal: &T,
         coord_parallel: &mut i64,
@@ -189,15 +199,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         *frac_orthogonal += *time_parallel * *velocity_orthogonal;
     }
 
-    fn advance<
-        T: FloatLike
-            + Copy
-            + Neg<Output = T>
-            + Sub<Output = T>
-            + Mul<Output = T>
-            + Div<Output = T>
-            + AddAssign<<T as Mul>::Output>,
-    >(
+    fn advance<T: FloatLike>(
         uv: &UVPoint<T>,
         coords: &mut PixelCoordinates,
         pix_frac: &mut PixelFraction<T>,
@@ -235,17 +237,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         coords.y = max(0, min(dims.height - 1, coords.y));
     }
 
-    fn convolve<
-        'py,
-        T: FloatLike
-            + Copy
-            + Add<Output = T>
-            + Sub<Output = T>
-            + Neg<Output = T>
-            + Mul<Output = T>
-            + Div<Output = T>
-            + AddAssign<<T as Mul>::Output>,
-    >(
+    fn convolve<'py, T: FloatLike>(
         u: ArrayView2<'py, T>,
         v: ArrayView2<'py, T>,
         kernel: ArrayView1<'py, T>,
@@ -334,19 +326,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             }
         }
     }
-    fn convolve_iteratively_impl<
-        'py,
-        T: FloatLike
-            + numpy::Element
-            + Clone
-            + Copy
-            + Add<Output = T>
-            + Sub<Output = T>
-            + Mul<Output = T>
-            + Div<Output = T>
-            + Neg<Output = T>
-            + AddAssign<<T as Mul>::Output>,
-    >(
+    fn convolve_iteratively_impl<'py, T: FloatLike + numpy::Element>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, T>,
         u: PyReadonlyArray2<'py, T>,
