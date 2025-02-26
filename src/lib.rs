@@ -18,10 +18,6 @@ struct ImageDimensions {
     height: i64,
 }
 
-struct PixelCoordinates {
-    x: i64,
-    y: i64,
-}
 struct PixelFraction<T> {
     x: T,
     y: T,
@@ -34,12 +30,34 @@ fn as_array_index(x: i64, nx: usize) -> usize {
         ((nx as i64) + x) as usize
     }
 }
+struct PixelCoordinates {
+    x: i64,
+    y: i64,
+}
 impl PixelCoordinates {
     fn x_idx(&self, d: &ImageDimensions) -> usize {
         as_array_index(self.x, d.nx)
     }
     fn y_idx(&self, d: &ImageDimensions) -> usize {
         as_array_index(self.y, d.ny)
+    }
+}
+
+#[cfg(test)]
+mod test_pixel_coordinates {
+    use crate::{ImageDimensions, PixelCoordinates};
+
+    #[test]
+    fn coords_as_indices() {
+        let dims = ImageDimensions {
+            nx: 128,
+            ny: 128,
+            width: 128,
+            height: 128,
+        };
+        let pc = PixelCoordinates { x: 5, y: -10 };
+        assert_eq!(pc.x_idx(&dims), 5);
+        assert_eq!(pc.y_idx(&dims), 128 - 10);
     }
 }
 
@@ -68,6 +86,42 @@ impl PixelSelector {
     }
 }
 
+#[cfg(test)]
+mod test_pixel_selector {
+    use numpy::ndarray::array;
+
+    use crate::{ImageDimensions, PixelCoordinates, PixelSelector};
+    #[test]
+    fn from_array() {
+        let arr = array![[1.0, 2.0], [3.0, 4.0]];
+        let dims = ImageDimensions {
+            nx: 4,
+            ny: 4,
+            width: 4,
+            height: 4,
+        };
+        let coords = PixelCoordinates { x: 1, y: 1 };
+        let ps = PixelSelector {};
+        let res = ps.get(&arr, &coords, &dims);
+        assert_eq!(res, 4.0);
+    }
+    #[test]
+    fn from_view() {
+        let arr = array![[1.0, 2.0], [3.0, 4.0]];
+        let view = arr.view();
+        let dims = ImageDimensions {
+            nx: 4,
+            ny: 4,
+            width: 4,
+            height: 4,
+        };
+        let coords = PixelCoordinates { x: 1, y: 1 };
+        let ps = PixelSelector {};
+        let res = ps.get_v(&view, &coords, &dims);
+        assert_eq!(res, 4.0);
+    }
+}
+
 trait ParticularValues: From<f32> + Zero + One {}
 impl ParticularValues for f32 {}
 impl ParticularValues for f64 {}
@@ -89,10 +143,19 @@ fn time_to_next_pixel<
 }
 
 #[cfg(test)]
-mod test {
+mod test_time_to_next_pixel {
+    use super::time_to_next_pixel;
     use std::assert_eq;
-
-    use super::*;
+    #[test]
+    fn positive_vel() {
+        let res = time_to_next_pixel(1.0, 0.0);
+        assert_eq!(res, 1.0);
+    }
+    #[test]
+    fn negative_vel() {
+        let res = time_to_next_pixel(-1.0, 1.0);
+        assert_eq!(res, 1.0);
+    }
     #[test]
     fn infinite_time_f32() {
         let res = time_to_next_pixel(0.0f32, 0.5f32);
