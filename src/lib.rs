@@ -23,7 +23,7 @@ struct PixelFraction<T> {
     y: T,
 }
 
-fn as_array_index(x: i64, nx: usize) -> usize {
+fn wrap_array_index(x: i64, nx: usize) -> usize {
     if x >= 0 {
         x as usize
     } else {
@@ -36,10 +36,10 @@ struct PixelCoordinates {
 }
 impl PixelCoordinates {
     fn x_idx(&self, d: &ImageDimensions) -> usize {
-        as_array_index(self.x, d.nx)
+        wrap_array_index(self.x, d.nx)
     }
     fn y_idx(&self, d: &ImageDimensions) -> usize {
-        as_array_index(self.y, d.ny)
+        wrap_array_index(self.y, d.ny)
     }
 }
 
