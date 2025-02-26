@@ -18,10 +18,6 @@ struct ImageDimensions {
     height: i64,
 }
 
-struct PixelCoordinates {
-    x: i64,
-    y: i64,
-}
 struct PixelFraction<T> {
     x: T,
     y: T,
@@ -34,12 +30,34 @@ fn as_array_index(x: i64, nx: usize) -> usize {
         ((nx as i64) + x) as usize
     }
 }
+struct PixelCoordinates {
+    x: i64,
+    y: i64,
+}
 impl PixelCoordinates {
     fn x_idx(&self, d: &ImageDimensions) -> usize {
         as_array_index(self.x, d.nx)
     }
     fn y_idx(&self, d: &ImageDimensions) -> usize {
         as_array_index(self.y, d.ny)
+    }
+}
+
+#[cfg(test)]
+mod test_pixel_coordinates {
+    use crate::{ImageDimensions, PixelCoordinates};
+
+    #[test]
+    fn coords_as_indices() {
+        let dims = ImageDimensions {
+            nx: 128,
+            ny: 128,
+            width: 128,
+            height: 128,
+        };
+        let pc = PixelCoordinates { x: 5, y: -10 };
+        assert_eq!(pc.x_idx(&dims), 5);
+        assert_eq!(pc.y_idx(&dims), 128 - 10);
     }
 }
 
@@ -90,8 +108,8 @@ fn time_to_next_pixel<
 
 #[cfg(test)]
 mod test_time_to_next_pixel {
-    use std::assert_eq;
     use super::time_to_next_pixel;
+    use std::assert_eq;
     #[test]
     fn positive_vel() {
         let res = time_to_next_pixel(1.0, 0.0);
