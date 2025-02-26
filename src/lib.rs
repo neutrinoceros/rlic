@@ -68,17 +68,40 @@ impl PixelSelector {
     }
 }
 
-trait ParticularValues: From<f32> + Zero + One {
-    fn ceil(&self) -> Self;
-}
-impl ParticularValues for f32 {
-    fn ceil(&self) -> Self {
-        1e10f32
+trait ParticularValues: From<f32> + Zero + One {}
+impl ParticularValues for f32 {}
+impl ParticularValues for f64 {}
+
+fn time_to_next_pixel<
+    T: PartialOrd + Neg<Output = T> + Div<Output = T> + Sub<Output = T> + ParticularValues,
+>(
+    velocity: T,
+    current_frac: T,
+) -> T {
+    if velocity > 0.0.into() {
+        let one: T = 1.0.into();
+        (one - current_frac) / velocity
+    } else if velocity < 0.0.into() {
+        -(current_frac / velocity)
+    } else {
+        std::f32::INFINITY.into()
     }
 }
-impl ParticularValues for f64 {
-    fn ceil(&self) -> Self {
-        1e100f64
+
+#[cfg(test)]
+mod test {
+    use std::assert_eq;
+
+    use super::*;
+    #[test]
+    fn infinite_time_f32() {
+        let res = time_to_next_pixel(0.0f32, 0.5f32);
+        assert_eq!(res, std::f32::INFINITY);
+    }
+    #[test]
+    fn infinite_time_f64() {
+        let res = time_to_next_pixel(0.0, 0.5);
+        assert_eq!(res, std::f64::INFINITY);
     }
 }
 
@@ -87,22 +110,6 @@ impl ParticularValues for f64 {
 /// import the module.
 #[pymodule]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
-    fn time_to_next_pixel<
-        T: PartialOrd + Neg<Output = T> + Div<Output = T> + Sub<Output = T> + ParticularValues,
-    >(
-        velocity: T,
-        current_frac: T,
-    ) -> T {
-        if velocity > 0.0.into() {
-            let one: T = 1.0.into();
-            (one - current_frac) / velocity
-        } else if velocity < 0.0.into() {
-            -(current_frac / velocity)
-        } else {
-            velocity.ceil()
-        }
-    }
-
     fn update_state<
         T: Copy + PartialOrd + Mul<Output = T> + AddAssign<<T as Mul>::Output> + ParticularValues,
     >(
