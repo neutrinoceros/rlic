@@ -42,6 +42,12 @@ def test_multiple_iterations():
         assert np.all(o2 != o1)
 
 
+def test_uv_symmetry():
+    out1 = rlic.convolve(img, u, v, kernel=kernel)
+    out2 = rlic.convolve(img.T, v.T, u.T, kernel=kernel).T
+    assert_array_equal(out2, out1)
+
+
 def test_uv_mode_default():
     out_vel_impl = rlic.convolve(img, u, v, kernel=kernel)
     out_vel_expl = rlic.convolve(img, u, v, kernel=kernel, uv_mode="velocity")
