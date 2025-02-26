@@ -136,7 +136,7 @@ fn time_to_next_pixel<T: FloatLike + Neg<Output = T> + Div<Output = T> + Sub<Out
     } else if velocity < 0.0.into() {
         -(current_frac / velocity)
     } else {
-        std::f32::INFINITY.into()
+        f32::INFINITY.into()
     }
 }
 
