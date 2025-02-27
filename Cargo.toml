@@ -2,10 +2,7 @@
 name = "rlic"
 version = "0.2.0" # keep in sync with pyproject.toml
 edition = "2021"
-# 1.71 is the oldest version I was able to check for via cargo-msrv.
-# However, dependencies support 1.63 .
-# TODO: test this in CI https://github.com/neutrinoceros/rlic/issues/24
-rust-version = "1.63" # 2022-08-11
+rust-version = "1.64" # 2022-09-22
 
 [lib]
 name = "_core"
