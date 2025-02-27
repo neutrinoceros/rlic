@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.2.1 - 2025-02-27
 
 - BUG: fix incorrect implementation of infinite-time edge cases
+- TST: improve Rust and Python test coverage
+- TST: test against future versions of direct rust dependencies
+- BLD/TST: fix incorrect Minimal Supported Rust Version (MSRV) (bumped from 1.63
+  to 1.64) and check it in CI
 
 ## 0.2.0 - 2025-02-25
 
