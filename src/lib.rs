@@ -343,18 +343,15 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
         let mut output = Array2::<T>::zeros(texture.raw_dim());
 
-        let uv_mode_enum: UVMode;
-        if uv_mode == "polarization" {
-            uv_mode_enum = UVMode::Polarization;
-        } else if uv_mode == "velocity" {
-            uv_mode_enum = UVMode::Velocity;
-        } else {
-            panic!("unknown uv_mode")
-        }
+        let uv_mode = match uv_mode.as_str() {
+            "polarization" => UVMode::Polarization,
+            "velocity" => UVMode::Velocity,
+            _ => panic!("unknown uv_mode"),
+        };
 
         let mut it_count = 0;
         while it_count < iterations {
-            convolve(u, v, kernel, &input, &mut output, &uv_mode_enum);
+            convolve(u, v, kernel, &input, &mut output, &uv_mode);
             it_count += 1;
             if it_count < iterations {
                 input.assign(&output);
