@@ -61,9 +61,27 @@ mod test_pixel_coordinates {
     }
 }
 
-struct UVPoint<T> {
+struct UVPoint<T: Copy> {
     u: T,
     v: T,
+}
+impl<T: Copy> Clone for UVPoint<T> {
+    fn clone(&self) -> Self {
+        UVPoint {
+            u: self.u,
+            v: self.v,
+        }
+    }
+}
+impl<T: Neg<Output = T> + Copy> Neg for UVPoint<T> {
+    type Output = UVPoint<T>;
+
+    fn neg(self) -> Self::Output {
+        UVPoint {
+            u: -self.u,
+            v: -self.v,
+        }
+    }
 }
 
 struct PixelSelector {}
@@ -280,11 +298,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     match uv_mode {
                         UVMode::Polarization => {
                             if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
-                                p.u = -p.u;
-                                p.v = -p.v;
+                                p = -p;
                             }
-                            last_p.u = p.u;
-                            last_p.v = p.u;
+                            last_p = p.clone();
                         }
                         UVMode::Velocity => {}
                     };
@@ -309,11 +325,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     match uv_mode {
                         UVMode::Polarization => {
                             if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
-                                p.u = -p.u;
-                                p.v = -p.v;
+                                p = -p;
                             }
-                            last_p.u = p.u;
-                            last_p.v = p.u;
+                            last_p = p.clone();
                         }
                         UVMode::Velocity => {}
                     };
