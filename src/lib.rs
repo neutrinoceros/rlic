@@ -304,7 +304,8 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                         }
                         UVMode::Velocity => {}
                     };
-                    advance(&p, &mut coords, &mut pix_frac, &dims);
+                    let mp = p.clone();
+                    advance(&mp, &mut coords, &mut pix_frac, &dims);
                     *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
                 }
 
@@ -330,7 +331,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                         }
                         UVMode::Velocity => {}
                     };
-                    let mp = UVPoint { u: -p.u, v: -p.v };
+                    let mp = -p;
                     advance(&mp, &mut coords, &mut pix_frac, &dims);
                     *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
                 }
