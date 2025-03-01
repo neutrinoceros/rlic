@@ -269,7 +269,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             width: u.shape()[1] as i64,
             height: u.shape()[0] as i64,
         };
-        let kernellen = kernel.len();
         let ps = PixelSelector {};
 
         for i in 0..dims.ny {
@@ -283,15 +282,15 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     x: 0.5.into(),
                     y: 0.5.into(),
                 };
-                let mut k = kernellen / 2;
                 let mut last_p: UVPoint<T> = UVPoint {
                     u: 0.0.into(),
                     v: 0.0.into(),
                 };
 
-                *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
-
-                while k < kernellen - 1 {
+                let kmid = kernel.len() / 2;
+                let klast = kernel.len();
+                *pixel_value += kernel[[kmid]] * ps.get(input, &coords, &dims);
+                for k in (kmid+1)..klast {
                     let mut p = UVPoint {
                         u: ps.get_v(&u, &coords, &dims),
                         v: ps.get_v(&v, &coords, &dims),
@@ -306,7 +305,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                         UVMode::Velocity => {}
                     };
                     advance(&p, &mut coords, &mut pix_frac, &dims);
-                    k += 1;
                     *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
                 }
 
@@ -314,11 +312,11 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                 coords.y = i.try_into().unwrap();
                 pix_frac.x = 0.5.into();
                 pix_frac.y = 0.5.into();
-                k = kernellen / 2;
                 last_p.u = 0.0.into();
                 last_p.v = 0.0.into();
 
-                while k > 0 {
+                let klast = 0;
+                for k in (klast..kmid).rev() {
                     let mut p = UVPoint {
                         u: ps.get_v(&u, &coords, &dims),
                         v: ps.get_v(&v, &coords, &dims),
@@ -333,9 +331,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                         UVMode::Velocity => {}
                     };
                     let mp = UVPoint { u: -p.u, v: -p.v };
-
                     advance(&mp, &mut coords, &mut pix_frac, &dims);
-                    k -= 1;
                     *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
                 }
             }

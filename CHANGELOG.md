@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PERF: disable build parallelism to the benefit of runtime performance
   (expect about 5 to 10% gain)
+- PERF: rewrite hot loops as `for` loops instead of `while` (expect about 1% gain)
 
 ## 0.2.2 - 2025-03-01
 
