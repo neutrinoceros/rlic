@@ -275,6 +275,8 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         for i in 0..dims.ny {
             for j in 0..dims.nx {
                 let pixel_value = &mut output[[i, j]];
+                *pixel_value += kernel[[kmid]] * input[[i, j]];
+
                 let mut coords = PixelCoordinates {
                     x: j.try_into().unwrap(),
                     y: i.try_into().unwrap(),
@@ -289,7 +291,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                 };
 
                 let klast = kernel.len();
-                *pixel_value += kernel[[kmid]] * ps.get(input, &coords, &dims);
                 for k in (kmid + 1)..klast {
                     let mut p = UVPoint {
                         u: ps.get_v(&u, &coords, &dims),
