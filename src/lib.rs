@@ -1,3 +1,4 @@
+use either::Either;
 use num_traits::identities::{One, Zero};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
@@ -6,9 +7,16 @@ use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
 use std::cmp::{max, min, PartialOrd};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
 
+#[derive(Clone)]
 enum UVMode {
     Velocity,
     Polarization,
+}
+
+struct UVField<'a, T> {
+    u: ArrayView2<'a, T>,
+    v: ArrayView2<'a, T>,
+    mode: UVMode,
 }
 
 struct ImageDimensions {
@@ -30,6 +38,8 @@ fn wrap_array_index(x: i64, nx: usize) -> usize {
         ((nx as i64) + x) as usize
     }
 }
+
+#[derive(Clone)]
 struct PixelCoordinates {
     x: i64,
     y: i64,
@@ -199,6 +209,7 @@ mod test_time_to_next_pixel {
 /// import the module.
 #[pymodule]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
+    #[inline(always)]
     fn update_state<T: FloatLike>(
         velocity_parallel: &T,
         velocity_orthogonal: &T,
@@ -217,6 +228,12 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         *frac_orthogonal += *time_parallel * *velocity_orthogonal;
     }
 
+    enum Direction {
+        Forward,
+        Backward,
+    }
+
+    #[inline(always)]
     fn advance<T: FloatLike>(
         uv: &UVPoint<T>,
         coords: &mut PixelCoordinates,
@@ -255,6 +272,57 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         coords.y = max(0, min(dims.height - 1, coords.y));
     }
 
+    #[inline(always)]
+    fn convole_single_pixel<T: FloatLike>(
+        pixel_value: &mut T,
+        starting_point: &PixelCoordinates,
+        uvfield: &UVField<T>,
+        kernel: &ArrayView1<T>,
+        input: &Array2<T>,
+        dims: &ImageDimensions,
+        direction: &Direction,
+    ) {
+        let mut coords: PixelCoordinates = starting_point.clone();
+        let mut pix_frac = PixelFraction {
+            x: 0.5.into(),
+            y: 0.5.into(),
+        };
+
+        let mut last_p: UVPoint<T> = UVPoint {
+            u: 0.0.into(),
+            v: 0.0.into(),
+        };
+        let ps = PixelSelector {};
+
+        let kmid = kernel.len() / 2;
+        let range = match direction {
+            Direction::Forward => Either::Right((kmid + 1)..kernel.len()),
+            Direction::Backward => Either::Left((0..kmid).rev()),
+        };
+
+        for k in range {
+            let mut p = UVPoint {
+                u: ps.get_v(&uvfield.u, &coords, dims),
+                v: ps.get_v(&uvfield.v, &coords, dims),
+            };
+            match uvfield.mode {
+                UVMode::Polarization => {
+                    if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
+                        p = -p;
+                    }
+                    last_p = p.clone();
+                }
+                UVMode::Velocity => {}
+            };
+            let mp = match direction {
+                Direction::Forward => p.clone(),
+                Direction::Backward => -p,
+            };
+            advance(&mp, &mut coords, &mut pix_frac, dims);
+            *pixel_value += kernel[[k]] * ps.get(input, &coords, dims);
+        }
+    }
+
     fn convolve<'py, T: FloatLike>(
         u: ArrayView2<'py, T>,
         v: ArrayView2<'py, T>,
@@ -269,71 +337,40 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
             width: u.shape()[1] as i64,
             height: u.shape()[0] as i64,
         };
-        let ps = PixelSelector {};
+        let uvfield = UVField {
+            u,
+            v,
+            mode: uv_mode.clone(),
+        };
         let kmid = kernel.len() / 2;
 
         for i in 0..dims.ny {
             for j in 0..dims.nx {
                 let pixel_value = &mut output[[i, j]];
                 *pixel_value += kernel[[kmid]] * input[[i, j]];
-
-                let mut coords = PixelCoordinates {
+                let starting_point = PixelCoordinates {
                     x: j.try_into().unwrap(),
                     y: i.try_into().unwrap(),
                 };
-                let mut pix_frac = PixelFraction {
-                    x: 0.5.into(),
-                    y: 0.5.into(),
-                };
-                let mut last_p: UVPoint<T> = UVPoint {
-                    u: 0.0.into(),
-                    v: 0.0.into(),
-                };
+                convole_single_pixel(
+                    pixel_value,
+                    &starting_point,
+                    &uvfield,
+                    &kernel,
+                    input,
+                    &dims,
+                    &Direction::Forward,
+                );
 
-                for k in (kmid + 1)..kernel.len() {
-                    let mut p = UVPoint {
-                        u: ps.get_v(&u, &coords, &dims),
-                        v: ps.get_v(&v, &coords, &dims),
-                    };
-                    match uv_mode {
-                        UVMode::Polarization => {
-                            if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
-                                p = -p;
-                            }
-                            last_p = p.clone();
-                        }
-                        UVMode::Velocity => {}
-                    };
-                    let mp = p.clone();
-                    advance(&mp, &mut coords, &mut pix_frac, &dims);
-                    *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
-                }
-
-                coords.x = j.try_into().unwrap();
-                coords.y = i.try_into().unwrap();
-                pix_frac.x = 0.5.into();
-                pix_frac.y = 0.5.into();
-                last_p.u = 0.0.into();
-                last_p.v = 0.0.into();
-
-                for k in (0..kmid).rev() {
-                    let mut p = UVPoint {
-                        u: ps.get_v(&u, &coords, &dims),
-                        v: ps.get_v(&v, &coords, &dims),
-                    };
-                    match uv_mode {
-                        UVMode::Polarization => {
-                            if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
-                                p = -p;
-                            }
-                            last_p = p.clone();
-                        }
-                        UVMode::Velocity => {}
-                    };
-                    let mp = -p;
-                    advance(&mp, &mut coords, &mut pix_frac, &dims);
-                    *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
-                }
+                convole_single_pixel(
+                    pixel_value,
+                    &starting_point,
+                    &uvfield,
+                    &kernel,
+                    input,
+                    &dims,
+                    &Direction::Backward,
+                );
             }
         }
     }
