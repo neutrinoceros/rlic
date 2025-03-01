@@ -274,6 +274,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
 
         for i in 0..dims.ny {
             for j in 0..dims.nx {
+                let pixel_value = &mut output[[i, j]];
                 let mut coords = PixelCoordinates {
                     x: j.try_into().unwrap(),
                     y: i.try_into().unwrap(),
@@ -288,7 +289,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     v: 0.0.into(),
                 };
 
-                output[[i, j]] += kernel[[k]] * ps.get(input, &coords, &dims);
+                *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
 
                 while k < kernellen - 1 {
                     let mut p = UVPoint {
@@ -306,7 +307,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     };
                     advance(&p, &mut coords, &mut pix_frac, &dims);
                     k += 1;
-                    output[[i, j]] += kernel[[k]] * ps.get(input, &coords, &dims);
+                    *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
                 }
 
                 coords.x = j.try_into().unwrap();
@@ -335,7 +336,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
 
                     advance(&mp, &mut coords, &mut pix_frac, &dims);
                     k -= 1;
-                    output[[i, j]] += kernel[[k]] * ps.get(input, &coords, &dims);
+                    *pixel_value += kernel[[k]] * ps.get(input, &coords, &dims);
                 }
             }
         }
