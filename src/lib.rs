@@ -290,8 +290,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                     v: 0.0.into(),
                 };
 
-                let klast = kernel.len();
-                for k in (kmid + 1)..klast {
+                for k in (kmid + 1)..kernel.len() {
                     let mut p = UVPoint {
                         u: ps.get_v(&u, &coords, &dims),
                         v: ps.get_v(&v, &coords, &dims),
@@ -317,8 +316,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
                 last_p.u = 0.0.into();
                 last_p.v = 0.0.into();
 
-                let klast = 0;
-                for k in (klast..kmid).rev() {
+                for k in (0..kmid).rev() {
                     let mut p = UVPoint {
                         u: ps.get_v(&u, &coords, &dims),
                         v: ps.get_v(&v, &coords, &dims),
