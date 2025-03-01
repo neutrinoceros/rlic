@@ -185,12 +185,12 @@ mod test_time_to_next_pixel {
     #[test]
     fn infinite_time_f32() {
         let res = time_to_next_pixel(0.0f32, 0.5f32);
-        assert_eq!(res, std::f32::INFINITY);
+        assert_eq!(res, f32::INFINITY);
     }
     #[test]
     fn infinite_time_f64() {
         let res = time_to_next_pixel(0.0, 0.5);
-        assert_eq!(res, std::f64::INFINITY);
+        assert_eq!(res, f64::INFINITY);
     }
 }
 
