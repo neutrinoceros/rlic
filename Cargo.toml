@@ -16,3 +16,7 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.23.4", features = ["extension-module", "abi3-py39"] }
 numpy = "0.23.0"
 num-traits = "0.2.19"
+
+[profile.release]
+# https://nnethercote.github.io/perf-book/build-configuration.html#codegen-units
+codegen-units = 1
