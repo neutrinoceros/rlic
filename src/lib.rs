@@ -1,5 +1,6 @@
 use either::Either;
 use num_traits::identities::{One, Zero};
+use num_traits::{abs, signum, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
@@ -162,20 +163,24 @@ trait FloatLike:
     + From<f32>
     + Zero
     + One
+    + Signed
 {
 }
 impl FloatLike for f32 {}
 impl FloatLike for f64 {}
 
 fn time_to_next_pixel<T: FloatLike>(velocity: T, current_frac: T) -> T {
-    if velocity > 0.0.into() {
-        let one: T = 1.0.into();
-        (one - current_frac) / velocity
-    } else if velocity < 0.0.into() {
-        -(current_frac / velocity)
-    } else {
-        f32::INFINITY.into()
-    }
+    // this is the branchless version of
+    // if velocity > 0.0 {
+    //     (1.0 - current_frac) / velocity
+    // } else {
+    //     -(current_frac / velocity)
+    // }
+    let one: T = 1.0.into();
+    let two: T = 2.0.into();
+    let d1 = current_frac;
+    let remaining_frac = d1 + (one + signum(velocity)) * (one - two * d1) / two;
+    abs(remaining_frac / velocity)
 }
 
 #[cfg(test)]

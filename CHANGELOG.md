@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PERF: disable build parallelism to the benefit of runtime performance
   (expect about 5 to 10% gain)
+- PERF: avoid conditional branching in pixel traversal time evaluation
+  (expect about 30 to 40% gain)
 
 ## 0.2.2 - 2025-03-01
 
