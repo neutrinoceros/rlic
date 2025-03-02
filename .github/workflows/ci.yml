@@ -7,9 +7,9 @@ on:
     paths-ignore:
     - README.md
     - CHANGELOG.md
-  #schedule:
-  # run this every Wednesday at 3 am UTC
-  #- cron: 0 3 * * 3
+  schedule:
+  # run this at 03:03 on day-of-month 3.
+  - cron: 3 3 3 * *
   workflow_dispatch:
 
 concurrency:
