@@ -204,215 +204,216 @@ mod test_time_to_next_pixel {
     }
 }
 
+#[inline(always)]
+fn update_state<T: FloatLike>(
+    velocity_parallel: &T,
+    velocity_orthogonal: &T,
+    coord_parallel: &mut i64,
+    frac_parallel: &mut T,
+    frac_orthogonal: &mut T,
+    time_parallel: &T,
+) {
+    if *velocity_parallel >= 0.0.into() {
+        *coord_parallel += 1;
+        *frac_parallel = 0.0.into();
+    } else {
+        *coord_parallel -= 1;
+        *frac_parallel = 1.0.into();
+    }
+    *frac_orthogonal += *time_parallel * *velocity_orthogonal;
+}
+
+#[inline(always)]
+fn advance<T: FloatLike>(
+    uv: &UVPoint<T>,
+    coords: &mut PixelCoordinates,
+    pix_frac: &mut PixelFraction<T>,
+    dims: &ImageDimensions,
+) {
+    if uv.u == 0.0.into() && uv.v == 0.0.into() {
+        return;
+    }
+
+    let tx = time_to_next_pixel(uv.u, pix_frac.x);
+    let ty = time_to_next_pixel(uv.v, pix_frac.y);
+
+    if tx < ty {
+        // We reached the next pixel along x first.
+        update_state(
+            &uv.u,
+            &uv.v,
+            &mut coords.x,
+            &mut pix_frac.x,
+            &mut pix_frac.y,
+            &tx,
+        );
+    } else {
+        // We reached the next pixel along y first.
+        update_state(
+            &uv.v,
+            &uv.u,
+            &mut coords.y,
+            &mut pix_frac.y,
+            &mut pix_frac.x,
+            &ty,
+        );
+    }
+    coords.x = max(0, min(dims.width - 1, coords.x));
+    coords.y = max(0, min(dims.height - 1, coords.y));
+}
+
+enum Direction {
+    Forward,
+    Backward,
+}
+
+#[inline(always)]
+fn convole_single_pixel<T: FloatLike>(
+    pixel_value: &mut T,
+    starting_point: &PixelCoordinates,
+    uvfield: &UVField<T>,
+    kernel: &ArrayView1<T>,
+    input: &Array2<T>,
+    dims: &ImageDimensions,
+    direction: &Direction,
+) {
+    let mut coords: PixelCoordinates = starting_point.clone();
+    let mut pix_frac = PixelFraction {
+        x: 0.5.into(),
+        y: 0.5.into(),
+    };
+
+    let mut last_p: UVPoint<T> = UVPoint {
+        u: 0.0.into(),
+        v: 0.0.into(),
+    };
+    let ps = PixelSelector {};
+
+    let kmid = kernel.len() / 2;
+    let range = match direction {
+        Direction::Forward => Either::Right((kmid + 1)..kernel.len()),
+        Direction::Backward => Either::Left((0..kmid).rev()),
+    };
+
+    for k in range {
+        let mut p = UVPoint {
+            u: ps.get_v(&uvfield.u, &coords, dims),
+            v: ps.get_v(&uvfield.v, &coords, dims),
+        };
+        match uvfield.mode {
+            UVMode::Polarization => {
+                if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
+                    p = -p;
+                }
+                last_p = p.clone();
+            }
+            UVMode::Velocity => {}
+        };
+        let mp = match direction {
+            Direction::Forward => p.clone(),
+            Direction::Backward => -p,
+        };
+        advance(&mp, &mut coords, &mut pix_frac, dims);
+        *pixel_value += kernel[[k]] * ps.get(input, &coords, dims);
+    }
+}
+
+fn convolve<'py, T: FloatLike>(
+    u: ArrayView2<'py, T>,
+    v: ArrayView2<'py, T>,
+    kernel: ArrayView1<'py, T>,
+    input: &Array2<T>,
+    output: &mut Array2<T>,
+    uv_mode: &UVMode,
+) {
+    let dims = ImageDimensions {
+        nx: u.shape()[1],
+        ny: u.shape()[0],
+        width: u.shape()[1] as i64,
+        height: u.shape()[0] as i64,
+    };
+    let uvfield = UVField {
+        u,
+        v,
+        mode: uv_mode.clone(),
+    };
+    let kmid = kernel.len() / 2;
+
+    for i in 0..dims.ny {
+        for j in 0..dims.nx {
+            let pixel_value = &mut output[[i, j]];
+            *pixel_value += kernel[[kmid]] * input[[i, j]];
+            let starting_point = PixelCoordinates {
+                x: j.try_into().unwrap(),
+                y: i.try_into().unwrap(),
+            };
+            convole_single_pixel(
+                pixel_value,
+                &starting_point,
+                &uvfield,
+                &kernel,
+                input,
+                &dims,
+                &Direction::Forward,
+            );
+
+            convole_single_pixel(
+                pixel_value,
+                &starting_point,
+                &uvfield,
+                &kernel,
+                input,
+                &dims,
+                &Direction::Backward,
+            );
+        }
+    }
+}
+
+fn convolve_iteratively_impl<'py, T: FloatLike + numpy::Element>(
+    py: Python<'py>,
+    texture: PyReadonlyArray2<'py, T>,
+    u: PyReadonlyArray2<'py, T>,
+    v: PyReadonlyArray2<'py, T>,
+    kernel: PyReadonlyArray1<'py, T>,
+    iterations: i64,
+    uv_mode: String,
+) -> Bound<'py, PyArray2<T>> {
+    let u = u.as_array();
+    let v = v.as_array();
+    let kernel = kernel.as_array();
+    let texture = texture.as_array();
+    let mut input =
+        Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
+    let mut output = Array2::<T>::zeros(texture.raw_dim());
+
+    let uv_mode = match uv_mode.as_str() {
+        "polarization" => UVMode::Polarization,
+        "velocity" => UVMode::Velocity,
+        _ => panic!("unknown uv_mode"),
+    };
+
+    let mut it_count = 0;
+    while it_count < iterations {
+        convolve(u, v, kernel, &input, &mut output, &uv_mode);
+        it_count += 1;
+        if it_count < iterations {
+            input.assign(&output);
+            output.fill(0.0.into());
+        }
+    }
+
+    output.to_pyarray(py)
+}
+
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
-    #[inline(always)]
-    fn update_state<T: FloatLike>(
-        velocity_parallel: &T,
-        velocity_orthogonal: &T,
-        coord_parallel: &mut i64,
-        frac_parallel: &mut T,
-        frac_orthogonal: &mut T,
-        time_parallel: &T,
-    ) {
-        if *velocity_parallel >= 0.0.into() {
-            *coord_parallel += 1;
-            *frac_parallel = 0.0.into();
-        } else {
-            *coord_parallel -= 1;
-            *frac_parallel = 1.0.into();
-        }
-        *frac_orthogonal += *time_parallel * *velocity_orthogonal;
-    }
-
-    enum Direction {
-        Forward,
-        Backward,
-    }
-
-    #[inline(always)]
-    fn advance<T: FloatLike>(
-        uv: &UVPoint<T>,
-        coords: &mut PixelCoordinates,
-        pix_frac: &mut PixelFraction<T>,
-        dims: &ImageDimensions,
-    ) {
-        if uv.u == 0.0.into() && uv.v == 0.0.into() {
-            return;
-        }
-
-        let tx = time_to_next_pixel(uv.u, pix_frac.x);
-        let ty = time_to_next_pixel(uv.v, pix_frac.y);
-
-        if tx < ty {
-            // We reached the next pixel along x first.
-            update_state(
-                &uv.u,
-                &uv.v,
-                &mut coords.x,
-                &mut pix_frac.x,
-                &mut pix_frac.y,
-                &tx,
-            );
-        } else {
-            // We reached the next pixel along y first.
-            update_state(
-                &uv.v,
-                &uv.u,
-                &mut coords.y,
-                &mut pix_frac.y,
-                &mut pix_frac.x,
-                &ty,
-            );
-        }
-        coords.x = max(0, min(dims.width - 1, coords.x));
-        coords.y = max(0, min(dims.height - 1, coords.y));
-    }
-
-    #[inline(always)]
-    fn convole_single_pixel<T: FloatLike>(
-        pixel_value: &mut T,
-        starting_point: &PixelCoordinates,
-        uvfield: &UVField<T>,
-        kernel: &ArrayView1<T>,
-        input: &Array2<T>,
-        dims: &ImageDimensions,
-        direction: &Direction,
-    ) {
-        let mut coords: PixelCoordinates = starting_point.clone();
-        let mut pix_frac = PixelFraction {
-            x: 0.5.into(),
-            y: 0.5.into(),
-        };
-
-        let mut last_p: UVPoint<T> = UVPoint {
-            u: 0.0.into(),
-            v: 0.0.into(),
-        };
-        let ps = PixelSelector {};
-
-        let kmid = kernel.len() / 2;
-        let range = match direction {
-            Direction::Forward => Either::Right((kmid + 1)..kernel.len()),
-            Direction::Backward => Either::Left((0..kmid).rev()),
-        };
-
-        for k in range {
-            let mut p = UVPoint {
-                u: ps.get_v(&uvfield.u, &coords, dims),
-                v: ps.get_v(&uvfield.v, &coords, dims),
-            };
-            match uvfield.mode {
-                UVMode::Polarization => {
-                    if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
-                        p = -p;
-                    }
-                    last_p = p.clone();
-                }
-                UVMode::Velocity => {}
-            };
-            let mp = match direction {
-                Direction::Forward => p.clone(),
-                Direction::Backward => -p,
-            };
-            advance(&mp, &mut coords, &mut pix_frac, dims);
-            *pixel_value += kernel[[k]] * ps.get(input, &coords, dims);
-        }
-    }
-
-    fn convolve<'py, T: FloatLike>(
-        u: ArrayView2<'py, T>,
-        v: ArrayView2<'py, T>,
-        kernel: ArrayView1<'py, T>,
-        input: &Array2<T>,
-        output: &mut Array2<T>,
-        uv_mode: &UVMode,
-    ) {
-        let dims = ImageDimensions {
-            nx: u.shape()[1],
-            ny: u.shape()[0],
-            width: u.shape()[1] as i64,
-            height: u.shape()[0] as i64,
-        };
-        let uvfield = UVField {
-            u,
-            v,
-            mode: uv_mode.clone(),
-        };
-        let kmid = kernel.len() / 2;
-
-        for i in 0..dims.ny {
-            for j in 0..dims.nx {
-                let pixel_value = &mut output[[i, j]];
-                *pixel_value += kernel[[kmid]] * input[[i, j]];
-                let starting_point = PixelCoordinates {
-                    x: j.try_into().unwrap(),
-                    y: i.try_into().unwrap(),
-                };
-                convole_single_pixel(
-                    pixel_value,
-                    &starting_point,
-                    &uvfield,
-                    &kernel,
-                    input,
-                    &dims,
-                    &Direction::Forward,
-                );
-
-                convole_single_pixel(
-                    pixel_value,
-                    &starting_point,
-                    &uvfield,
-                    &kernel,
-                    input,
-                    &dims,
-                    &Direction::Backward,
-                );
-            }
-        }
-    }
-    fn convolve_iteratively_impl<'py, T: FloatLike + numpy::Element>(
-        py: Python<'py>,
-        texture: PyReadonlyArray2<'py, T>,
-        u: PyReadonlyArray2<'py, T>,
-        v: PyReadonlyArray2<'py, T>,
-        kernel: PyReadonlyArray1<'py, T>,
-        iterations: i64,
-        uv_mode: String,
-    ) -> Bound<'py, PyArray2<T>> {
-        let u = u.as_array();
-        let v = v.as_array();
-        let kernel = kernel.as_array();
-        let texture = texture.as_array();
-        let mut input =
-            Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
-        let mut output = Array2::<T>::zeros(texture.raw_dim());
-
-        let uv_mode = match uv_mode.as_str() {
-            "polarization" => UVMode::Polarization,
-            "velocity" => UVMode::Velocity,
-            _ => panic!("unknown uv_mode"),
-        };
-
-        let mut it_count = 0;
-        while it_count < iterations {
-            convolve(u, v, kernel, &input, &mut output, &uv_mode);
-            it_count += 1;
-            if it_count < iterations {
-                input.assign(&output);
-                output.fill(0.0.into());
-            }
-        }
-
-        output.to_pyarray(py)
-    }
-
     #[pyfn(m)]
     #[pyo3(name = "convolve_f32")]
-    fn convolve_iteratively_f32_py<'py>(
+    fn convolve_f32_py<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f32>,
         u: PyReadonlyArray2<'py, f32>,
@@ -426,7 +427,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
 
     #[pyfn(m)]
     #[pyo3(name = "convolve_f64")]
-    fn convolve_iteratively_f64_py<'py>(
+    fn convolve_f64_py<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f64>,
         u: PyReadonlyArray2<'py, f64>,
