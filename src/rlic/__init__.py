@@ -85,6 +85,12 @@ def convolve(
       is fed back as the input to the next iteration.
       Looping is done at the native-code level.
 
+    Returns
+    -------
+    2D numpy array
+      The convolved texture. The dtype of the output array is the same as the
+      input arrays.
+
     Raises
     ------
     TypeError
@@ -94,9 +100,17 @@ def convolve(
 
     Notes
     -----
+    All input arrays must have the same dtype, which can be either float32 or
+    float64.
+
+    Maximum performance is expected for C order arrays.
+
     With a kernel.size < 5, uv_mode='polarization' is effectively equivalent to
     uv_mode='velocity'. However, this is still a valid use case, so, no warning
     is emitted.
+
+    It is recommended (but not required) to use odd-sized kernels, so that
+    forward and backward passes are balanced.
     """
     if iterations < 0:
         raise ValueError(
