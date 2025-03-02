@@ -1,5 +1,3 @@
-"""Line Integral Convolution, implemented in Rust."""
-
 from __future__ import annotations
 
 __all__ = ["convolve"]
