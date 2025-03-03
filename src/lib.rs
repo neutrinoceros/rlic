@@ -1,12 +1,11 @@
 use either::Either;
-use num_traits::identities::{One, Zero};
-use num_traits::{abs, signum, Signed};
+use num_traits::{abs, signum, Float, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
-use std::cmp::{max, min, PartialOrd};
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
+use std::cmp::{max, min};
+use std::ops::{AddAssign, Mul, Neg};
 
 #[derive(Clone)]
 enum UVMode {
@@ -151,25 +150,11 @@ mod test_pixel_selector {
     }
 }
 
-trait FloatLike:
-    PartialOrd
-    + Neg<Output = Self>
-    + Add<Output = Self>
-    + Sub<Output = Self>
-    + Mul<Output = Self>
-    + Div<Output = Self>
-    + AddAssign<<Self as Mul>::Output>
-    + Copy
-    + From<f32>
-    + Zero
-    + One
-    + Signed
-{
-}
-impl FloatLike for f32 {}
-impl FloatLike for f64 {}
+trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> {}
+impl AtLeastF32 for f32 {}
+impl AtLeastF32 for f64 {}
 
-fn time_to_next_pixel<T: FloatLike>(velocity: T, current_frac: T) -> T {
+fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
     // this is the branchless version of
     // if velocity > 0.0 {
     //     (1.0 - current_frac) / velocity
@@ -210,7 +195,7 @@ mod test_time_to_next_pixel {
 }
 
 #[inline(always)]
-fn update_state<T: FloatLike>(
+fn update_state<T: AtLeastF32>(
     velocity_parallel: &T,
     velocity_orthogonal: &T,
     coord_parallel: &mut i64,
@@ -229,7 +214,7 @@ fn update_state<T: FloatLike>(
 }
 
 #[inline(always)]
-fn advance<T: FloatLike>(
+fn advance<T: AtLeastF32>(
     uv: &UVPoint<T>,
     coords: &mut PixelCoordinates,
     pix_frac: &mut PixelFraction<T>,
@@ -273,7 +258,7 @@ enum Direction {
 }
 
 #[inline(always)]
-fn convole_single_pixel<T: FloatLike>(
+fn convole_single_pixel<T: AtLeastF32>(
     pixel_value: &mut T,
     starting_point: &PixelCoordinates,
     uvfield: &UVField<T>,
@@ -323,7 +308,7 @@ fn convole_single_pixel<T: FloatLike>(
     }
 }
 
-fn convolve<'py, T: FloatLike>(
+fn convolve<'py, T: AtLeastF32>(
     u: ArrayView2<'py, T>,
     v: ArrayView2<'py, T>,
     kernel: ArrayView1<'py, T>,
@@ -375,7 +360,7 @@ fn convolve<'py, T: FloatLike>(
     }
 }
 
-fn convolve_iteratively_impl<'py, T: FloatLike + numpy::Element>(
+fn convolve_iteratively_impl<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     texture: PyReadonlyArray2<'py, T>,
     u: PyReadonlyArray2<'py, T>,
