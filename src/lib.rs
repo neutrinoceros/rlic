@@ -114,9 +114,19 @@ mod test_pixel_select {
     }
 }
 
-trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> {}
-impl AtLeastF32 for f32 {}
-impl AtLeastF32 for f64 {}
+trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> {
+    fn round_to_usize(&self) -> usize;
+}
+impl AtLeastF32 for f32 {
+    fn round_to_usize(&self) -> usize {
+        *self as usize
+    }
+}
+impl AtLeastF32 for f64 {
+    fn round_to_usize(&self) -> usize {
+        *self as usize
+    }
+}
 
 fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
     // this is the branchless version of
@@ -168,19 +178,21 @@ fn update_state<T: AtLeastF32>(
     frac_orthogonal: &mut T,
     time_parallel: &T,
 ) {
-    let one: T = 1.0.into();
-    let two: T = 2.0.into();
-    if *velocity_parallel >= 0.0.into() {
-        *coord_parallel += 1;
-    } else {
-        *coord_parallel -= 1;
-    }
+    // branchless version of
+    // if *velocity_parallel >= 0.0.into() {
+    //     *coord_parallel += 1;
+    // } else {
+    //     *coord_parallel -= 1;
+    // }
+    *coord_parallel += signum(*velocity_parallel).round_to_usize();
     // branchless version of
     // if velocity_parallel >= 0.0 {
     //     *frac_parallel = 0.0;
     // } else {
     //     *frac_parallel = 1.0;
     // }
+    let one: T = 1.0.into();
+    let two: T = 2.0.into();
     *frac_parallel = one - (one + signum(*velocity_parallel)) / two;
     *frac_orthogonal = (*time_parallel).mul_add(*velocity_orthogonal, *frac_orthogonal);
 }
