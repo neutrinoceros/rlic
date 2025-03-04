@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ENH: Previously, only kernels with at least 3 elements and at most as long as
   the shortest dimension of the image were allowed. These restrictions are now
   lifted.
+- DOC: improve `rlic.convolve`'s docstring. Add detail to the description of the
+  `texture` and `kernel` arguments
 
 ## 0.3.0 - 2025-03-02
 
