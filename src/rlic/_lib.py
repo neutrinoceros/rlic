@@ -156,12 +156,6 @@ def convolve(
         raise ValueError(
             f"Expected a kernel with exactly one dimension. Got {kernel.ndim=}"
         )
-    if kernel.size < 3:
-        raise ValueError(f"Expected a kernel with size 3 or more. Got {kernel.size=}")
-    if kernel.size > (max_size := min(texture.shape)):
-        raise ValueError(
-            f"{kernel.size=} exceeds the smallest dim of the texture ({max_size})"
-        )
 
     input_dtype = texture.dtype
     cc: ConvolveClosure[FloatT]
