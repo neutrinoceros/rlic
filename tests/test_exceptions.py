@@ -4,7 +4,7 @@ import pytest
 import rlic
 
 img = u = v = np.eye(64)
-kernel = np.linspace(0, 1, 10)
+kernel = np.linspace(0, 1, 10, dtype="float64")
 
 
 def test_invalid_iterations():
