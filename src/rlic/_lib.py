@@ -64,14 +64,18 @@ def convolve(
     Arguments
     ---------
     texture: 2D numpy array (positional-only)
-      Usually, random noise serves as input.
+      Think of this as a tracer fluid. Random noise is a good input in the
+      general case.
 
     u, v: 2D numpy arrays
       Represent the horizontal and vertical components of a vector field,
       respectively.
 
     kernel: 1D numpy array
-      This is the convolution kernel.
+      This is the convolution kernel. Think of it as relative weights along a
+      portion of a field line. The first half of the array represent weights on
+      the "past" part of a field line (with respect to a starting point), while
+      the second line represents weights on the "future" part.
 
     uv_mode: 'velocity' (default), or 'polarization', keyword-only
       By default, the vector (u, v) field is assumed to be velocity-like, i.e.,
