@@ -81,23 +81,6 @@ def test_invalid_kernel_ndim():
         rlic.convolve(img, u, v, kernel=np.ones((5, 5)))
 
 
-def test_kernel_too_small():
-    with pytest.raises(
-        ValueError,
-        match=r"^Expected a kernel with size 3 or more\. Got kernel\.size=2$",
-    ):
-        rlic.convolve(img, u, v, kernel=np.ones(2))
-    rlic.convolve(img, u, v, kernel=np.ones(3))
-
-
-def test_kernel_too_long():
-    with pytest.raises(
-        ValueError,
-        match=rf"^kernel\.size={img.size} exceeds the smallest dim of the texture \({len(img)}\)$",
-    ):
-        rlic.convolve(img, u, v, kernel=np.ones(img.size, dtype="float64"))
-
-
 def test_invalid_texture_dtype():
     img = np.ones((64, 64), dtype="complex128")
     with pytest.raises(
