@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - DOC: add example scripts and visualizations to `README.md`
+- ENH: allow negative values in kernels. It's still an unusual use case,
+  but there is no strong argument for forbidding it.
 
 ## 0.3.0 - 2025-03-02
 

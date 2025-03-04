@@ -162,10 +162,6 @@ def convolve(
         raise ValueError(
             f"{kernel.size=} exceeds the smallest dim of the texture ({max_size})"
         )
-    if np.any(kernel < 0):
-        raise ValueError(
-            "Found invalid kernel element(s). Expected only positive values."
-        )
 
     input_dtype = texture.dtype
     cc: ConvolveClosure[FloatT]
