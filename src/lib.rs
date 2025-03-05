@@ -252,6 +252,29 @@ fn advance<T: AtLeastF32>(
     coords.y = max(0, min(dims.height - 1, coords.y));
 }
 
+#[cfg(test)]
+mod test_advance {
+    use crate::{advance, ImageDimensions, PixelCoordinates, PixelFraction, UVPoint};
+
+    #[test]
+    fn zero_vel() {
+        let uv = UVPoint { u: 0.0, v: 0.0 };
+        let mut coords = PixelCoordinates { x: 5, y: 5 };
+        let mut pix_frac = PixelFraction { x: 0.5, y: 0.5 };
+        let dims = ImageDimensions {
+            nx: 10,
+            ny: 10,
+            width: 10,
+            height: 10,
+        };
+        advance(&uv, &mut coords, &mut pix_frac, &dims);
+        assert_eq!(coords.x, 5);
+        assert_eq!(coords.y, 5);
+        assert_eq!(pix_frac.x, 0.5);
+        assert_eq!(pix_frac.y, 0.5);
+    }
+}
+
 enum Direction {
     Forward,
     Backward,
