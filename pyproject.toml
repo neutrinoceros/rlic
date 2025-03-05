@@ -51,6 +51,14 @@ typecheck = [
 module-name = "rlic._core"
 python-packages = ["rlic"]
 python-source = "src"
+exclude = [
+    "scratch/*",
+    "scripts/*",
+    "static/*",
+    "uv.lock",
+    ".*",
+    "_typos.toml",
+]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -109,6 +117,7 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
+"scripts/*" = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
