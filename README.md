@@ -54,7 +54,7 @@ ax.streamplot(X, Y, U, V)
 
 Now let's compute some convolutions, varying the number of iterations
 ```py
-kernel = np.abs(np.linspace(-1, 1, 65))
+kernel = 1 - np.abs(np.linspace(-1, 1, 65))
 
 fig_out, axs_out = plt.subplots(ncols=3, figsize=(15, 5))
 for ax in axs_out:
@@ -92,7 +92,7 @@ SHAPE = NX, NY = (256, 256)
 prng = np.random.default_rng(0)
 
 texture = prng.random(SHAPE)
-kernel = np.abs(np.linspace(-1, 1, 65, dtype="float64"))
+kernel = 1 - np.abs(np.linspace(-1, 1, 65, dtype="float64"))
 
 U0 = np.ones(SHAPE)
 ii = np.broadcast_to(np.arrange(NX), SHAPE)
