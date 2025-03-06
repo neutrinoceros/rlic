@@ -53,6 +53,9 @@ jobs:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     # this check should run as fast as possible, so, set up a cache
     - uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+      with:
+        # set a stable key so that the cache is shared across jobs
+        shared-key: lint-rust
     - run: cargo clippy --all-targets --all-features -- -D warnings
     - run: cargo fmt --check
 
@@ -80,6 +83,9 @@ jobs:
     - run: rustup default ${{ needs.resolve-msrv.outputs.MSRV }} && rustup default ${{ needs.resolve-msrv.outputs.MSRV }}
     # this check is very slow, so, set up a cache
     - uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+      with:
+        # set a stable key so that the cache is shared across jobs
+        shared-key: check-msrv
     - run: cargo build --verbose
     - run: cargo test --verbose
 
