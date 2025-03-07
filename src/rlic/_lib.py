@@ -58,8 +58,8 @@ def convolve(
 ) -> NDArray[FloatT]:
     """2-dimensional line integral convolution.
 
-    Apply Line Integral Convolution to a texture array, against a 2D flow
-    (u, v) and via a 1D kernel.
+    Apply Line Integral Convolution to a texture array, against a 2D flow (u, v)
+    and via a 1D kernel.
 
     Arguments
     ---------
@@ -83,9 +83,9 @@ def convolve(
       effectively ignored.
 
     iterations: (positive) int (default: 1)
-      Perform multiple iterations in a loop where the output array texture
-      is fed back as the input to the next iteration.
-      Looping is done at the native-code level.
+      Perform multiple iterations in a loop where the output array texture is
+      fed back as the input to the next iteration. Looping is done at the
+      native-code level.
 
     Returns
     -------
@@ -113,6 +113,9 @@ def convolve(
 
     It is recommended (but not required) to use odd-sized kernels, so that
     forward and backward passes are balanced.
+
+    Kernels cannot contain non-finite (infinite or NaN) values. Although
+    unusual, negative values are allowed.
 
     No effort is made to avoid progpagation of NaNs from the input texture.
     However, streamlines will be terminated whenever a pixel where either u or v
@@ -166,6 +169,8 @@ def convolve(
         raise ValueError(
             f"Expected a kernel with exactly one dimension. Got {kernel.ndim=}"
         )
+    if np.any(~np.isfinite(kernel)):
+        raise ValueError("Found non-finite value(s) in kernel.")
 
     input_dtype = texture.dtype
     cc: ConvolveClosure[FloatT]
