@@ -16,7 +16,7 @@ def get_convolve_args(nx=NX, dtype="float64"):
         prng.random((nx, nx), dtype=dtype),
         prng.random((nx, nx), dtype=dtype),
         prng.random((nx, nx), dtype=dtype),
-        np.linspace(0, 1, 10, dtype=dtype),
+        np.linspace(0, 1, 11, dtype=dtype),
     )
 
 
@@ -122,3 +122,18 @@ def test_uv_mode_polarization_sym():
         uv_mode="polarization",
     )
     assert_allclose(out_v_backward, out_v_forward)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("niterations", [0, 1, 5])
+def test_nan_vectors(dtype, niterations):
+    img, _, _, kernel = get_convolve_args(dtype=dtype)
+    u = v = np.full_like(img, np.nan)
+
+    # streamlines will all be terminated on the first step,
+    # but the starting pixel is still to be accumulated, so we expect
+    # the output to be identical to the input, to a scaling factor.
+    out = rlic.convolve(img, u, v, kernel=kernel, iterations=niterations)
+    scaling_factor = out / img
+    assert np.ptp(scaling_factor) == 0.0
+    assert scaling_factor[0, 0] == kernel[len(kernel) // 2] ** niterations
