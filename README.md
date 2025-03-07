@@ -16,7 +16,7 @@ python -m pip install rLIC
 
 `rLIC` consists in a single Python function, `rlic.convolve`, that convolves a
 `texture` image (usually noise) with a 2D vector field described by its
-components and `u`, `v`, via a 1D `kernel` array. The result is an image where
+components `u` and `v`, via a 1D `kernel` array. The result is an image where
 pixel intensity is strongly correlated along field lines.
 
 Let's see an example. We'll use `matplotlib` to visualize inputs and outputs.
