@@ -32,7 +32,7 @@ def test_invalid_texture_ndim():
     img = np.ones((16, 16, 16))
     with pytest.raises(
         ValueError,
-        match=r"^Expected an texture with exactly two dimensions\. Got texture\.ndim=3$",
+        match=r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
     ):
         rlic.convolve(img, u, v, kernel=kernel)
 
