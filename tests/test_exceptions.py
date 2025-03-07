@@ -81,6 +81,17 @@ def test_invalid_kernel_ndim():
         rlic.convolve(img, u, v, kernel=np.ones((5, 5)))
 
 
+@pytest.mark.parametrize("polluting_value", [-np.inf, np.inf, np.nan])
+def test_non_finite_kernel(polluting_value):
+    kernel = np.ones(11)
+    kernel[5] = polluting_value
+    with pytest.raises(
+        ValueError,
+        match=r"^Found non-finite value\(s\) in kernel\.$",
+    ):
+        rlic.convolve(img, u, v, kernel=kernel)
+
+
 def test_invalid_texture_dtype():
     img = np.ones((64, 64), dtype="complex128")
     with pytest.raises(
