@@ -49,7 +49,7 @@ ax.streamplot(X, Y, U, V)
 ```
 <p align="center">
 <a href="https://github.com/neutrinoceros/rlic">
-<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.1/static/base_example_in.png" width="600"></a>
+<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.2/static/base_example_in.png" width="600"></a>
 </p>
 
 Now let's compute some convolutions, varying the number of iterations
@@ -66,7 +66,7 @@ for n, ax in zip((1, 5, 100), axs_out, strict=True):
 ```
 <p align="center">
 <a href="https://github.com/neutrinoceros/rlic">
-<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.1/static/base_example_out.png" width="900"></a>
+<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.2/static/base_example_out.png" width="900"></a>
 </p>
 
 ## Polarization mode
@@ -116,5 +116,5 @@ for uv_mode, ax in zip(("velocity", "polarization"), axs[1:], strict=True):
 
 <p align="center">
 <a href="https://github.com/neutrinoceros/rlic">
-<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.1/static/polarization_example.png" width="900"></a>
+<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.2/static/polarization_example.png" width="900"></a>
 </p>
