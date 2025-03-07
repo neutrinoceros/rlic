@@ -313,6 +313,9 @@ fn convole_single_pixel<T: AtLeastF32>(
             u: ps.get_v(&uvfield.u, &coords, dims),
             v: ps.get_v(&uvfield.v, &coords, dims),
         };
+        if p.u.is_nan() || p.v.is_nan() {
+            break;
+        }
         match uvfield.mode {
             UVMode::Polarization => {
                 if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {

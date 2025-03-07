@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - DOC: prefer using a convex kernel shape in examples
+- ENH: terminate streamline integration when a NaN vector component is encountered
 
 ## 0.3.1 - 2025-03-04
 

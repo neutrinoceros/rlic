@@ -113,6 +113,12 @@ def convolve(
 
     It is recommended (but not required) to use odd-sized kernels, so that
     forward and backward passes are balanced.
+
+    No effort is made to avoid progpagation of NaNs from the input texture.
+    However, streamlines will be terminated whenever a pixel where either u or v
+    contains a NaN.
+
+    Infinite values in any input array are not special cased.
     """
     if iterations < 0:
         raise ValueError(
