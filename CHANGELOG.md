@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - BUG: fix a typo in a user visible error message
+- ENH: report all exceptions instead of just the first one when validating inputs, on
+  Python 3.11 and newer
 
 ## 0.3.2 - 2025-03-07
 

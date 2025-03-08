@@ -89,6 +89,7 @@ exclude_lines = [
 
 [tool.pyright]
 reportImplicitStringConcatenation = false
+reportUnnecessaryTypeIgnoreComment = false # todo: drop this when Python 3.10 is EOL
 
 [tool.mypy]
 python_version = "3.9"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ["convolve"]
 
+import sys
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -123,17 +124,22 @@ def convolve(
 
     Infinite values in any input array are not special cased.
     """
+    exceptions: list[Exception] = []
     if iterations < 0:
-        raise ValueError(
-            f"Invalid number of iterations: {iterations}\n"
-            "Expected a strictly positive integer."
+        exceptions.append(
+            ValueError(
+                f"Invalid number of iterations: {iterations}\n"
+                "Expected a strictly positive integer."
+            )
         )
     if iterations == 0:
         return texture.copy()
 
     if uv_mode not in _KNOWN_UV_MODES:
-        raise ValueError(
-            f"Invalid uv_mode {uv_mode!r}. Expected one of {_KNOWN_UV_MODES}"
+        exceptions.append(
+            ValueError(
+                f"Invalid uv_mode {uv_mode!r}. Expected one of {_KNOWN_UV_MODES}"
+            )
         )
 
     dtype_error_expectations = (
@@ -143,34 +149,50 @@ def convolve(
 
     input_dtypes = {arr.dtype for arr in (texture, u, v, kernel)}
     if unsupported_dtypes := input_dtypes.difference(_SUPPORTED_DTYPES):
-        raise TypeError(
-            f"Found unsupported data type(s): {list(unsupported_dtypes)}. "
-            f"{dtype_error_expectations}"
+        exceptions.append(
+            TypeError(
+                f"Found unsupported data type(s): {list(unsupported_dtypes)}. "
+                f"{dtype_error_expectations}"
+            )
         )
 
     if len(input_dtypes) != 1:
-        raise TypeError(f"Data types mismatch. {dtype_error_expectations}")
+        exceptions.append(TypeError(f"Data types mismatch. {dtype_error_expectations}"))
 
     if texture.ndim != 2:
-        raise ValueError(
-            f"Expected a texture with exactly two dimensions. Got {texture.ndim=}"
+        exceptions.append(
+            ValueError(
+                f"Expected a texture with exactly two dimensions. Got {texture.ndim=}"
+            )
         )
     if np.any(texture < 0):
-        raise ValueError(
-            "Found invalid texture element(s). Expected only positive values."
+        exceptions.append(
+            ValueError(
+                "Found invalid texture element(s). Expected only positive values."
+            )
         )
     if u.shape != texture.shape or v.shape != texture.shape:
-        raise ValueError(
-            "Shape mismatch: expected texture, u and v with identical shapes. "
-            f"Got {texture.shape=}, {u.shape=}, {v.shape=}"
+        exceptions.append(
+            ValueError(
+                "Shape mismatch: expected texture, u and v with identical shapes. "
+                f"Got {texture.shape=}, {u.shape=}, {v.shape=}"
+            )
         )
 
     if kernel.ndim != 1:
-        raise ValueError(
-            f"Expected a kernel with exactly one dimension. Got {kernel.ndim=}"
+        exceptions.append(
+            ValueError(
+                f"Expected a kernel with exactly one dimension. Got {kernel.ndim=}"
+            )
         )
     if np.any(~np.isfinite(kernel)):
-        raise ValueError("Found non-finite value(s) in kernel.")
+        exceptions.append(ValueError("Found non-finite value(s) in kernel."))
+
+    if exceptions:
+        if len(exceptions) == 1 or sys.version_info < (3, 11):
+            raise exceptions[0]
+        else:
+            raise ExceptionGroup("", exceptions)  # type: ignore[name-defined] # pyright: ignore[reportUnreachable] # noqa: F821
 
     input_dtype = texture.dtype
     cc: ConvolveClosure[FloatT]

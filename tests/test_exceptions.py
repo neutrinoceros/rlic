@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,29 @@ import rlic
 
 img = u = v = np.eye(64)
 kernel = np.linspace(0, 1, 10, dtype="float64")
+
+
+def assert_exceptions_match(
+    to_eval: str,
+    global_namespace,
+    local_namespace,
+    expected: list[tuple[type[Exception], str]],
+) -> None:
+    # __tracebackhide__ = True
+    if sys.version_info >= (3, 11):
+        ctx = pytest.raises(ExceptionGroup)  # noqa: F821
+    else:
+        exctype, match = expected[0]
+        ctx = pytest.raises(exctype, match=match)
+
+    with ctx as excinfo:
+        eval(to_eval, global_namespace, local_namespace)
+
+    if sys.version_info >= (3, 11):
+        for exctype, match in expected:
+            assert excinfo.group_contains(exctype, match=match, depth=1)
+
+        assert len(excinfo.value.exceptions) == len(expected)
 
 
 def test_invalid_iterations():
@@ -30,11 +55,41 @@ def test_invalid_uv_mode():
 
 def test_invalid_texture_ndim():
     img = np.ones((16, 16, 16))
-    with pytest.raises(
-        ValueError,
-        match=r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
-    ):
-        rlic.convolve(img, u, v, kernel=kernel)
+    assert_exceptions_match(
+        "rlic.convolve(img, u, v, kernel=kernel)",
+        globals(),
+        locals(),
+        expected=[
+            (
+                ValueError,
+                r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
+            ),
+            (
+                ValueError,
+                r"^Shape mismatch: expected texture, u and v with identical shapes\.",
+            ),
+        ],
+    )
+
+
+def test_invalid_texture_shape_and_ndim():
+    img = np.ones((16, 16, 16))
+
+    assert_exceptions_match(
+        "rlic.convolve(img, u, v, kernel=kernel)",
+        globals(),
+        locals(),
+        expected=[
+            (
+                ValueError,
+                r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
+            ),
+            (
+                ValueError,
+                r"^Shape mismatch: expected texture, u and v with identical shapes\.",
+            ),
+        ],
+    )
 
 
 def test_invalid_texture_values():
@@ -94,31 +149,41 @@ def test_non_finite_kernel(polluting_value):
 
 def test_invalid_texture_dtype():
     img = np.ones((64, 64), dtype="complex128")
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
-            r"Expected texture, u, v and kernel with identical dtype, from "
-            r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
-            r"Got texture\.dtype=dtype\('complex128'\), u\.dtype=dtype\('float64'\), "
-            r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$"
-        ),
-    ):
-        rlic.convolve(img, u, v, kernel=kernel)
+    assert_exceptions_match(
+        "rlic.convolve(img, u, v, kernel=kernel)",
+        globals(),
+        locals(),
+        expected=[
+            (
+                TypeError,
+                r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
+                r"Expected texture, u, v and kernel with identical dtype, from "
+                r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
+                r"Got texture\.dtype=dtype\('complex128'\), u\.dtype=dtype\('float64'\), "
+                r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$",
+            ),
+            (TypeError, r"^Data types mismatch"),
+        ],
+    )
 
 
 def test_invalid_kernel_dtype():
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
-            r"Expected texture, u, v and kernel with identical dtype, from "
-            r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
-            r"Got texture\.dtype=dtype\('float64'\), u\.dtype=dtype\('float64'\), "
-            r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('complex128'\)$"
-        ),
-    ):
-        rlic.convolve(img, u, v, kernel=-np.ones(5, dtype="complex128"))
+    assert_exceptions_match(
+        "rlic.convolve(img, u, v, kernel=-np.ones(5, dtype='complex128'))",
+        globals(),
+        locals(),
+        expected=[
+            (
+                TypeError,
+                r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
+                r"Expected texture, u, v and kernel with identical dtype, from "
+                r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
+                r"Got texture\.dtype=dtype\('float64'\), u\.dtype=dtype\('float64'\), "
+                r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('complex128'\)$",
+            ),
+            (TypeError, r"^Data types mismatch"),
+        ],
+    )
 
 
 def test_mismatched_dtypes():
