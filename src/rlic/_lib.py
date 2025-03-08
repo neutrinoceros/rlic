@@ -190,7 +190,7 @@ def convolve(
         if len(exceptions) == 1 or sys.version_info < (3, 11):
             raise exceptions[0]
         else:
-            raise ExceptionGroup("", exceptions)  # type: ignore[name-defined] # pyright: ignore[reportUnreachable] # noqa: F821
+            raise ExceptionGroup("Invalid inputs were received.", exceptions)  # type: ignore[name-defined] # pyright: ignore[reportUnreachable] # noqa: F821
 
     if iterations == 0:
         return texture.copy()

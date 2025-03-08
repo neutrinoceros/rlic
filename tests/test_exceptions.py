@@ -13,23 +13,23 @@ def assert_exceptions_match(
     to_eval: str,
     global_namespace,
     local_namespace,
-    expected: list[tuple[type[Exception], str]],
+    group_match: str,
+    expected_sub: list[tuple[type[Exception], str]],
 ) -> None:
-    # __tracebackhide__ = True
     if sys.version_info >= (3, 11):
-        ctx = pytest.raises(ExceptionGroup)  # noqa: F821
+        ctx = pytest.raises(ExceptionGroup, match=group_match)  # noqa: F821
     else:
-        exctype, match = expected[0]
+        exctype, match = expected_sub[0]
         ctx = pytest.raises(exctype, match=match)
 
     with ctx as excinfo:
         eval(to_eval, global_namespace, local_namespace)
 
     if sys.version_info >= (3, 11):
-        for exctype, match in expected:
+        for exctype, match in expected_sub:
             assert excinfo.group_contains(exctype, match=match, depth=1)
 
-        assert len(excinfo.value.exceptions) == len(expected)
+        assert len(excinfo.value.exceptions) == len(expected_sub)
 
 
 def test_invalid_iterations():
@@ -59,7 +59,8 @@ def test_invalid_texture_ndim():
         "rlic.convolve(img, u, v, kernel=kernel)",
         globals(),
         locals(),
-        expected=[
+        group_match=r"^Invalid inputs were received\.",
+        expected_sub=[
             (
                 ValueError,
                 r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
@@ -79,7 +80,8 @@ def test_invalid_texture_shape_and_ndim():
         "rlic.convolve(img, u, v, kernel=kernel)",
         globals(),
         locals(),
-        expected=[
+        group_match=r"^Invalid inputs were received\.",
+        expected_sub=[
             (
                 ValueError,
                 r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
@@ -153,7 +155,8 @@ def test_invalid_texture_dtype():
         "rlic.convolve(img, u, v, kernel=kernel)",
         globals(),
         locals(),
-        expected=[
+        group_match=r"^Invalid inputs were received\.",
+        expected_sub=[
             (
                 TypeError,
                 r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
@@ -172,7 +175,8 @@ def test_invalid_kernel_dtype():
         "rlic.convolve(img, u, v, kernel=-np.ones(5, dtype='complex128'))",
         globals(),
         locals(),
-        expected=[
+        group_match=r"^Invalid inputs were received\.",
+        expected_sub=[
             (
                 TypeError,
                 r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
