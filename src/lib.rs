@@ -71,17 +71,10 @@ mod test_pixel_coordinates {
     }
 }
 
+#[derive(Clone)]
 struct UVPoint<T: Copy> {
     u: T,
     v: T,
-}
-impl<T: Copy> Clone for UVPoint<T> {
-    fn clone(&self) -> Self {
-        UVPoint {
-            u: self.u,
-            v: self.v,
-        }
-    }
 }
 impl<T: Neg<Output = T> + Copy> Neg for UVPoint<T> {
     type Output = UVPoint<T>;
