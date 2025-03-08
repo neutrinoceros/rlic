@@ -132,8 +132,6 @@ def convolve(
                 "Expected a strictly positive integer."
             )
         )
-    if iterations == 0:
-        return texture.copy()
 
     if uv_mode not in _KNOWN_UV_MODES:
         exceptions.append(
@@ -193,6 +191,9 @@ def convolve(
             raise exceptions[0]
         else:
             raise ExceptionGroup("", exceptions)  # type: ignore[name-defined] # pyright: ignore[reportUnreachable] # noqa: F821
+
+    if iterations == 0:
+        return texture.copy()
 
     input_dtype = texture.dtype
     cc: ConvolveClosure[FloatT]

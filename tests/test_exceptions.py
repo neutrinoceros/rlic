@@ -199,3 +199,14 @@ def test_mismatched_dtypes():
         ),
     ):
         rlic.convolve(img, u, v, kernel=kernel)
+
+
+def test_all_validators_before_returns():
+    # until v0.3.2, iterations=0 implied an early return that skipped
+    # most validators.
+    kernel = np.full(11, np.nan)
+    with pytest.raises(
+        ValueError,
+        match=r"^Found non-finite value\(s\) in kernel\.$",
+    ):
+        rlic.convolve(img, u, v, kernel=kernel, iterations=0)
