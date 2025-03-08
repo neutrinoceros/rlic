@@ -153,7 +153,7 @@ def convolve(
 
     if texture.ndim != 2:
         raise ValueError(
-            f"Expected an texture with exactly two dimensions. Got {texture.ndim=}"
+            f"Expected a texture with exactly two dimensions. Got {texture.ndim=}"
         )
     if np.any(texture < 0):
         raise ValueError(
