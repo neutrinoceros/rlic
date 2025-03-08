@@ -19,37 +19,40 @@ struct UVField<'a, T> {
     mode: UVMode,
 }
 
-struct ImageDimensions {
-    nx: usize,
-    ny: usize,
-    width: i64,
-    height: i64,
-}
-
 struct PixelFraction<T> {
     x: T,
     y: T,
 }
 
-fn wrap_array_index(x: i64, nx: usize) -> usize {
+fn wrap_array_index(x: i64, array_size: i64) -> usize {
     if x >= 0 {
         x as usize
     } else {
-        ((nx as i64) + x) as usize
+        (array_size + x) as usize
     }
+}
+
+#[derive(Clone)]
+struct ImageDimensions {
+    // storing sizes as i64 for ease of operations, but these
+    // are conceptually array sizes and should be convertible
+    // to usize at any point
+    x: i64,
+    y: i64,
 }
 
 #[derive(Clone)]
 struct PixelCoordinates {
     x: i64,
     y: i64,
+    dimensions: ImageDimensions,
 }
 impl PixelCoordinates {
-    fn x_idx(&self, d: &ImageDimensions) -> usize {
-        wrap_array_index(self.x, d.nx)
+    fn x_idx(&self) -> usize {
+        wrap_array_index(self.x, self.dimensions.x)
     }
-    fn y_idx(&self, d: &ImageDimensions) -> usize {
-        wrap_array_index(self.y, d.ny)
+    fn y_idx(&self) -> usize {
+        wrap_array_index(self.y, self.dimensions.y)
     }
 }
 
@@ -59,15 +62,13 @@ mod test_pixel_coordinates {
 
     #[test]
     fn coords_as_indices() {
-        let dims = ImageDimensions {
-            nx: 128,
-            ny: 128,
-            width: 128,
-            height: 128,
+        let pc = PixelCoordinates {
+            x: 5,
+            y: -10,
+            dimensions: ImageDimensions { x: 128, y: 128 },
         };
-        let pc = PixelCoordinates { x: 5, y: -10 };
-        assert_eq!(pc.x_idx(&dims), 5);
-        assert_eq!(pc.y_idx(&dims), 128 - 10);
+        assert_eq!(pc.x_idx(), 5);
+        assert_eq!(pc.y_idx(), 128 - 10);
     }
 }
 
@@ -89,21 +90,11 @@ impl<T: Neg<Output = T> + Copy> Neg for UVPoint<T> {
 
 struct PixelSelector {}
 impl PixelSelector {
-    fn get<T: Copy>(
-        &self,
-        arr: &Array2<T>,
-        coords: &PixelCoordinates,
-        dims: &ImageDimensions,
-    ) -> T {
-        arr[[coords.y_idx(dims), coords.x_idx(dims)]]
+    fn get<T: Copy>(&self, arr: &Array2<T>, coords: &PixelCoordinates) -> T {
+        arr[[coords.y_idx(), coords.x_idx()]]
     }
-    fn get_v<T: Copy>(
-        &self,
-        arr: &ArrayView2<T>,
-        coords: &PixelCoordinates,
-        dims: &ImageDimensions,
-    ) -> T {
-        arr[[coords.y_idx(dims), coords.x_idx(dims)]]
+    fn get_v<T: Copy>(&self, arr: &ArrayView2<T>, coords: &PixelCoordinates) -> T {
+        arr[[coords.y_idx(), coords.x_idx()]]
     }
 }
 
@@ -115,30 +106,26 @@ mod test_pixel_selector {
     #[test]
     fn from_array() {
         let arr = array![[1.0, 2.0], [3.0, 4.0]];
-        let dims = ImageDimensions {
-            nx: 4,
-            ny: 4,
-            width: 4,
-            height: 4,
+        let coords = PixelCoordinates {
+            x: 1,
+            y: 1,
+            dimensions: ImageDimensions { x: 4, y: 4 },
         };
-        let coords = PixelCoordinates { x: 1, y: 1 };
         let ps = PixelSelector {};
-        let res = ps.get(&arr, &coords, &dims);
+        let res = ps.get(&arr, &coords);
         assert_eq!(res, 4.0);
     }
     #[test]
     fn from_view() {
         let arr = array![[1.0, 2.0], [3.0, 4.0]];
         let view = arr.view();
-        let dims = ImageDimensions {
-            nx: 4,
-            ny: 4,
-            width: 4,
-            height: 4,
+        let coords = PixelCoordinates {
+            x: 1,
+            y: 1,
+            dimensions: ImageDimensions { x: 4, y: 4 },
         };
-        let coords = PixelCoordinates { x: 1, y: 1 };
         let ps = PixelSelector {};
-        let res = ps.get_v(&view, &coords, &dims);
+        let res = ps.get_v(&view, &coords);
         assert_eq!(res, 4.0);
     }
 }
@@ -211,7 +198,6 @@ fn advance<T: AtLeastF32>(
     uv: &UVPoint<T>,
     coords: &mut PixelCoordinates,
     pix_frac: &mut PixelFraction<T>,
-    dims: &ImageDimensions,
 ) {
     if uv.u == 0.0.into() && uv.v == 0.0.into() {
         return;
@@ -241,8 +227,8 @@ fn advance<T: AtLeastF32>(
             &ty,
         );
     }
-    coords.x = max(0, min(dims.width - 1, coords.x));
-    coords.y = max(0, min(dims.height - 1, coords.y));
+    coords.x = max(0, min(coords.dimensions.x - 1, coords.x));
+    coords.y = max(0, min(coords.dimensions.y - 1, coords.y));
 }
 
 #[cfg(test)]
@@ -252,15 +238,13 @@ mod test_advance {
     #[test]
     fn zero_vel() {
         let uv = UVPoint { u: 0.0, v: 0.0 };
-        let mut coords = PixelCoordinates { x: 5, y: 5 };
-        let mut pix_frac = PixelFraction { x: 0.5, y: 0.5 };
-        let dims = ImageDimensions {
-            nx: 10,
-            ny: 10,
-            width: 10,
-            height: 10,
+        let mut coords = PixelCoordinates {
+            x: 5,
+            y: 5,
+            dimensions: ImageDimensions { x: 10, y: 10 },
         };
-        advance(&uv, &mut coords, &mut pix_frac, &dims);
+        let mut pix_frac = PixelFraction { x: 0.5, y: 0.5 };
+        advance(&uv, &mut coords, &mut pix_frac);
         assert_eq!(coords.x, 5);
         assert_eq!(coords.y, 5);
         assert_eq!(pix_frac.x, 0.5);
@@ -280,7 +264,6 @@ fn convole_single_pixel<T: AtLeastF32>(
     uvfield: &UVField<T>,
     kernel: &ArrayView1<T>,
     input: &Array2<T>,
-    dims: &ImageDimensions,
     direction: &Direction,
 ) {
     let mut coords: PixelCoordinates = starting_point.clone();
@@ -303,8 +286,8 @@ fn convole_single_pixel<T: AtLeastF32>(
 
     for k in range {
         let mut p = UVPoint {
-            u: ps.get_v(&uvfield.u, &coords, dims),
-            v: ps.get_v(&uvfield.v, &coords, dims),
+            u: ps.get_v(&uvfield.u, &coords),
+            v: ps.get_v(&uvfield.v, &coords),
         };
         if p.u.is_nan() || p.v.is_nan() {
             break;
@@ -322,8 +305,8 @@ fn convole_single_pixel<T: AtLeastF32>(
             Direction::Forward => p.clone(),
             Direction::Backward => -p,
         };
-        advance(&mp, &mut coords, &mut pix_frac, dims);
-        *pixel_value += kernel[[k]] * ps.get(input, &coords, dims);
+        advance(&mp, &mut coords, &mut pix_frac);
+        *pixel_value += kernel[[k]] * ps.get(input, &coords);
     }
 }
 
@@ -336,10 +319,8 @@ fn convolve<'py, T: AtLeastF32>(
     uv_mode: &UVMode,
 ) {
     let dims = ImageDimensions {
-        nx: u.shape()[1],
-        ny: u.shape()[0],
-        width: u.shape()[1] as i64,
-        height: u.shape()[0] as i64,
+        x: u.shape()[1] as i64,
+        y: u.shape()[0] as i64,
     };
     let uvfield = UVField {
         u,
@@ -348,13 +329,14 @@ fn convolve<'py, T: AtLeastF32>(
     };
     let kmid = kernel.len() / 2;
 
-    for i in 0..dims.ny {
-        for j in 0..dims.nx {
+    for i in 0..(dims.y as usize) {
+        for j in 0..(dims.x as usize) {
             let pixel_value = &mut output[[i, j]];
             *pixel_value += kernel[[kmid]] * input[[i, j]];
             let starting_point = PixelCoordinates {
                 x: j.try_into().unwrap(),
                 y: i.try_into().unwrap(),
+                dimensions: dims.clone(),
             };
             convole_single_pixel(
                 pixel_value,
@@ -362,7 +344,6 @@ fn convolve<'py, T: AtLeastF32>(
                 &uvfield,
                 &kernel,
                 input,
-                &dims,
                 &Direction::Forward,
             );
 
@@ -372,7 +353,6 @@ fn convolve<'py, T: AtLeastF32>(
                 &uvfield,
                 &kernel,
                 input,
-                &dims,
                 &Direction::Backward,
             );
         }
