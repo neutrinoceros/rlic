@@ -1,5 +1,6 @@
 # rLIC
 [![PyPI](https://img.shields.io/pypi/v/rlic.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/rlic/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/rlic.svg?logo=condaforge&logoColor=white)](https://anaconda.org/conda-forge/rlic)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 ***Line Integral Convolution for Python, written in Rust***
