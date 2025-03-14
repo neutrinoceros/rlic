@@ -92,7 +92,8 @@ def convolve(
     -------
     2D numpy array
       The convolved texture. The dtype of the output array is the same as the
-      input arrays.
+      input arrays. The value returned is always a newly allocated array, even
+      with `iterations=0`, in which case a copy of `texture` will be returned.
 
     Raises
     ------
@@ -123,6 +124,9 @@ def convolve(
     contains a NaN.
 
     Infinite values in any input array are not special cased.
+
+    This function is guaranteed to never mutate any input array, and always
+    return a newly allocated array. Thread-safety is thus trivially guaranteed.
     """
     exceptions: list[Exception] = []
     if iterations < 0:

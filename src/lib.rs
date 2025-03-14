@@ -398,7 +398,7 @@ fn convolve_iteratively_impl<'py, T: AtLeastF32 + numpy::Element>(
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     #[pyfn(m)]
     #[pyo3(name = "convolve_f32")]
