@@ -121,7 +121,7 @@ def convolve(
 
     No effort is made to avoid progpagation of NaNs from the input texture.
     However, streamlines will be terminated whenever a pixel where either u or v
-    contains a NaN.
+    contains a NaN is encountered.
 
     Infinite values in any input array are not special cased.
 
