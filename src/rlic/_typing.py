@@ -9,7 +9,7 @@ FloatT = TypeVar("FloatT", f32, f64)
 
 
 # mypy (strict) flags that this typevar as "should be covariant",
-# but pyright (strict) insists that it's really invariant, which is was I really
+# but pyright (strict) insists that it's really invariant, which is what I really
 # mean here.
 class ConvolveClosure(Protocol[FloatT]):  # type: ignore[misc]
     @staticmethod
