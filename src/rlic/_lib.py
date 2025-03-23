@@ -10,9 +10,13 @@ import numpy as np
 from rlic._core import convolve_f32, convolve_f64
 
 if TYPE_CHECKING:
-    from numpy import dtype, ndarray
+    from typing import TypeVar
 
-    from rlic._typing import FloatT
+    from numpy import dtype, ndarray
+    from numpy import float32 as f32
+    from numpy import float64 as f64
+
+    FloatT = TypeVar("FloatT", f32, f64)
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
