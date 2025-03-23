@@ -1,9 +1,9 @@
 __all__ = ["f32", "f64", "ConvolveClosure", "FloatT"]
 from typing import Literal, Protocol, TypeVar
 
+from numpy import dtype, ndarray
 from numpy import float32 as f32
 from numpy import float64 as f64
-from numpy.typing import NDArray
 
 FloatT = TypeVar("FloatT", f32, f64)
 
@@ -14,10 +14,10 @@ FloatT = TypeVar("FloatT", f32, f64)
 class ConvolveClosure(Protocol[FloatT]):  # type: ignore[misc]
     @staticmethod
     def closure(
-        texture: NDArray[FloatT],
-        u: NDArray[FloatT],
-        v: NDArray[FloatT],
-        kernel: NDArray[FloatT],
+        texture: ndarray[tuple[int, int], dtype[FloatT]],
+        u: ndarray[tuple[int, int], dtype[FloatT]],
+        v: ndarray[tuple[int, int], dtype[FloatT]],
+        kernel: ndarray[tuple[int], dtype[FloatT]],
         iterations: int,
         uv_mode: Literal["velocity", "polarization"],
-    ) -> NDArray[FloatT]: ...
+    ) -> ndarray[tuple[int, int], dtype[FloatT]]: ...

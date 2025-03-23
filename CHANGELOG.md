@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - BLD: declare compatibility with free-threaded CPython
 - DOC: fix an incomplete sentence in `rlic.convolve`'s docstring
+- TYP: add array shape information to type hints
 
 ## 0.3.3 - 2025-03-08
 
