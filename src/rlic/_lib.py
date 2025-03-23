@@ -10,9 +10,13 @@ import numpy as np
 from rlic._core import convolve_f32, convolve_f64
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
+    from typing import TypeVar
 
-    from rlic._typing import ConvolveClosure, FloatT, f32, f64
+    from numpy import dtype, ndarray
+    from numpy import float32 as f32
+    from numpy import float64 as f64
+
+    FloatT = TypeVar("FloatT", f32, f64)
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
@@ -21,42 +25,16 @@ _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
 ]
 
 
-class _ConvolveF32:
-    @staticmethod
-    def closure(
-        texture: NDArray[f32],
-        u: NDArray[f32],
-        v: NDArray[f32],
-        kernel: NDArray[f32],
-        iterations: int,
-        uv_mode: Literal["velocity", "polarization"],
-    ) -> NDArray[f32]:
-        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)
-
-
-class _ConvolveF64:
-    @staticmethod
-    def closure(
-        texture: NDArray[f64],
-        u: NDArray[f64],
-        v: NDArray[f64],
-        kernel: NDArray[f64],
-        iterations: int,
-        uv_mode: Literal["velocity", "polarization"],
-    ) -> NDArray[f64]:
-        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)
-
-
 def convolve(
-    texture: NDArray[FloatT],
+    texture: ndarray[tuple[int, int], dtype[FloatT]],
     /,
-    u: NDArray[FloatT],
-    v: NDArray[FloatT],
+    u: ndarray[tuple[int, int], dtype[FloatT]],
+    v: ndarray[tuple[int, int], dtype[FloatT]],
     *,
-    kernel: NDArray[FloatT],
+    kernel: ndarray[tuple[int], dtype[FloatT]],
     uv_mode: Literal["velocity", "polarization"] = "velocity",
     iterations: int = 1,
-) -> NDArray[FloatT]:
+) -> ndarray[tuple[int, int], dtype[FloatT]]:
     """2-dimensional line integral convolution.
 
     Apply Line Integral Convolution to a texture array, against a 2D flow (u, v)
@@ -200,12 +178,11 @@ def convolve(
         return texture.copy()
 
     input_dtype = texture.dtype
-    cc: ConvolveClosure[FloatT]
     # mypy ignores can be removed once Python 3.9 is dropped.
+    # https://github.com/numpy/numpy/issues/28572
     if input_dtype == np.dtype("float32"):
-        cc = _ConvolveF32  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
+        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
     elif input_dtype == np.dtype("float64"):
-        cc = _ConvolveF64  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
+        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
     else:
         raise RuntimeError  # pragma: no cover
-    return cc.closure(texture, u, v, kernel, iterations, uv_mode)
