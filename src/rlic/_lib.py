@@ -12,39 +12,13 @@ from rlic._core import convolve_f32, convolve_f64
 if TYPE_CHECKING:
     from numpy import dtype, ndarray
 
-    from rlic._typing import ConvolveClosure, FloatT, f32, f64
+    from rlic._typing import FloatT
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
     np.dtype("float32"),
     np.dtype("float64"),
 ]
-
-
-class _ConvolveF32:
-    @staticmethod
-    def closure(
-        texture: ndarray[tuple[int, int], dtype[f32]],
-        u: ndarray[tuple[int, int], dtype[f32]],
-        v: ndarray[tuple[int, int], dtype[f32]],
-        kernel: ndarray[tuple[int], dtype[f32]],
-        iterations: int = 1,
-        uv_mode: Literal["velocity", "polarization"] = "velocity",
-    ) -> ndarray[tuple[int, int], dtype[f32]]:
-        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)
-
-
-class _ConvolveF64:
-    @staticmethod
-    def closure(
-        texture: ndarray[tuple[int, int], dtype[f64]],
-        u: ndarray[tuple[int, int], dtype[f64]],
-        v: ndarray[tuple[int, int], dtype[f64]],
-        kernel: ndarray[tuple[int], dtype[f64]],
-        iterations: int = 1,
-        uv_mode: Literal["velocity", "polarization"] = "velocity",
-    ) -> ndarray[tuple[int, int], dtype[f64]]:
-        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)
 
 
 def convolve(
@@ -200,12 +174,11 @@ def convolve(
         return texture.copy()
 
     input_dtype = texture.dtype
-    cc: ConvolveClosure[FloatT]
     # mypy ignores can be removed once Python 3.9 is dropped.
+    # https://github.com/numpy/numpy/issues/28572
     if input_dtype == np.dtype("float32"):
-        cc = _ConvolveF32  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
+        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
     elif input_dtype == np.dtype("float64"):
-        cc = _ConvolveF64  # type: ignore[assignment, unused-ignore] # pyright: ignore[reportAssignmentType]
+        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
     else:
         raise RuntimeError  # pragma: no cover
-    return cc.closure(texture, u, v, kernel, iterations, uv_mode)
