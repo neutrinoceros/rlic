@@ -27,7 +27,7 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         enable-cache: true
         prune-cache: false
@@ -43,7 +43,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         fetch-depth: 0
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
     - name: Check sdist's size
       run: uv run scripts/pre_publish_checks.py
 
@@ -62,7 +62,7 @@ jobs:
       MSRV: ${{ steps.resolve-msrv.outputs.MSRV }}
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683   # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231   # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182   # v5.4.1
       with:
         python-version: '3.13'
         enable-cache: false
@@ -135,7 +135,7 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
@@ -168,7 +168,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: 3.13
         enable-cache: true
@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: 3.9.0
         enable-cache: true
@@ -229,7 +229,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: '3.13'
         enable-cache: true
@@ -260,7 +260,7 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: '3.13'
         enable-cache: true
@@ -283,7 +283,7 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: 3.9
         enable-cache: true
@@ -311,7 +311,7 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-    - uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+    - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
