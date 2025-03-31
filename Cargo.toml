@@ -2,7 +2,7 @@
 name = "rlic"
 version = "0.3.3" # keep in sync with pyproject.toml
 edition = "2021"
-rust-version = "1.64" # 2022-09-22
+rust-version = "1.65" # 2022-11-03
 
 [lib]
 name = "_core"
