@@ -18,6 +18,7 @@ classifiers = [
 requires-python = ">=3.9" # keep in sync with pyo3 (Cargo.toml)
 dependencies = [
     "numpy>=1.21.0",
+    "typing-extensions>=4.1.0 ; python_full_version < '3.11'",
 ]
 
 [project.readme]
@@ -45,6 +46,7 @@ typecheck = [
     "basedpyright>=1.26.0",
     "mypy>=1.13.0",
     "pyright>=1.1.391",
+    "typing-extensions>=4.10.0 ; python_version < '3.13'",
 ]
 
 [tool.maturin]

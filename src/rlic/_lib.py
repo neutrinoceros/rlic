@@ -3,26 +3,46 @@ from __future__ import annotations
 __all__ = ["convolve"]
 
 import sys
-from typing import TYPE_CHECKING, Literal
 
 import numpy as np
+from numpy import float32 as f32
+from numpy import float64 as f64
 
 from rlic._core import convolve_f32, convolve_f64
 
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
+
+TYPE_CHECKING = False
+
 if TYPE_CHECKING:
-    from typing import TypeVar
+    from typing import Any, Literal, TypeVar
 
     from numpy import dtype, ndarray
-    from numpy import float32 as f32
-    from numpy import float64 as f64
+    from numpy.typing import NDArray
+
+    if sys.version_info >= (3, 13):
+        from typing import TypeIs
+    else:
+        from typing_extensions import TypeIs
 
     FloatT = TypeVar("FloatT", f32, f64)
+
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
     np.dtype("float32"),
     np.dtype("float64"),
 ]
+
+
+def has_dtype(a: NDArray[Any], dtype: type[FloatT], /) -> TypeIs[NDArray[FloatT]]:  # pyright: ignore[reportExplicitAny]
+    # workaround pyright limitations
+    # see https://github.com/microsoft/pyright/issues/10153
+    # see https://github.com/numpy/numpy/issues/28572#issuecomment-2746321533
+    return a.dtype == dtype
 
 
 def convolve(
@@ -177,12 +197,10 @@ def convolve(
     if iterations == 0:
         return texture.copy()
 
-    input_dtype = texture.dtype
-    # mypy ignores can be removed once Python 3.9 is dropped.
-    # https://github.com/numpy/numpy/issues/28572
-    if input_dtype == np.dtype("float32"):
-        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
-    elif input_dtype == np.dtype("float64"):
-        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
+    # mypy ignores can be removed when Python 3.9 is dropped.
+    if has_dtype(texture, f32):
+        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore]
+    elif has_dtype(texture, f64):
+        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore]
     else:
-        raise RuntimeError  # pragma: no cover
+        assert_never(texture)
