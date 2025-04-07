@@ -97,7 +97,7 @@ def convolve(
     Kernels cannot contain non-finite (infinite or NaN) values. Although
     unusual, negative values are allowed.
 
-    No effort is made to avoid progpagation of NaNs from the input texture.
+    No effort is made to avoid propagation of NaNs from the input texture.
     However, streamlines will be terminated whenever a pixel where either u or v
     contains a NaN is encountered.
 
