@@ -71,7 +71,7 @@ jobs:
         python-version: 3.9
     - uses: dtolnay/rust-toolchain@stable
     - name: Build wheels - x86_64
-      uses: PyO3/maturin-action@22fe573c6ed0c03ab9b84e631cbfa49bddf6e20e # v1.47.3
+      uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6e3 # v1.49.1
       with:
         target: x86_64
         args: --release --out dist
@@ -96,7 +96,7 @@ jobs:
         python-version: 3.9
     - uses: dtolnay/rust-toolchain@stable
     - name: Build wheels - arm64
-      uses: PyO3/maturin-action@22fe573c6ed0c03ab9b84e631cbfa49bddf6e20e # v1.47.3
+      uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6e3 # v1.49.1
       with:
         target: aarch64-apple-darwin
         args: --release --out dist
@@ -128,7 +128,7 @@ jobs:
     - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
     - uses: dtolnay/rust-toolchain@stable
     - name: Build wheels
-      uses: PyO3/maturin-action@22fe573c6ed0c03ab9b84e631cbfa49bddf6e20e # v1.47.3
+      uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6e3 # v1.49.1
       with:
         target: ${{ matrix.target }}
         args: --release --out dist
@@ -162,7 +162,7 @@ jobs:
         architecture: x64
     - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
     - name: Build wheels
-      uses: PyO3/maturin-action@22fe573c6ed0c03ab9b84e631cbfa49bddf6e20e # v1.47.3
+      uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6e3 # v1.49.1
       with:
         target: ${{ matrix.target }}
         manylinux: auto
@@ -198,7 +198,7 @@ jobs:
         python-version: 3.9
         architecture: x64
     - name: Build wheels
-      uses: PyO3/maturin-action@22fe573c6ed0c03ab9b84e631cbfa49bddf6e20e # v1.47.3
+      uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6e3 # v1.49.1
       with:
         target: ${{ matrix.target }}
         manylinux: musllinux_1_2
