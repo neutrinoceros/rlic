@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from numpy import float32 as f32
     from numpy import float64 as f64
 
-    FloatT = TypeVar("FloatT", f32, f64)
+    F = TypeVar("F", f32, f64)
 
 _KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
@@ -26,15 +26,15 @@ _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
 
 
 def convolve(
-    texture: ndarray[tuple[int, int], dtype[FloatT]],
+    texture: ndarray[tuple[int, int], dtype[F]],
     /,
-    u: ndarray[tuple[int, int], dtype[FloatT]],
-    v: ndarray[tuple[int, int], dtype[FloatT]],
+    u: ndarray[tuple[int, int], dtype[F]],
+    v: ndarray[tuple[int, int], dtype[F]],
     *,
-    kernel: ndarray[tuple[int], dtype[FloatT]],
+    kernel: ndarray[tuple[int], dtype[F]],
     uv_mode: Literal["velocity", "polarization"] = "velocity",
     iterations: int = 1,
-) -> ndarray[tuple[int, int], dtype[FloatT]]:
+) -> ndarray[tuple[int, int], dtype[F]]:
     """2-dimensional line integral convolution.
 
     Apply Line Integral Convolution to a texture array, against a 2D flow (u, v)
