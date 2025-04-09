@@ -17,6 +17,7 @@ classifiers = [
 ]
 requires-python = ">=3.9" # keep in sync with pyo3 (Cargo.toml)
 dependencies = [
+    "exceptiongroup>=1.0.0 ; python_full_version < '3.11'", # keep in sync with typecheck dep group
     "numpy>=1.21.0",
 ]
 
@@ -42,6 +43,7 @@ test = [
     "pytest>=8.1.0",
 ]
 typecheck = [
+    "exceptiongroup>=1.0.0", # keep in sync with conditional runtime dep
     "basedpyright>=1.26.0",
     "mypy>=1.13.0",
     "pyright>=1.1.391",
