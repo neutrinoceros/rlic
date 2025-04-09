@@ -5,6 +5,9 @@ import pytest
 
 import rlic
 
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
+
 img = u = v = np.eye(64)
 kernel = np.linspace(0, 1, 10, dtype="float64")
 
@@ -16,20 +19,13 @@ def assert_exceptions_match(
     group_match: str,
     expected_sub: list[tuple[type[Exception], str]],
 ) -> None:
-    if sys.version_info >= (3, 11):
-        ctx = pytest.raises(ExceptionGroup, match=group_match)  # noqa: F821
-    else:
-        exctype, match = expected_sub[0]
-        ctx = pytest.raises(exctype, match=match)
-
-    with ctx as excinfo:
+    with pytest.raises(ExceptionGroup, match=group_match) as excinfo:
         eval(to_eval, global_namespace, local_namespace)
 
-    if sys.version_info >= (3, 11):
-        for exctype, match in expected_sub:
-            assert excinfo.group_contains(exctype, match=match, depth=1)
+    for exctype, match in expected_sub:
+        assert excinfo.group_contains(exctype, match=match, depth=1)
 
-        assert len(excinfo.value.exceptions) == len(expected_sub)
+    assert len(excinfo.value.exceptions) == len(expected_sub)
 
 
 def test_invalid_iterations():

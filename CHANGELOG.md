@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOC: fix an incomplete sentence in `rlic.convolve`'s docstring
 - TYP: add array shape information to type hints
 - BLD: bump MSRV (1.64.0 -> 1.65.0)
+- ENH: report all exceptions instead of just the first one when validating inputs,
+  on all supported Python versions (using the backport package `exceptiongroup`
+  on 3.9 and 3.10)
 
 ## 0.3.3 - 2025-03-08
 
