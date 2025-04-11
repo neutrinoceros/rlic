@@ -44,6 +44,8 @@ jobs:
       with:
         fetch-depth: 0
     - uses: astral-sh/setup-uv@0c5e2b8115b80b4c7c5ddf6ffdd634974642d182 # v5.4.1
+      with:
+        enable-cache: false
     - name: Check sdist's size
       run: uv run scripts/pre_publish_checks.py
 
@@ -140,6 +142,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
         prune-cache: false
+        cache-suffix: covcheck
 
     - name: Test (with coverage)
       if: ${{ startsWith( matrix.os , 'ubuntu' ) }}
@@ -173,6 +176,7 @@ jobs:
         python-version: 3.13
         enable-cache: true
         prune-cache: false
+        cache-suffix: covcheck
     - run: uv sync --group covcheck
     - name: install reference implementation
       run: uv pip install git+https://github.com/neutrinoceros/scikits-vectorplot.git
@@ -196,6 +200,7 @@ jobs:
         python-version: 3.9.0
         enable-cache: true
         prune-cache: false
+        cache-suffix: test
     - name: Configure uv
       run: |
         echo "UV_RESOLUTION=lowest-direct" >> $GITHUB_ENV
@@ -234,6 +239,7 @@ jobs:
         python-version: '3.13'
         enable-cache: true
         prune-cache: false
+        cache-suffix: covcheck-merge
 
     - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
       with:
@@ -265,6 +271,7 @@ jobs:
         python-version: '3.13'
         enable-cache: true
         prune-cache: false
+        cache-suffix: test
     - name: Configure uv
       run: |
         echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
@@ -288,6 +295,7 @@ jobs:
         python-version: 3.9
         enable-cache: true
         prune-cache: false
+        cache-suffix: typecheck
 
     - run: uv sync --group typecheck
     - name: Typecheck (mypy)
@@ -316,6 +324,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
         prune-cache: false
+        cache-suffix: typecheck
 
     - run: uv sync --group typecheck
     - name: Typecheck (mypy)
