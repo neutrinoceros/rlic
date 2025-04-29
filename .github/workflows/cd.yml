@@ -77,6 +77,12 @@ jobs:
       with:
         python-version: 3.9
         cache-suffix: test
+
+    - name: Configure uv
+      # this step is needed to avoid a collision with system PyPy
+      run: |
+        echo "UV_PYTHON_PREFERENCE=only-managed" >> $GITHUB_ENV
+
     - uses: dtolnay/rust-toolchain@stable
     - name: Build wheels - x86_64
       uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6e3 # v1.49.1
