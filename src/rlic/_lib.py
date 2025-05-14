@@ -45,7 +45,7 @@ def convolve(
 
     Arguments
     ---------
-    texture: 2D numpy array (positional-only)
+    texture: 2D numpy array, positional-only
       Think of this as a tracer fluid. Random noise is a good input in the
       general case.
 
@@ -53,7 +53,7 @@ def convolve(
       Represent the horizontal and vertical components of a vector field,
       respectively.
 
-    kernel: 1D numpy array
+    kernel: 1D numpy array, keyword-only
       This is the convolution kernel. Think of it as relative weights along a
       portion of a field line. The first half of the array represent weights on
       the "past" part of a field line (with respect to a starting point), while
@@ -64,7 +64,7 @@ def convolve(
       its direction matters. With uv_mode='polarization', direction is
       effectively ignored.
 
-    iterations: (positive) int (default: 1)
+    iterations: (positive) int (default: 1), keyword-only
       Perform multiple iterations in a loop where the output array texture is
       fed back as the input to the next iteration. Looping is done at the
       native-code level.
