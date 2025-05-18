@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - DOC: consistently indicate argument types (positional-only and keyword-only)
   in `rlic.convolve`'s docstring
+- TST: add CPython 3.14 and 3.14t to test matrix
 
 ## 0.3.4 - 2025-04-09
 
