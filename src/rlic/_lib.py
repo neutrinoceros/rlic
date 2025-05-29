@@ -107,7 +107,7 @@ def convolve(
     Infinite values in any input array are not special cased.
 
     This function is guaranteed to never mutate any input array, and always
-    return a newly allocated array. Thread-safety is thus trivially guaranteed.
+    returns a newly allocated array. Thread-safety is thus trivially guaranteed.
     """
     exceptions: list[Exception] = []
     if iterations < 0:
