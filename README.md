@@ -96,7 +96,7 @@ texture = prng.random(SHAPE)
 kernel = 1 - np.abs(np.linspace(-1, 1, 65, dtype="float64"))
 
 U0 = np.ones(SHAPE)
-ii = np.broadcast_to(np.arrange(NX), SHAPE)
+ii = np.broadcast_to(np.arange(NX), SHAPE)
 U = np.where(ii<NX/2, -U0, U0)
 V = np.zeros((NX, NX))
 
