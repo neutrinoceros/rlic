@@ -48,6 +48,20 @@ typecheck = [
     "mypy>=1.13.0",
     "pyright>=1.1.391",
 ]
+# uv sync includes this group by default, which works in combination
+# with tool.uv.sources and tool.uv.default-groups. Don't use this group
+# with any other tool.
+uv-only = [
+    "vectorplot",
+]
+
+[tool.uv]
+default-groups = [
+    "uv-only",
+]
+
+[tool.uv.sources]
+vectorplot = { git = "https://github.com/neutrinoceros/scikits-vectorplot", rev = "7477c801c9bfaa1bbb8084aad0b2dab7065f79d0" }  # v0.2.0post2
 
 [tool.maturin]
 module-name = "rlic._core"
