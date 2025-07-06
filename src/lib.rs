@@ -97,44 +97,24 @@ impl<T: Neg<Output = T> + Copy> Neg for UVPoint<T> {
     }
 }
 
-struct PixelSelector {}
-impl PixelSelector {
-    fn get<T: Copy>(&self, arr: &Array2<T>, coords: &PixelCoordinates) -> T {
-        arr[[coords.y_idx(), coords.x_idx()]]
-    }
-    fn get_v<T: Copy>(&self, arr: &ArrayView2<T>, coords: &PixelCoordinates) -> T {
-        arr[[coords.y_idx(), coords.x_idx()]]
-    }
+fn select_pixel<T: Copy>(arr: &ArrayView2<T>, coords: &PixelCoordinates) -> T {
+    arr[[coords.y_idx(), coords.x_idx()]]
 }
 
 #[cfg(test)]
-mod test_pixel_selector {
+mod test_pixel_select {
     use numpy::ndarray::array;
 
-    use crate::{ImageDimensions, PixelCoordinates, PixelSelector};
+    use crate::{select_pixel, ImageDimensions, PixelCoordinates};
     #[test]
-    fn from_array() {
+    fn selection() {
         let arr = array![[1.0, 2.0], [3.0, 4.0]];
         let coords = PixelCoordinates {
             x: 1,
             y: 1,
             dimensions: ImageDimensions { x: 4, y: 4 },
         };
-        let ps = PixelSelector {};
-        let res = ps.get(&arr, &coords);
-        assert_eq!(res, 4.0);
-    }
-    #[test]
-    fn from_view() {
-        let arr = array![[1.0, 2.0], [3.0, 4.0]];
-        let view = arr.view();
-        let coords = PixelCoordinates {
-            x: 1,
-            y: 1,
-            dimensions: ImageDimensions { x: 4, y: 4 },
-        };
-        let ps = PixelSelector {};
-        let res = ps.get_v(&view, &coords);
+        let res = select_pixel(&arr.view(), &coords);
         assert_eq!(res, 4.0);
     }
 }
@@ -272,7 +252,7 @@ fn convole_single_pixel<T: AtLeastF32>(
     starting_point: &PixelCoordinates,
     uvfield: &UVField<T>,
     kernel: &ArrayView1<T>,
-    input: &Array2<T>,
+    input: &ArrayView2<T>,
     direction: &Direction,
 ) {
     let mut coords: PixelCoordinates = starting_point.clone();
@@ -285,7 +265,6 @@ fn convole_single_pixel<T: AtLeastF32>(
         u: 0.0.into(),
         v: 0.0.into(),
     };
-    let ps = PixelSelector {};
 
     let kmid = kernel.len() / 2;
     let range = match direction {
@@ -295,8 +274,8 @@ fn convole_single_pixel<T: AtLeastF32>(
 
     for k in range {
         let mut p = UVPoint {
-            u: ps.get_v(&uvfield.u, &coords),
-            v: ps.get_v(&uvfield.v, &coords),
+            u: select_pixel(&uvfield.u, &coords),
+            v: select_pixel(&uvfield.v, &coords),
         };
         if p.u.is_nan() || p.v.is_nan() {
             break;
@@ -315,7 +294,7 @@ fn convole_single_pixel<T: AtLeastF32>(
             Direction::Backward => -p,
         };
         advance(&mp, &mut coords, &mut pix_frac);
-        *pixel_value += kernel[[k]] * ps.get(input, &coords);
+        *pixel_value += kernel[[k]] * select_pixel(input, &coords);
     }
 }
 
@@ -323,7 +302,7 @@ fn convolve<'py, T: AtLeastF32>(
     u: ArrayView2<'py, T>,
     v: ArrayView2<'py, T>,
     kernel: ArrayView1<'py, T>,
-    input: &Array2<T>,
+    input: ArrayView2<T>,
     output: &mut Array2<T>,
     uv_mode: &UVMode,
 ) {
@@ -352,7 +331,7 @@ fn convolve<'py, T: AtLeastF32>(
                 &starting_point,
                 &uvfield,
                 &kernel,
-                input,
+                &input,
                 &Direction::Forward,
             );
 
@@ -361,7 +340,7 @@ fn convolve<'py, T: AtLeastF32>(
                 &starting_point,
                 &uvfield,
                 &kernel,
-                input,
+                &input,
                 &Direction::Backward,
             );
         }
@@ -387,7 +366,7 @@ fn convolve_iteratively_impl<'py, T: AtLeastF32 + numpy::Element>(
 
     let mut it_count = 0;
     while it_count < iterations {
-        convolve(u, v, kernel, &input, &mut output, &uv_mode);
+        convolve(u, v, kernel, input.view(), &mut output, &uv_mode);
         it_count += 1;
         if it_count < iterations {
             input.assign(&output);
