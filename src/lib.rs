@@ -408,7 +408,10 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
     ) -> Bound<'py, PyArray2<f32>> {
         let uv_mode = UVMode::parse(uv_mode);
-        convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations)
+        match iterations {
+            1 => convolve_once(py, texture, u, v, kernel, uv_mode),
+            _ => convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations),
+        }
     }
 
     #[pyfn(m)]
@@ -423,7 +426,10 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
         let uv_mode = UVMode::parse(uv_mode);
-        convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations)
+        match iterations {
+            1 => convolve_once(py, texture, u, v, kernel, uv_mode),
+            _ => convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations),
+        }
     }
     Ok(())
 }
