@@ -421,6 +421,25 @@ fn convolve<'py, T: AtLeastF32>(
     }
 }
 
+fn convolve_once<'py, T: AtLeastF32 + numpy::Element>(
+    py: Python<'py>,
+    texture: PyReadonlyArray2<'py, T>,
+    u: PyReadonlyArray2<'py, T>,
+    v: PyReadonlyArray2<'py, T>,
+    kernel: PyReadonlyArray1<'py, T>,
+    uv_mode: UVMode,
+) -> Bound<'py, PyArray2<T>> {
+    let u = u.as_array();
+    let v = v.as_array();
+    let kernel = kernel.as_array();
+    let texture = texture.as_array();
+    let mut output = Array2::<T>::zeros(texture.raw_dim());
+
+    convolve(u, v, kernel, texture, &mut output, &uv_mode);
+
+    output.to_pyarray(py)
+}
+
 fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     texture: PyReadonlyArray2<'py, T>,
