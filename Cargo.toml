@@ -24,3 +24,5 @@ either = "1.14.0"
 [profile.release]
 # https://nnethercote.github.io/perf-book/build-configuration.html#codegen-units
 codegen-units = 1
+# https://nnethercote.github.io/perf-book/build-configuration.html#abort-on-panic
+panic = "abort"
