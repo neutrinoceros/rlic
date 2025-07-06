@@ -424,18 +424,20 @@ fn convolve<'py, T: AtLeastF32>(
 fn convolve_once<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     texture: PyReadonlyArray2<'py, T>,
-    u: PyReadonlyArray2<'py, T>,
-    v: PyReadonlyArray2<'py, T>,
+    uv: (PyReadonlyArray2<'py, T>, PyReadonlyArray2<'py, T>, String),
     kernel: PyReadonlyArray1<'py, T>,
-    uv_mode: UVMode,
+    boundaries: BoundarySet,
 ) -> Bound<'py, PyArray2<T>> {
-    let u = u.as_array();
-    let v = v.as_array();
+    let uv = UVField {
+        u: uv.0.as_array(),
+        v: uv.1.as_array(),
+        mode: UVMode::new(uv.2),
+    };
     let kernel = kernel.as_array();
     let texture = texture.as_array();
     let mut output = Array2::<T>::zeros(texture.raw_dim());
 
-    convolve(u, v, kernel, texture, &mut output, &uv_mode);
+    convolve(&uv, kernel, &boundaries, texture, &mut output);
 
     output.to_pyarray(py)
 }
@@ -491,7 +493,10 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
     ) -> Bound<'py, PyArray2<f32>> {
         let boundaries = BoundarySet::new(boundaries);
-        convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
+        match iterations {
+            1 => convolve_once(py, texture, uv, kernel, boundaries),
+            _ => convolve_iteratively(py, texture, uv, kernel, boundaries, iterations),
+        }
     }
     m.add_function(wrap_pyfunction!(convolve_f32, m)?)?;
 
@@ -509,7 +514,10 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
         let boundaries = BoundarySet::new(boundaries);
-        convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
+        match iterations {
+            1 => convolve_once(py, texture, uv, kernel, boundaries),
+            _ => convolve_iteratively(py, texture, uv, kernel, boundaries, iterations),
+        }
     }
     m.add_function(wrap_pyfunction!(convolve_f64, m)?)?;
 
