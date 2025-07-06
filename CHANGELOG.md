@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOC: fix invalid example code and re-generate output image
 - PERF: turn rust panics into fatal errors, improving performance and
   reducing binary size by 10% each
+- PERF: leverage Fused Multiply-Add (FMA) instructions on supporting architectures
+  (including Apple Silicon and AMD processors). Except about 2 to 4% gain
 
 - DEP: drop support for NumPy 1.21.x, require 1.22.0 or newer
 
