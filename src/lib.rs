@@ -12,6 +12,15 @@ enum UVMode {
     Velocity,
     Polarization,
 }
+impl UVMode {
+    fn parse(uv_mode: String) -> UVMode {
+        match uv_mode.as_str() {
+            "polarization" => UVMode::Polarization,
+            "velocity" => UVMode::Velocity,
+            _ => panic!("unknown uv_mode"),
+        }
+    }
+}
 
 struct UVField<'a, T> {
     u: ArrayView2<'a, T>,
@@ -365,8 +374,8 @@ fn convolve_iteratively_impl<'py, T: AtLeastF32 + numpy::Element>(
     u: PyReadonlyArray2<'py, T>,
     v: PyReadonlyArray2<'py, T>,
     kernel: PyReadonlyArray1<'py, T>,
+    uv_mode: UVMode,
     iterations: i64,
-    uv_mode: String,
 ) -> Bound<'py, PyArray2<T>> {
     let u = u.as_array();
     let v = v.as_array();
@@ -375,12 +384,6 @@ fn convolve_iteratively_impl<'py, T: AtLeastF32 + numpy::Element>(
     let mut input =
         Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
     let mut output = Array2::<T>::zeros(texture.raw_dim());
-
-    let uv_mode = match uv_mode.as_str() {
-        "polarization" => UVMode::Polarization,
-        "velocity" => UVMode::Velocity,
-        _ => panic!("unknown uv_mode"),
-    };
 
     let mut it_count = 0;
     while it_count < iterations {
@@ -408,10 +411,11 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         u: PyReadonlyArray2<'py, f32>,
         v: PyReadonlyArray2<'py, f32>,
         kernel: PyReadonlyArray1<'py, f32>,
-        iterations: i64,
         uv_mode: String,
+        iterations: i64,
     ) -> Bound<'py, PyArray2<f32>> {
-        convolve_iteratively_impl(py, texture, u, v, kernel, iterations, uv_mode)
+        let uv_mode = UVMode::parse(uv_mode);
+        convolve_iteratively_impl(py, texture, u, v, kernel, uv_mode, iterations)
     }
 
     #[pyfn(m)]
@@ -422,10 +426,11 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         u: PyReadonlyArray2<'py, f64>,
         v: PyReadonlyArray2<'py, f64>,
         kernel: PyReadonlyArray1<'py, f64>,
-        iterations: i64,
         uv_mode: String,
+        iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
-        convolve_iteratively_impl(py, texture, u, v, kernel, iterations, uv_mode)
+        let uv_mode = UVMode::parse(uv_mode);
+        convolve_iteratively_impl(py, texture, u, v, kernel, uv_mode, iterations)
     }
     Ok(())
 }

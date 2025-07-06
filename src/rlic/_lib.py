@@ -183,8 +183,8 @@ def convolve(
     # mypy ignores can be removed once Python 3.9 is dropped.
     # https://github.com/numpy/numpy/issues/28572
     if input_dtype == np.dtype("float32"):
-        return convolve_f32(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
+        return convolve_f32(texture, u, v, kernel, uv_mode, iterations)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
     elif input_dtype == np.dtype("float64"):
-        return convolve_f64(texture, u, v, kernel, iterations, uv_mode)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
+        return convolve_f64(texture, u, v, kernel, uv_mode, iterations)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
     else:
         raise RuntimeError  # pragma: no cover
