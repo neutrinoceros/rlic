@@ -18,7 +18,7 @@ classifiers = [
 requires-python = ">=3.9" # keep in sync with pyo3 (Cargo.toml)
 dependencies = [
     "exceptiongroup>=1.0.0 ; python_full_version < '3.11'", # keep in sync with typecheck dep group
-    "numpy>=1.21.0",
+    "numpy>=1.22.0",
 ]
 
 [project.readme]

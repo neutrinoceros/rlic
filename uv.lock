@@ -488,7 +488,7 @@ uv-only = [
 [package.metadata]
 requires-dist = [
     { name = "exceptiongroup", marker = "python_full_version < '3.11'", specifier = ">=1.0.0" },
-    { name = "numpy", specifier = ">=1.21.0" },
+    { name = "numpy", specifier = ">=1.22.0" },
 ]
 
 [package.metadata.requires-dev]
