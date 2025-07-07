@@ -26,3 +26,5 @@ either = "1.14.0"
 codegen-units = 1
 # https://nnethercote.github.io/perf-book/build-configuration.html#abort-on-panic
 panic = "abort"
+# https://nnethercote.github.io/perf-book/build-configuration.html#strip-debug-info-and-symbols
+strip = "symbols"
