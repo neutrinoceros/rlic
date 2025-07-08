@@ -342,7 +342,7 @@ fn convolve<'py, T: AtLeastF32>(
     }
 }
 
-fn convolve_iteratively_impl<'py, T: AtLeastF32 + numpy::Element>(
+fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     texture: PyReadonlyArray2<'py, T>,
     u: PyReadonlyArray2<'py, T>,
@@ -389,7 +389,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
     ) -> Bound<'py, PyArray2<f32>> {
         let uv_mode = UVMode::parse(uv_mode);
-        convolve_iteratively_impl(py, texture, u, v, kernel, uv_mode, iterations)
+        convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations)
     }
 
     #[pyfn(m)]
@@ -404,7 +404,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
         let uv_mode = UVMode::parse(uv_mode);
-        convolve_iteratively_impl(py, texture, u, v, kernel, uv_mode, iterations)
+        convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations)
     }
     Ok(())
 }
