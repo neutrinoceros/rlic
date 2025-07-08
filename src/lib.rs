@@ -4,7 +4,6 @@ use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
-use std::cmp::{max, min};
 use std::ops::{AddAssign, Mul, Neg};
 
 #[derive(Clone)]
@@ -33,35 +32,30 @@ struct PixelFraction<T> {
     y: T,
 }
 
-fn wrap_array_index(x: i64, array_size: i64) -> usize {
-    if x >= 0 {
-        x as usize
-    } else {
-        (array_size + x) as usize
-    }
-}
-
 #[derive(Clone)]
 struct ImageDimensions {
-    // storing sizes as i64 for ease of operations, but these
-    // are conceptually array sizes and should be convertible
-    // to usize at any point
-    x: i64,
-    y: i64,
+    x: usize,
+    y: usize,
 }
 
 #[derive(Clone)]
 struct PixelCoordinates {
-    x: i64,
-    y: i64,
+    x: usize,
+    y: usize,
     dimensions: ImageDimensions,
 }
 impl PixelCoordinates {
-    fn x_idx(&self) -> usize {
-        wrap_array_index(self.x, self.dimensions.x)
+    fn clip_image_index(x: usize, image_size: usize) -> usize {
+        // assumes overflows and underflows are *at most* off-by-one
+        match x {
+            0..=usize::MAX if x < image_size => x,
+            usize::MAX => 0,
+            _ => image_size - 1,
+        }
     }
-    fn y_idx(&self) -> usize {
-        wrap_array_index(self.y, self.dimensions.y)
+    fn clip(&mut self) {
+        self.x = Self::clip_image_index(self.x, self.dimensions.x);
+        self.y = Self::clip_image_index(self.y, self.dimensions.y);
     }
 }
 
@@ -70,14 +64,15 @@ mod test_pixel_coordinates {
     use crate::{ImageDimensions, PixelCoordinates};
 
     #[test]
-    fn coords_as_indices() {
-        let pc = PixelCoordinates {
-            x: 5,
-            y: -10,
+    fn clipping() {
+        let mut pc = PixelCoordinates {
+            x: usize::MAX,
+            y: 128 + 1,
             dimensions: ImageDimensions { x: 128, y: 128 },
         };
-        assert_eq!(pc.x_idx(), 5);
-        assert_eq!(pc.y_idx(), 128 - 10);
+        pc.clip();
+        assert_eq!(pc.x, 0);
+        assert_eq!(pc.y, 128 - 1);
     }
 }
 
@@ -98,7 +93,7 @@ impl<T: Neg<Output = T> + Copy> Neg for UVPoint<T> {
 }
 
 fn select_pixel<T: Copy>(arr: &ArrayView2<T>, coords: &PixelCoordinates) -> T {
-    arr[[coords.y_idx(), coords.x_idx()]]
+    arr[[coords.y, coords.x]]
 }
 
 #[cfg(test)]
@@ -168,7 +163,7 @@ mod test_time_to_next_pixel {
 fn update_state<T: AtLeastF32>(
     velocity_parallel: &T,
     velocity_orthogonal: &T,
-    coord_parallel: &mut i64,
+    coord_parallel: &mut usize,
     frac_parallel: &mut T,
     frac_orthogonal: &mut T,
     time_parallel: &T,
@@ -217,8 +212,7 @@ fn advance<T: AtLeastF32>(
             &ty,
         );
     }
-    coords.x = max(0, min(coords.dimensions.x - 1, coords.x));
-    coords.y = max(0, min(coords.dimensions.y - 1, coords.y));
+    coords.clip();
 }
 
 #[cfg(test)]
@@ -308,8 +302,8 @@ fn convolve<'py, T: AtLeastF32>(
     uv_mode: &UVMode,
 ) {
     let dims = ImageDimensions {
-        x: u.shape()[1] as i64,
-        y: u.shape()[0] as i64,
+        x: u.shape()[1],
+        y: u.shape()[0],
     };
     let uvfield = UVField {
         u,
@@ -318,13 +312,13 @@ fn convolve<'py, T: AtLeastF32>(
     };
     let kmid = kernel.len() / 2;
 
-    for i in 0..(dims.y as usize) {
-        for j in 0..(dims.x as usize) {
+    for i in 0..dims.y {
+        for j in 0..dims.x {
             let pixel_value = &mut output[[i, j]];
             *pixel_value = kernel[[kmid]].mul_add(input[[i, j]], *pixel_value);
             let starting_point = PixelCoordinates {
-                x: j.try_into().unwrap(),
-                y: i.try_into().unwrap(),
+                x: j,
+                y: i,
                 dimensions: dims.clone(),
             };
             convole_single_pixel(
