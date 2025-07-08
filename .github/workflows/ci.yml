@@ -117,7 +117,7 @@ jobs:
     - run: cargo test --verbose
 
   python-tests:
-    name: ${{matrix.os}} x py${{matrix.python-version}}
+    name: ${{matrix.os}} x py${{matrix.python-version}} ${{matrix.label}}
     strategy:
       fail-fast: false
       matrix:
@@ -132,6 +132,14 @@ jobs:
         #- '3.12'
         - '3.13'
         - 3.13t
+        build-flags: ['']
+        label: ['']
+
+        include:
+        - os: ubuntu-latest
+          python-version: '3.13'
+          build-flags: --config-setting 'build-args=--profile=dev'
+          label: (debug build)
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -147,12 +155,12 @@ jobs:
     - name: Test (with coverage)
       if: ${{ startsWith( matrix.os , 'ubuntu' ) }}
       run: |
-        uv sync --group covcheck
+        uv sync --group covcheck ${{ matrix.build-flags }}
         uv run --no-sync coverage run --parallel-mode -m pytest --color=yes
     - name: Test (without coverage)
       if: ${{ !startsWith( matrix.os , 'ubuntu' ) }}
       run: |
-        uv sync --no-editable --group test
+        uv sync --no-editable --group test ${{ matrix.build-flags }}
         uv run --no-sync pytest --color=yes
 
     - name: Upload coverage data
@@ -161,7 +169,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: rlic_coverage_data-${{matrix.os}}-${{matrix.python-version}}
+        name: rlic_coverage_data-${{matrix.os}}-${{matrix.python-version}}-${{matrix.label}}
         path: .coverage.*
         if-no-files-found: ignore
         include-hidden-files: true
