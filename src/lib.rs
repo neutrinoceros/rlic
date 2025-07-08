@@ -172,7 +172,13 @@ fn update_state<T: AtLeastF32>(
         *coord_parallel += 1;
         *frac_parallel = 0.0.into();
     } else {
-        *coord_parallel -= 1;
+        if cfg!(not(debug_assertions)) || *coord_parallel != 0 {
+            // In release mode, underflows are handled in PixelCoordinates::clip
+            *coord_parallel -= 1;
+        } else {
+            *coord_parallel = usize::MAX;
+        }
+
         *frac_parallel = 1.0.into();
     }
     *frac_orthogonal = (*time_parallel).mul_add(*velocity_orthogonal, *frac_orthogonal);
