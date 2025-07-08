@@ -48,13 +48,15 @@ impl PixelCoordinates {
     fn clip_image_index(x: usize, image_size: usize) -> usize {
         // assumes overflows and underflows are *at most* off-by-one
         match x {
-            0..=usize::MAX if x < image_size => x,
+            0.. if x < image_size => x,
             usize::MAX => 0,
-            _ => image_size - 1,
+            image_size => image_size - 1,
         }
     }
-    fn clip(&mut self) {
+    fn clip_x(&mut self) {
         self.x = Self::clip_image_index(self.x, self.dimensions.x);
+    }
+    fn clip_y(&mut self) {
         self.y = Self::clip_image_index(self.y, self.dimensions.y);
     }
 }
@@ -67,11 +69,12 @@ mod test_pixel_coordinates {
     fn clipping() {
         let mut pc = PixelCoordinates {
             x: usize::MAX,
-            y: 128 + 1,
+            y: 128,
             dimensions: ImageDimensions { x: 128, y: 128 },
         };
-        pc.clip();
+        pc.clip_x();
         assert_eq!(pc.x, 0);
+        pc.clip_y();
         assert_eq!(pc.y, 128 - 1);
     }
 }
@@ -201,6 +204,7 @@ fn advance<T: AtLeastF32>(
             &mut pix_frac.y,
             &tx,
         );
+        coords.clip_x();
     } else {
         // We reached the next pixel along y first.
         update_state(
@@ -211,8 +215,8 @@ fn advance<T: AtLeastF32>(
             &mut pix_frac.x,
             &ty,
         );
+        coords.clip_y();
     }
-    coords.clip();
 }
 
 #[cfg(test)]
