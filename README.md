@@ -119,3 +119,12 @@ for uv_mode, ax in zip(("velocity", "polarization"), axs[1:], strict=True):
 <a href="https://github.com/neutrinoceros/rlic">
 <img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.3.4/static/polarization_example.png" width="900"></a>
 </p>
+
+
+## Memory Usage
+
+`rLIC.convolve` allocates exactly two buffers with the same size as `texture`,
+`u` and `v`, regardless of the number of `iterations` performed, one of which is
+discarded when the function returns. This means that peak usage is about 5/3 of
+the amount needed to hold input data in memory, and usage drops to 4/3 on
+return.
