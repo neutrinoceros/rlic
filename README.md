@@ -5,7 +5,10 @@
 
 ***Line Integral Convolution for Python, written in Rust***
 
-`rLIC` (pronounced 'relic') is a minimal implementation of the [Line Integral Convolution](https://en.wikipedia.org/wiki/Line_integral_convolution) algorithm for in-memory `numpy` arrays, written in Rust.
+`rLIC` (pronounced 'relic') is a highly optimized, minimal implementation of the
+[Line Integral
+Convolution](https://en.wikipedia.org/wiki/Line_integral_convolution) algorithm
+for in-memory `numpy` arrays, written in Rust.
 
 
 ## Installation
