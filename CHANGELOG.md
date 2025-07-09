@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOC: consistently indicate argument types (positional-only and keyword-only)
   in `rlic.convolve`'s docstring
 - DOC: fix invalid example code and re-generate output image
+- DOC: document memory usage
 - PERF: turn rust panics into fatal errors, improving performance and
   reducing binary size by 10% each
 - PERF: leverage Fused Multiply-Add (FMA) instructions on supporting architectures
