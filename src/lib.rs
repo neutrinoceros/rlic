@@ -251,7 +251,7 @@ enum Direction {
 fn convole_single_pixel<T: AtLeastF32>(
     pixel_value: &mut T,
     starting_point: &PixelCoordinates,
-    uvfield: &UVField<T>,
+    uv: &UVField<T>,
     kernel: &ArrayView1<T>,
     input: &ArrayView2<T>,
     direction: &Direction,
@@ -275,13 +275,13 @@ fn convole_single_pixel<T: AtLeastF32>(
 
     for k in range {
         let mut p = UVPoint {
-            u: select_pixel(&uvfield.u, &coords),
-            v: select_pixel(&uvfield.v, &coords),
+            u: select_pixel(&uv.u, &coords),
+            v: select_pixel(&uv.v, &coords),
         };
         if p.u.is_nan() || p.v.is_nan() {
             break;
         }
-        match uvfield.mode {
+        match uv.mode {
             UVMode::Polarization => {
                 if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
                     p = -p;
@@ -300,21 +300,14 @@ fn convole_single_pixel<T: AtLeastF32>(
 }
 
 fn convolve<'py, T: AtLeastF32>(
-    u: ArrayView2<'py, T>,
-    v: ArrayView2<'py, T>,
+    uv: &UVField<'py, T>,
     kernel: ArrayView1<'py, T>,
     input: ArrayView2<T>,
     output: &mut Array2<T>,
-    uv_mode: &UVMode,
 ) {
     let dims = ImageDimensions {
-        x: u.shape()[1],
-        y: u.shape()[0],
-    };
-    let uvfield = UVField {
-        u,
-        v,
-        mode: uv_mode.clone(),
+        x: uv.u.shape()[1],
+        y: uv.u.shape()[0],
     };
     let kmid = kernel.len() / 2;
 
@@ -330,7 +323,7 @@ fn convolve<'py, T: AtLeastF32>(
             convole_single_pixel(
                 pixel_value,
                 &starting_point,
-                &uvfield,
+                uv,
                 &kernel,
                 &input,
                 &Direction::Forward,
@@ -339,7 +332,7 @@ fn convolve<'py, T: AtLeastF32>(
             convole_single_pixel(
                 pixel_value,
                 &starting_point,
-                &uvfield,
+                uv,
                 &kernel,
                 &input,
                 &Direction::Backward,
@@ -364,10 +357,15 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     let mut input =
         Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
     let mut output = Array2::<T>::zeros(texture.raw_dim());
+    let uv = UVField {
+        u,
+        v,
+        mode: uv_mode,
+    };
 
     let mut it_count = 0;
     while it_count < iterations {
-        convolve(u, v, kernel, input.view(), &mut output, &uv_mode);
+        convolve(&uv, kernel, input.view(), &mut output);
         it_count += 1;
         if it_count < iterations {
             input.assign(&output);
