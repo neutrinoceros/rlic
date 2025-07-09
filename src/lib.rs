@@ -204,7 +204,6 @@ fn advance<T: AtLeastF32>(
             &mut pix_frac.y,
             &tx,
         );
-        coords.clip_x();
     } else {
         // We reached the next pixel along y first.
         update_state(
@@ -215,8 +214,11 @@ fn advance<T: AtLeastF32>(
             &mut pix_frac.x,
             &ty,
         );
-        coords.clip_y();
     }
+    // All boundary conditions must be applicable on each step.
+    // This is done to allow for complex cases like shearing boxes.
+    coords.clip_x();
+    coords.clip_y();
 }
 
 #[cfg(test)]
