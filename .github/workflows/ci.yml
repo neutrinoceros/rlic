@@ -266,6 +266,7 @@ jobs:
         echo "UV_INDEX=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> $GITHUB_ENV
         echo "UV_INDEX_STRATEGY=unsafe-best-match" >> $GITHUB_ENV
     - run: uv lock --upgrade -p "$UV_PYTHON" --python-preference=only-managed
+      shell: bash # windows compat
     - run: uv sync --no-editable --no-default-groups --group test
     - name: Test
       run: uv run --no-sync pytest --color=yes
