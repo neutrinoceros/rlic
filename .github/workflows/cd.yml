@@ -166,6 +166,7 @@ jobs:
 
   windows-arm64:
     # this job is separate because it requires a newer Python version, and a dedicated runner
+    name: windows (arm64)
     runs-on: windows-11-arm
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -180,7 +181,7 @@ jobs:
     - name: Build wheels
       uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
       with:
-        target: arm64
+        target: arm64ec-pc-windows-msvc
         args: --release --out dist
     - name: Configure uv
       run: |
