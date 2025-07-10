@@ -21,7 +21,7 @@ jobs:
     - uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
       with:
         enable-cache: false
-    - name: Check sdist's size
+    - name: Pre-publication checks
       run: uv run scripts/pre_publish_checks.py
 
   build-sdist:
