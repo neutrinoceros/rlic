@@ -16,8 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (including Apple Silicon and AMD processors). Except about 2 to 4% gain
 - PERF: avoid back-and-forth conversions between usize and i64 representations
   for image coordinates. Expect about 2% gain
+- PERF: avoid unnecessary array copy for single-pass convolution
 
 - DEP: drop support for NumPy 1.21.x, require 1.22.0 or newer
+
 
 ## 0.3.4 - 2025-04-09
 
