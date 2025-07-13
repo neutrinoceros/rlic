@@ -180,7 +180,7 @@ def convolve(
         return texture.copy()
 
     input_dtype = texture.dtype
-    # mypy ignores can be removed once Python 3.9 is dropped.
+    # about type: and pyright: comments:
     # https://github.com/numpy/numpy/issues/28572
     if input_dtype == np.dtype("float32"):
         return convolve_f32(texture, u, v, kernel, uv_mode, iterations)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
