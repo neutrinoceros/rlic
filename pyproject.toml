@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
     "Typing :: Typed",
 ]
-requires-python = ">=3.9" # keep in sync with pyo3 (Cargo.toml)
+requires-python = ">=3.10" # keep in sync with pyo3 (Cargo.toml)
 dependencies = [
     "exceptiongroup>=1.0.0 ; python_full_version < '3.11'", # keep in sync with typecheck dep group
     "numpy>=1.22.0",
@@ -92,6 +92,9 @@ exclude = [
 [tool.pytest.ini_options]
 filterwarnings = [
   "error",
+  # from numpy.testing 1.22.0
+  "ignore:The distutils package is deprecated and slated for removal in Python 3.12:DeprecationWarning",
+  "ignore:The distutils.sysconfig module is deprecated, use sysconfig instead:DeprecationWarning",
 ]
 addopts = "-ra"
 xfail_strict = true
@@ -121,6 +124,7 @@ reportImplicitStringConcatenation = false
 reportUnnecessaryTypeIgnoreComment = false # todo: drop this when Python 3.10 is EOL
 
 [tool.mypy]
+strict = true
 show_error_codes = true
 show_error_context = true
 
