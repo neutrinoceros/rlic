@@ -422,9 +422,9 @@ requires-dist = [
 covcheck = [
     { name = "coverage", marker = "python_full_version >= '3.11'", specifier = ">=7.6.1" },
     { name = "coverage", extras = ["toml"], marker = "python_full_version < '3.11'", specifier = ">=7.6.1" },
-    { name = "pytest", specifier = ">=8.1.0" },
+    { name = "pytest", specifier = ">=8.4.0" },
 ]
-test = [{ name = "pytest", specifier = ">=8.1.0" }]
+test = [{ name = "pytest", specifier = ">=8.4.0" }]
 typecheck = [
     { name = "basedpyright", specifier = ">=1.26.0" },
     { name = "exceptiongroup", specifier = ">=1.0.0" },

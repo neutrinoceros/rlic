@@ -1,31 +1,11 @@
-import sys
-
 import numpy as np
 import pytest
+from pytest import RaisesExc, RaisesGroup
 
 import rlic
 
-if sys.version_info < (3, 11):
-    from exceptiongroup import ExceptionGroup
-
 img = u = v = np.eye(64)
 kernel = np.linspace(0, 1, 10, dtype="float64")
-
-
-def assert_exceptions_match(
-    to_eval: str,
-    global_namespace,
-    local_namespace,
-    group_match: str,
-    expected_sub: list[tuple[type[Exception], str]],
-) -> None:
-    with pytest.raises(ExceptionGroup, match=group_match) as excinfo:
-        eval(to_eval, global_namespace, local_namespace)
-
-    for exctype, match in expected_sub:
-        assert excinfo.group_contains(exctype, match=match, depth=1)
-
-    assert len(excinfo.value.exceptions) == len(expected_sub)
 
 
 def test_invalid_iterations():
@@ -43,7 +23,8 @@ def test_invalid_uv_mode():
     with pytest.raises(
         ValueError,
         match=(
-            r"^Invalid uv_mode 'astral'\. Expected one of \['velocity', 'polarization'\]$"
+            r"^Invalid uv_mode 'astral'\. "
+            r"Expected one of \['velocity', 'polarization'\]$"
         ),
     ):
         rlic.convolve(img, u, v, kernel=kernel, uv_mode="astral")
@@ -51,43 +32,47 @@ def test_invalid_uv_mode():
 
 def test_invalid_texture_ndim():
     img = np.ones((16, 16, 16))
-    assert_exceptions_match(
-        "rlic.convolve(img, u, v, kernel=kernel)",
-        globals(),
-        locals(),
-        group_match=r"^Invalid inputs were received\.",
-        expected_sub=[
-            (
-                ValueError,
-                r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
+    with RaisesGroup(
+        RaisesExc(
+            ValueError,
+            match=(
+                r"^Expected a texture with exactly two dimensions\. "
+                r"Got texture\.ndim=3$"
             ),
-            (
-                ValueError,
-                r"^Shape mismatch: expected texture, u and v with identical shapes\.",
+        ),
+        RaisesExc(
+            ValueError,
+            match=(
+                r"^Shape mismatch: expected texture, "
+                r"u and v with identical shapes\."
             ),
-        ],
-    )
+        ),
+        match=r"^Invalid inputs were received\.",
+    ):
+        rlic.convolve(img, u, v, kernel=kernel)
 
 
 def test_invalid_texture_shape_and_ndim():
     img = np.ones((16, 16, 16))
 
-    assert_exceptions_match(
-        "rlic.convolve(img, u, v, kernel=kernel)",
-        globals(),
-        locals(),
-        group_match=r"^Invalid inputs were received\.",
-        expected_sub=[
-            (
-                ValueError,
-                r"^Expected a texture with exactly two dimensions\. Got texture\.ndim=3$",
+    with RaisesGroup(
+        RaisesExc(
+            ValueError,
+            match=(
+                r"^Expected a texture with exactly two dimensions\. "
+                r"Got texture\.ndim=3$"
             ),
-            (
-                ValueError,
-                r"^Shape mismatch: expected texture, u and v with identical shapes\.",
+        ),
+        RaisesExc(
+            ValueError,
+            match=(
+                r"^Shape mismatch: expected texture, "
+                r"u and v with identical shapes\."
             ),
-        ],
-    )
+        ),
+        match=r"^Invalid inputs were received\.",
+    ):
+        rlic.convolve(img, u, v, kernel=kernel)
 
 
 def test_invalid_texture_values():
@@ -95,7 +80,8 @@ def test_invalid_texture_values():
     with pytest.raises(
         ValueError,
         match=(
-            r"^Found invalid texture element\(s\)\. Expected only positive values\.$"
+            r"^Found invalid texture element\(s\)\. "
+            r"Expected only positive values\.$"
         ),
     ):
         rlic.convolve(img, v, v, kernel=kernel)
@@ -129,7 +115,10 @@ def test_mismatched_shapes(texture_shape, u_shape, v_shape):
 def test_invalid_kernel_ndim():
     with pytest.raises(
         ValueError,
-        match=r"^Expected a kernel with exactly one dimension\. Got kernel\.ndim=2$",
+        match=(
+            r"^Expected a kernel with exactly one dimension\. "
+            r"Got kernel\.ndim=2$"
+        ),
     ):
         rlic.convolve(img, u, v, kernel=np.ones((5, 5)))
 
@@ -147,43 +136,39 @@ def test_non_finite_kernel(polluting_value):
 
 def test_invalid_texture_dtype():
     img = np.ones((64, 64), dtype="complex128")
-    assert_exceptions_match(
-        "rlic.convolve(img, u, v, kernel=kernel)",
-        globals(),
-        locals(),
-        group_match=r"^Invalid inputs were received\.",
-        expected_sub=[
-            (
-                TypeError,
+    with RaisesGroup(
+        RaisesExc(
+            TypeError,
+            match=(
                 r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
                 r"Expected texture, u, v and kernel with identical dtype, from "
                 r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
                 r"Got texture\.dtype=dtype\('complex128'\), u\.dtype=dtype\('float64'\), "
-                r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$",
+                r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('float64'\)$"
             ),
-            (TypeError, r"^Data types mismatch"),
-        ],
-    )
+        ),
+        RaisesExc(TypeError, match=r"^Data types mismatch"),
+        match=r"^Invalid inputs were received\.",
+    ):
+        rlic.convolve(img, u, v, kernel=kernel)
 
 
 def test_invalid_kernel_dtype():
-    assert_exceptions_match(
-        "rlic.convolve(img, u, v, kernel=-np.ones(5, dtype='complex128'))",
-        globals(),
-        locals(),
-        group_match=r"^Invalid inputs were received\.",
-        expected_sub=[
-            (
-                TypeError,
+    with RaisesGroup(
+        RaisesExc(
+            TypeError,
+            match=(
                 r"^Found unsupported data type\(s\): \[dtype\('complex128'\)\]\. "
                 r"Expected texture, u, v and kernel with identical dtype, from "
                 r"\[dtype\('float32'\), dtype\('float64'\)\]\. "
                 r"Got texture\.dtype=dtype\('float64'\), u\.dtype=dtype\('float64'\), "
-                r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('complex128'\)$",
+                r"v\.dtype=dtype\('float64'\), kernel\.dtype=dtype\('complex128'\)$"
             ),
-            (TypeError, r"^Data types mismatch"),
-        ],
-    )
+        ),
+        RaisesExc(TypeError, match=r"^Data types mismatch"),
+        match=r"^Invalid inputs were received\.",
+    ):
+        rlic.convolve(img, u, v, kernel=-np.ones(5, dtype="complex128"))
 
 
 def test_mismatched_dtypes():
