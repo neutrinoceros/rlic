@@ -53,7 +53,7 @@ covcheck = [
     "coverage>=7.6.1 ; python_version >= '3.11'",
 ]
 test = [
-    "pytest>=8.1.0",
+    "pytest>=8.4.0",
 ]
 typecheck = [
     "exceptiongroup>=1.0.0", # keep in sync with conditional runtime dep
