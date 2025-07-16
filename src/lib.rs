@@ -12,7 +12,7 @@ enum UVMode {
     Polarization,
 }
 impl UVMode {
-    fn parse(uv_mode: String) -> UVMode {
+    fn from(uv_mode: String) -> UVMode {
         match uv_mode.as_str() {
             "polarization" => UVMode::Polarization,
             "velocity" => UVMode::Velocity,
@@ -392,7 +392,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         uv_mode: String,
         iterations: i64,
     ) -> Bound<'py, PyArray2<f32>> {
-        let uv_mode = UVMode::parse(uv_mode);
+        let uv_mode = UVMode::from(uv_mode);
         convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations)
     }
 
@@ -407,7 +407,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         uv_mode: String,
         iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
-        let uv_mode = UVMode::parse(uv_mode);
+        let uv_mode = UVMode::from(uv_mode);
         convolve_iteratively(py, texture, u, v, kernel, uv_mode, iterations)
     }
     Ok(())
