@@ -1,7 +1,7 @@
 [project]
 name = "rlic"
 # keep version in sync with Cargo.toml
-version = "0.4.0"
+version = "0.5.0"
 description = "A minimal Line Integral Convolution extension for NumPy, written in Rust"
 license = "MIT"
 license-files = [
