@@ -195,3 +195,8 @@ def test_all_validators_before_returns():
         match=r"^Found non-finite value\(s\) in kernel\.$",
     ):
         rlic.convolve(img, u, v, kernel=kernel, iterations=0)
+
+
+def test_invalid_boundary_type():
+    with pytest.raises(TypeError, match=r"^Invalid boundary specification "):
+        rlic.convolve(img, u, v, kernel=kernel, boundaries=None)

@@ -3,21 +3,25 @@ from __future__ import annotations
 __all__ = ["convolve"]
 
 import sys
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
+from rlic._boundaries import BoundarySet
 from rlic._core import convolve_f32, convolve_f64
 
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import TypeVar
 
     from numpy import dtype, ndarray
     from numpy import float32 as f32
     from numpy import float64 as f64
+
+    from rlic._typing import Boundary, BoundaryDict, BoundaryPair, UVMode
 
     F = TypeVar("F", f32, f64)
 
@@ -35,7 +39,8 @@ def convolve(
     v: ndarray[tuple[int, int], dtype[F]],
     *,
     kernel: ndarray[tuple[int], dtype[F]],
-    uv_mode: Literal["velocity", "polarization"] = "velocity",
+    uv_mode: UVMode = "velocity",
+    boundaries: Boundary | BoundaryDict = "closed",
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[F]]:
     """2-dimensional line integral convolution.
@@ -64,6 +69,19 @@ def convolve(
       its direction matters. With uv_mode='polarization', direction is
       effectively ignored.
 
+    boundaries: 'closed' (default), 'periodic', or a dict with keys 'x' and 'y',
+      and values are either of these strings, or 2-tuples (left, right) thereof.
+      This controls what boundary conditions are applied during streamline
+      integration. It is possible to specify left and right boundaries
+      independently along either directions, where x and y are the directions
+      parallel to the u and v vector field components, respectively.
+      A single string is also accepted as a shorthand for setting all boundaries
+      to the same type.
+      A 'periodic' boundary can only be combined with an identical one on
+      the opposite side.
+
+      .. versionadded: 0.5.0
+
     iterations: (positive) int (default: 1), keyword-only
       Perform multiple iterations in a loop where the output array texture is
       fed back as the input to the next iteration. Looping is done at the
@@ -82,6 +100,9 @@ def convolve(
       If input arrays' dtypes are mismatched.
     ValueError:
       If non-sensical or unknown values are received.
+    ExceptionGroup:
+      If more than a single exception is detected, they'll all be raised as
+      an exception group.
 
     Notes
     -----
@@ -171,20 +192,42 @@ def convolve(
     if np.any(~np.isfinite(kernel)):
         exceptions.append(ValueError("Found non-finite value(s) in kernel."))
 
+    if (bs := BoundarySet.from_user_input(boundaries)) is None:
+        exceptions.append(TypeError(f"Invalid boundary specification {boundaries}"))
+    else:
+        exceptions.extend(bs.collect_exceptions())
+
     if len(exceptions) == 1:
         raise exceptions[0]
     elif exceptions:
         raise ExceptionGroup("Invalid inputs were received.", exceptions)
 
+    bs = cast("BoundarySet", bs)
     if iterations == 0:
         return texture.copy()
 
     input_dtype = texture.dtype
+    retf: Callable[
+        [
+            ndarray[tuple[int, int], dtype[F]],
+            tuple[
+                ndarray[tuple[int, int], dtype[F]],
+                ndarray[tuple[int, int], dtype[F]],
+                UVMode,
+            ],
+            ndarray[tuple[int], dtype[F]],
+            tuple[BoundaryPair, BoundaryPair],
+            int,
+        ],
+        ndarray[tuple[int, int], dtype[F]],
+    ]
     # about type: and pyright: comments:
     # https://github.com/numpy/numpy/issues/28572
     if input_dtype == np.dtype("float32"):
-        return convolve_f32(texture, u, v, kernel, uv_mode, iterations)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
+        retf = convolve_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
     elif input_dtype == np.dtype("float64"):
-        return convolve_f64(texture, u, v, kernel, uv_mode, iterations)  # type: ignore[arg-type, return-value, unused-ignore] # pyright: ignore[reportArgumentType, reportReturnType]
+        retf = convolve_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
     else:
         raise RuntimeError  # pragma: no cover
+
+    return retf(texture, (u, v, uv_mode), kernel, (bs.x, bs.y), iterations)

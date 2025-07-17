@@ -64,7 +64,14 @@ fig_out, axs_out = plt.subplots(ncols=3, figsize=(15, 5))
 for ax in axs_out:
     ax.set(aspect="equal", xticks=[], yticks=[])
 for n, ax in zip((1, 5, 100), axs_out, strict=True):
-    image = rlic.convolve(texture, U, V, kernel=kernel, iterations=n)
+    image = rlic.convolve(
+        texture,
+        U,
+        V,
+        kernel=kernel,
+        boundaries="periodic",
+        iterations=n,
+    )
     ax.set_title(f"Convolution result ({n} iteration(s))")
     ax.imshow(image)
 ```
@@ -113,7 +120,14 @@ Y, X = np.mgrid[0:NY, 0:NX]
 ax.streamplot(X, Y, U, V)
 
 for uv_mode, ax in zip(("velocity", "polarization"), axs[1:], strict=True):
-    image = rlic.convolve(texture, U, V, kernel=kernel, uv_mode=uv_mode)
+    image = rlic.convolve(
+        texture,
+        U,
+        V,
+        kernel=kernel,
+        uv_mode=uv_mode,
+        boundaries={"x": "periodic", "y": "closed"},
+    )
     ax.set_title(f"{uv_mode=!r}")
     ax.imshow(image)
 ```
