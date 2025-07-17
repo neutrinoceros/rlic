@@ -1,6 +1,6 @@
 [package]
 name = "rlic"
-version = "0.4.0" # keep in sync with pyproject.toml
+version = "0.5.0" # keep in sync with pyproject.toml
 edition = "2021"
 rust-version = "1.65" # 2022-11-03
 
