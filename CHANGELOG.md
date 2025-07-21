@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - WHL: add support for Windows-amr64 targets
+- BLD: avoid hard-coding a target Python version
 
 ## 0.5.1 - 2025-07-18
 
