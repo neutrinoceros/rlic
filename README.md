@@ -10,6 +10,19 @@
 Convolution](https://en.wikipedia.org/wiki/Line_integral_convolution) algorithm
 for in-memory `numpy` arrays, written in Rust.
 
+## Development status
+
+`rLIC` is currently in beta. As of version 0.5.0, the only public API,
+`rlic.convolve`, is considered feature complete and stable. However, minor
+behavior changes may still happen, particularly where performance can be
+improved as a result. The library as a whole may still grow additional APIs,
+which wouldn't immediately be marked as stable.
+
+## Free-threading support
+
+`rlic.convolve` is trivially thread-safe, because it does not mutate any external
+data. As of version 0.5.1, Wheels are not yet distributed for free-threaded
+CPython, but this build target is still supported and tested.
 
 ## Installation
 ```
