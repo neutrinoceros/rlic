@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Free Threading :: 4 - Resilient",
+    "Topic :: Artistic Software",
     "Topic :: Scientific/Engineering :: Visualization",
     "Typing :: Typed",
 ]
