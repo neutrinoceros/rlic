@@ -69,38 +69,6 @@ jobs:
 
   # adapted from
   # https://github.com/messense/crfs-rs/blob/main/.github/workflows/Python.yml
-  macos-intel:
-    runs-on: macos-13
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: astral-sh/setup-uv@05273c154d09957eb9a2377d9c988fbda431d1c5 # v6.4.0
-      with:
-        python-version: '3.10'
-        cache-suffix: test
-
-    - name: Configure uv
-      # this step is needed to avoid a collision with system PyPy
-      run: |
-        echo "UV_PYTHON_PREFERENCE=only-managed" >> $GITHUB_ENV
-
-    - uses: dtolnay/rust-toolchain@stable
-    - name: Build wheels - x86_64
-      uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
-      with:
-        target: x86_64
-        args: --release --out dist
-    - name: Test wheel
-      run: |
-        uv sync --only-group test
-        uv pip install numpy
-        uv pip install rlic --no-index --find-links dist --no-deps
-        uv run --no-sync pytest --color=yes
-    - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: wheels-mac-intel
-        path: dist
-
   macos-arm64:
     runs-on: macos-latest
     steps:
@@ -268,7 +236,6 @@ jobs:
     - pre-publication-checks
     - build-sdist
     - test-sdist
-    - macos-intel
     - macos-arm64
     - windows
     - windows-arm64
