@@ -29,8 +29,8 @@ def as_pair(b: AnyBoundary, /) -> BoundaryPair:
     match b:
         case str():
             return (b, b)
-        case (str(), str()):
-            return (b[0], b[1])
+        case (str() as b1, str() as b2):
+            return (b1, b2)
         case _:  # pragma: no cover # pyright: ignore[reportUnnecessaryComparison]
             raise RuntimeError  # pyright: ignore[reportUnreachable]
 
@@ -45,12 +45,13 @@ class BoundarySet:
         # this function is responsible for validating the keys in a dict input, but
         # lets through any str as keys. It should output a very predictable structure.
         match bounds:
-            case str():
-                return BoundarySet(x=as_pair(bounds), y=as_pair(bounds))
-            case {"x": str() | (str(), str()), "y": str() | (str(), str())} if (
-                len(bounds) == 2
-            ):
-                return BoundarySet(x=as_pair(bounds["x"]), y=as_pair(bounds["y"]))
+            case str() as b:
+                return BoundarySet(x=as_pair(b), y=as_pair(b))  # type: ignore[arg-type]
+            case {
+                "x": (str() | (str(), str())) as bx,
+                "y": (str() | (str(), str())) as by,
+            } if len(bounds) == 2:
+                return BoundarySet(x=as_pair(bx), y=as_pair(by))
             case _:
                 # signal an invalid input
                 return None
