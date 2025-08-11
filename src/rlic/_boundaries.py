@@ -29,7 +29,7 @@ def as_pair(b: AnyBoundary, /) -> BoundaryPair:
     match b:
         case str():
             return (b, b)
-        case (str() as b1, str() as b2):
+        case (str(b1), str(b2)):
             return (b1, b2)
         case _:  # pragma: no cover # pyright: ignore[reportUnnecessaryComparison]
             raise RuntimeError  # pyright: ignore[reportUnreachable]
