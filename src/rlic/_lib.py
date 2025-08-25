@@ -228,6 +228,6 @@ def convolve(
     elif input_dtype == np.dtype("float64"):
         retf = convolve_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
     else:
-        raise RuntimeError  # pragma: no cover
+        raise RuntimeError
 
     return retf(texture, (u, v, uv_mode), kernel, (bs.x, bs.y), iterations)

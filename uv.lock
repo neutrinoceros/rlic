@@ -439,6 +439,7 @@ dependencies = [
     { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 
 [package.dev-dependencies]
@@ -464,12 +465,13 @@ uv-only = [
 requires-dist = [
     { name = "exceptiongroup", marker = "python_full_version < '3.11'", specifier = ">=1.0.0" },
     { name = "numpy", specifier = ">=1.22.0" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'", specifier = ">=4.1.0" },
 ]
 
 [package.metadata.requires-dev]
 covcheck = [
-    { name = "coverage", marker = "python_full_version >= '3.11'", specifier = ">=7.6.1" },
-    { name = "coverage", extras = ["toml"], marker = "python_full_version < '3.11'", specifier = ">=7.6.1" },
+    { name = "coverage", specifier = ">=7.10.0" },
+    { name = "coverage", extras = ["toml"], marker = "python_full_version < '3.11'" },
     { name = "pytest", specifier = ">=8.4.0" },
 ]
 test = [{ name = "pytest", specifier = ">=8.4.0" }]
