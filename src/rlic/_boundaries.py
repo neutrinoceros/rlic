@@ -11,10 +11,14 @@ import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+if sys.version_info >= (3, 11):
+    from typing import assert_never  # pyright: ignore[reportUnreachable]
+else:
+    from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
+    from typing_extensions import assert_never  # pyright: ignore[reportUnreachable]
+
 if TYPE_CHECKING:
     from rlic._typing import AnyBoundary, Boundary, BoundaryDict, BoundaryPair
-if sys.version_info < (3, 11):
-    from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
 
 
 # boundaries that can be combined with another value on the opposite side
@@ -31,8 +35,8 @@ def as_pair(b: AnyBoundary, /) -> BoundaryPair:
             return (b, b)
         case (str(b1), str(b2)):
             return (b1, b2)
-        case _:  # pragma: no cover # pyright: ignore[reportUnnecessaryComparison]
-            raise RuntimeError  # pyright: ignore[reportUnreachable]
+        case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
+            assert_never(unreachable)  # type: ignore
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -44,26 +44,26 @@ def known_answer(request):
     elif field_u == "u1":
         u = U1
     else:
-        raise RuntimeError  # pragma: no cover
+        raise RuntimeError
 
     if field_v == "v0":
         v = ZERO
     elif field_v == "v1":
         v = V1
     else:
-        raise RuntimeError  # pragma: no cover
+        raise RuntimeError
 
     if field_kernel == "k0":
         kernel = K0
     else:
-        raise RuntimeError  # pragma: no cover
+        raise RuntimeError
 
     if field_mode == "vel":
         uv_mode = "velocity"
     elif field_mode == "pol":
         uv_mode = "polarization"
     else:
-        raise RuntimeError  # pragma: no cover
+        raise RuntimeError
 
     return (
         u,
