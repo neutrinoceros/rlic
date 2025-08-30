@@ -2,7 +2,7 @@
 name = "rlic"
 version = "0.5.1" # keep in sync with pyproject.toml
 edition = "2021"
-rust-version = "1.65" # 2022-11-03
+rust-version = "1.74" # 2023-11-16
 
 [lib]
 name = "_core"
@@ -16,10 +16,10 @@ crate-type = ["cdylib"]
 #
 # maturin 1.8.6 (2025-05-13) reduced the need to keep this version in sync, but
 # I don't want to rely on it yet, as it's too new at the time of writing
-pyo3 = { version = "0.25.1", features = ["extension-module", "abi3-py310"] }
-numpy = "0.25.0"
+pyo3 = { version = "0.26.0", features = ["extension-module", "abi3-py310"] }
+numpy = "0.26.0"
 num-traits = "0.2.19"
-either = "1.14.0"
+either = "1.15.0"
 
 [profile.release]
 # https://nnethercote.github.io/perf-book/build-configuration.html#codegen-units
