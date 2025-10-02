@@ -27,6 +27,8 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         enable-cache: true
@@ -43,6 +45,7 @@ jobs:
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         fetch-depth: 0
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         enable-cache: false
@@ -53,6 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     # this check should run as fast as possible, so, set up a cache
     - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
     - run: cargo clippy --all-targets --all-features -- -D warnings
@@ -64,6 +69,8 @@ jobs:
       MSRV: ${{ steps.resolve-msrv.outputs.MSRV }}
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8   # v5.0.0
+      with:
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e   # v6.8.0
       with:
         python-version: '3.13'
@@ -78,8 +85,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: echo MSRV=${{ needs.resolve-msrv.outputs.MSRV }}
-    - run: rustup default ${{ needs.resolve-msrv.outputs.MSRV }} && rustup default ${{ needs.resolve-msrv.outputs.MSRV }}
+      with:
+        persist-credentials: false
+    - run: echo MSRV=${NEEDS_RESOLVE_MSRV_OUTPUTS_MSRV}
+      env:
+        NEEDS_RESOLVE_MSRV_OUTPUTS_MSRV: ${{ needs.resolve-msrv.outputs.MSRV }}
+    - run: rustup default ${NEEDS_RESOLVE_MSRV_OUTPUTS_MSRV} && rustup default ${NEEDS_RESOLVE_MSRV_OUTPUTS_MSRV}
+      env:
+        NEEDS_RESOLVE_MSRV_OUTPUTS_MSRV: ${{ needs.resolve-msrv.outputs.MSRV }}
     # this check is very slow, so, set up a cache
     - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
     - run: cargo build --verbose
@@ -96,6 +109,8 @@ jobs:
         - nightly
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
     - run: cargo build --verbose
     - run: cargo test --verbose
@@ -106,6 +121,8 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - run: rustup update
     - name: Override dependencies
       run: |
@@ -140,6 +157,8 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         python-version: ${{ matrix.python-version }}
@@ -174,6 +193,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         python-version: 3.10.0
@@ -212,6 +233,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         python-version: '3.13'
@@ -245,6 +268,8 @@ jobs:
     steps:
     - name: Checkout Source
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         python-version: '3.14'
@@ -271,6 +296,8 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
 
     - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
