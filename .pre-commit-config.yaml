@@ -13,6 +13,11 @@ repos:
   - id: end-of-file-fixer
   - id: check-toml
 
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.14.2
+  hooks:
+  - id: zizmor
+
 - repo: https://github.com/codespell-project/codespell
   rev: v2.4.1
   hooks:
@@ -27,7 +32,7 @@ repos:
   rev: v0.12.2
   hooks:
   - id: ruff-format
-  - id: ruff
+  - id: ruff-check
     args: [--fix, --show-fixes]
 
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
