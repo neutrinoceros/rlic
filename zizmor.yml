@@ -1,0 +1,9 @@
+rules:
+  unpinned-uses:
+    ignore:
+    # ignore "dtolnay/rust-toolchain@stable'
+    # which is the documented and only bot-proof approach to using this action
+    - cd.yml:95
+    - cd.yml:117
+    - cd.yml:153
+    - cd.yml:189
