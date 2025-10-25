@@ -4,7 +4,8 @@ use num_traits::{abs, signum, Float, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
-use pyo3::{pymodule, types::PyModule, Bound, PyResult, Python};
+use pyo3::types::PyModuleMethods;
+use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
 use std::ops::{AddAssign, Mul, Neg};
 
 #[derive(Clone)]
@@ -422,9 +423,8 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
 /// import the module.
 #[pymodule(gil_used = false)]
 fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
-    #[pyfn(m)]
-    #[pyo3(name = "convolve_f32")]
-    fn convolve_f32_py<'py>(
+    #[pyfunction]
+    fn convolve_f32<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f32>,
         uv: (
@@ -439,10 +439,10 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         let boundaries = BoundarySet::new(boundaries);
         convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
     }
+    m.add_function(wrap_pyfunction!(convolve_f32, m)?)?;
 
-    #[pyfn(m)]
-    #[pyo3(name = "convolve_f64")]
-    fn convolve_f64_py<'py>(
+    #[pyfunction]
+    fn convolve_f64<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f64>,
         uv: (
@@ -457,5 +457,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         let boundaries = BoundarySet::new(boundaries);
         convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
     }
+    m.add_function(wrap_pyfunction!(convolve_f64, m)?)?;
+
     Ok(())
 }
