@@ -42,7 +42,7 @@ jobs:
     - name: Build sdist
       run: uv build --sdist
     - name: Upload sdist
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: sdist
         path: dist/*.tar.gz
@@ -62,7 +62,7 @@ jobs:
         prune-cache: false
         cache-suffix: test
     - run: uv sync --only-group test
-    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         path: dist
         name: sdist
@@ -99,7 +99,7 @@ jobs:
         target: x86_64
         args: --release --out dist
     - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: wheels-mac-intel
         path: dist
@@ -127,7 +127,7 @@ jobs:
         uv pip install rlic --no-index --find-links dist --no-deps
         uv run --no-sync pytest --color=yes
     - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: wheels-mac-arm64
         path: dist
@@ -166,7 +166,7 @@ jobs:
         uv pip install rlic --no-index --find-links dist --no-deps
         uv run --no-sync pytest --color=yes
     - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: wheels-win-${{ matrix.target }}
         path: dist
@@ -202,7 +202,7 @@ jobs:
         uv pip install rlic --no-index --find-links dist --no-deps
         uv run --no-sync pytest --color=yes
     - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: wheels-win-arm64
         path: dist
@@ -242,7 +242,7 @@ jobs:
         uv pip install rlic --no-index --find-links dist --no-deps
         uv run --no-sync pytest --color=yes
     - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: wheels-manylinux-${{ matrix.target }}
         path: dist
@@ -270,7 +270,7 @@ jobs:
         manylinux: musllinux_1_2
         args: --release --out dist
     - name: Upload wheels
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: wheels-musllinux-${{ matrix.target }}
         path: dist
@@ -297,13 +297,13 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
     - name: Download sdist
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         path: dist
         name: sdist
 
     - name: Download wheels
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         path: dist
         pattern: wheels-*
