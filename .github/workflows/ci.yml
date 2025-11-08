@@ -208,7 +208,7 @@ jobs:
         echo "UV_RESOLUTION=lowest" >> $GITHUB_ENV
     - run: uv sync --no-editable --group test
     - name: Test
-      run: uv run --no-sync pytest --color=yes
+      run: uv run --no-sync pytest --color=yes -Wdefault
 
   # concurrency-tests:
   #   name: Thread concurrency tests

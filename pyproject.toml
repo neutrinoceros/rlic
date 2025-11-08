@@ -97,9 +97,6 @@ strict = true
 addopts = ["-ra"]
 filterwarnings = [
   "error",
-  # from numpy.testing 1.22.0
-  "ignore:The distutils package is deprecated and slated for removal in Python 3.12:DeprecationWarning",
-  "ignore:The distutils.sysconfig module is deprecated, use sysconfig instead:DeprecationWarning",
 ]
 
 [tool.coverage.run]
