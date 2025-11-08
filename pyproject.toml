@@ -55,7 +55,7 @@ covcheck = [
     "coverage>=7.10.0",
 ]
 test = [
-    "pytest>=8.4.0",
+    "pytest>=9.0.0",
 ]
 typecheck = [
     "exceptiongroup>=1.0.0", # keep in sync with conditional runtime dep
@@ -92,14 +92,15 @@ exclude = [
 ]
 
 [tool.pytest.ini_options]
+minversion = "9.0"
+strict = true
+addopts = ["-ra"]
 filterwarnings = [
   "error",
   # from numpy.testing 1.22.0
   "ignore:The distutils package is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:The distutils.sysconfig module is deprecated, use sysconfig instead:DeprecationWarning",
 ]
-addopts = "-ra"
-xfail_strict = true
 
 [tool.coverage.run]
 branch = true
