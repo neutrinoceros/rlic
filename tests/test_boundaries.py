@@ -109,8 +109,8 @@ def test_invalid_combos(bound_input):
             BoundarySet(x=(b1, b2), y=(b3, b4)),
             id=f"x=({b1}, {b2}), y=({b3}, {b4})",
         )
-        for (b1, b2, b3, b4) in permutations(
-            ("periodic", "periodic", "periodic", "unknown")
+        for (b1, b2, b3, b4) in set(
+            permutations(("periodic", "periodic", "periodic", "unknown"))
         )
     ],
 )
