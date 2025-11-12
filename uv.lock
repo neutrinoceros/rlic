@@ -497,7 +497,7 @@ typecheck = [
     { name = "mypy", specifier = ">=1.13.0" },
     { name = "pyright", specifier = ">=1.1.391" },
 ]
-uv-only = [{ name = "vectorplot", git = "https://github.com/neutrinoceros/scikits-vectorplot?rev=7477c801c9bfaa1bbb8084aad0b2dab7065f79d0" }]
+uv-only = [{ name = "vectorplot", git = "https://github.com/neutrinoceros/scikits-vectorplot?rev=9175a46f7d320a187d089eda34abe7819c73984f" }]
 
 [[package]]
 name = "tomli"
@@ -559,8 +559,8 @@ wheels = [
 
 [[package]]
 name = "vectorplot"
-version = "0.2.0.post2"
-source = { git = "https://github.com/neutrinoceros/scikits-vectorplot?rev=7477c801c9bfaa1bbb8084aad0b2dab7065f79d0#7477c801c9bfaa1bbb8084aad0b2dab7065f79d0" }
+version = "0.2.0.post5"
+source = { git = "https://github.com/neutrinoceros/scikits-vectorplot?rev=9175a46f7d320a187d089eda34abe7819c73984f#9175a46f7d320a187d089eda34abe7819c73984f" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
