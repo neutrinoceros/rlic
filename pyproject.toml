@@ -76,7 +76,7 @@ default-groups = [
 ]
 
 [tool.uv.sources]
-vectorplot = { git = "https://github.com/neutrinoceros/scikits-vectorplot", rev = "7477c801c9bfaa1bbb8084aad0b2dab7065f79d0" }  # v0.2.0post2
+vectorplot = { git = "https://github.com/neutrinoceros/scikits-vectorplot", rev = "9175a46f7d320a187d089eda34abe7819c73984f" }  # v0.2.0post5
 
 [tool.maturin]
 module-name = "rlic._core"
