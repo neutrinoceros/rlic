@@ -28,3 +28,7 @@ codegen-units = 1
 panic = "abort"
 # https://nnethercote.github.io/perf-book/build-configuration.html#strip-debug-info-and-symbols
 strip = "symbols"
+
+# https://jlogan.dev/blog/2025/11/10/2025-11-10-interpn-fast-interpolation/
+[target.'cfg(any(target_arch = "x86_64", target_arch = "x64"))']
+rustflags = ["-C", "target-feature=+fma"]
