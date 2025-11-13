@@ -29,6 +29,11 @@ panic = "abort"
 # https://nnethercote.github.io/perf-book/build-configuration.html#strip-debug-info-and-symbols
 strip = "symbols"
 
+[features]
+default = ["fma", "branchless"]
+fma = []
+branchless = []
+
 # https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x64"))']
 rustflags = ["-C", "target-cpu=x86-64-v3"] # circa 2013
