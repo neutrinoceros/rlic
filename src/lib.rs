@@ -160,6 +160,9 @@ fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
     let two: T = 2.0.into();
     let mtwo = -two;
     let d1 = current_frac;
+    #[cfg(not(feature = "fma"))]
+    let remaining_frac = (one + signum(velocity)) * (mtwo * d1 + one / two) + d1;
+    #[cfg(feature = "fma")]
     let remaining_frac = (one + signum(velocity)).mul_add((mtwo.mul_add(d1, one)) / two, d1);
     abs(remaining_frac / velocity)
 }
@@ -206,7 +209,15 @@ fn update_state<T: AtLeastF32>(
         *coord_parallel = coord_parallel.wrapping_sub(1);
         *frac_parallel = 1.0.into();
     }
-    *frac_orthogonal = (*time_parallel).mul_add(*velocity_orthogonal, *frac_orthogonal);
+
+    #[cfg(not(feature = "fma"))]
+    {
+        *frac_orthogonal += *time_parallel * *velocity_orthogonal;
+    }
+    #[cfg(feature = "fma")]
+    {
+        *frac_orthogonal = (*time_parallel).mul_add(*velocity_orthogonal, *frac_orthogonal);
+    }
 }
 
 #[inline(always)]
@@ -337,7 +348,14 @@ fn convole_single_pixel<T: AtLeastF32>(
             Direction::Backward => -p,
         };
         advance(&mp, &mut coords, &mut pix_frac, boundaries);
-        *pixel_value = kernel[[k]].mul_add(select_pixel(input, &coords), *pixel_value);
+        #[cfg(not(feature = "fma"))]
+        {
+            *pixel_value += kernel[[k]] * select_pixel(input, &coords);
+        }
+        #[cfg(feature = "fma")]
+        {
+            *pixel_value = kernel[[k]].mul_add(select_pixel(input, &coords), *pixel_value);
+        }
     }
 }
 
@@ -357,7 +375,14 @@ fn convolve<'py, T: AtLeastF32>(
     for i in 0..dims.y {
         for j in 0..dims.x {
             let pixel_value = &mut output[[i, j]];
-            *pixel_value = kernel[[kmid]].mul_add(input[[i, j]], *pixel_value);
+            #[cfg(not(feature = "fma"))]
+            {
+                *pixel_value += kernel[[kmid]] * input[[i, j]];
+            }
+            #[cfg(feature = "fma")]
+            {
+                *pixel_value = kernel[[kmid]].mul_add(input[[i, j]], *pixel_value);
+            }
             let starting_point = PixelCoordinates {
                 x: j,
                 y: i,
