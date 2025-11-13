@@ -151,20 +151,27 @@ impl AtLeastF32 for f64 {}
 
 fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
     // this is the branchless version of
-    // if velocity > 0.0 {
-    //     (1.0 - current_frac) / velocity
-    // } else {
-    //     -(current_frac / velocity)
-    // }
-    let one: T = 1.0.into();
-    let two: T = 2.0.into();
-    let mtwo = -two;
-    let d1 = current_frac;
-    #[cfg(not(feature = "fma"))]
-    let remaining_frac = (one + signum(velocity)) * (mtwo * d1 + one / two) + d1;
-    #[cfg(feature = "fma")]
-    let remaining_frac = (one + signum(velocity)).mul_add((mtwo.mul_add(d1, one)) / two, d1);
-    abs(remaining_frac / velocity)
+    #[cfg(not(feature = "branchless"))]
+    {
+        if velocity > 0.0.into() {
+            let one: T = 1.0.into();
+            (one - current_frac) / velocity
+        } else {
+            -(current_frac / velocity)
+        }
+    }
+    #[cfg(feature = "branchless")]
+    {
+        let one: T = 1.0.into();
+        let two: T = 2.0.into();
+        let mtwo = -two;
+        let d1 = current_frac;
+        #[cfg(not(feature = "fma"))]
+        let remaining_frac = (one + signum(velocity)) * (mtwo * d1 + one / two) + d1;
+        #[cfg(feature = "fma")]
+        let remaining_frac = (one + signum(velocity)).mul_add((mtwo.mul_add(d1, one)) / two, d1);
+        abs(remaining_frac / velocity)
+    }
 }
 
 #[cfg(test)]

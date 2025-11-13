@@ -30,8 +30,9 @@ panic = "abort"
 strip = "symbols"
 
 [features]
-default = ["fma"]
+default = ["fma", "branchless"]
 fma = []
+branchless = []
 
 # https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x64"))']
