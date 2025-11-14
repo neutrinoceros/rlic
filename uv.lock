@@ -449,7 +449,7 @@ wheels = [
 
 [[package]]
 name = "rlic"
-version = "0.5.1"
+version = "0.5.2"
 source = { editable = "." }
 dependencies = [
     { name = "exceptiongroup", marker = "python_full_version < '3.11'" },

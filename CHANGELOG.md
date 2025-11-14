@@ -4,14 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.5.2 - 2025-11-14
 
 - WHL: add support for Windows-arm64 targets
 - DOC: document stability guarantees and free-threading support
-- ENH: enable FMA for x86_64 targets
+- ENH: enable FMA for x86_64 targets on macOS and Windows
+  (performance wasn't measured on Windows)
 - BLD: add opt-out build options for FMA and branchless optimizations
 - WHL: disable branchless execution for macOS x86_64 wheels
-- WHL: disable FMA for Linux x86_64 wheels
 
 ## 0.5.1 - 2025-07-18
 
