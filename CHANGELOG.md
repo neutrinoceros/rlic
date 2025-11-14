@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ENH: enable FMA for x86_64 targets
 - BLD: add opt-out build options for FMA and branchless optimizations
 - WHL: disable FMA and branchless execution for macOS x86_64 wheels
+- WHL: disable FMA for Linux x86_64 wheels
 
 ## 0.5.1 - 2025-07-18
 
