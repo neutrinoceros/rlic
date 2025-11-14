@@ -230,7 +230,7 @@ jobs:
       with:
         target: ${{ matrix.target }}
         manylinux: '2_28'
-        args: --release --out dist --no-default-features -F branchless ${{ matrix.target == 'aarch64' && '-F fma' || '' }}
+        args: --release --out dist --no-default-features -F branchless ${{ startsWith( matrix.target , 'aarch64' ) && '-F fma' || '' }}
     - name: Configure uv
       run: |
         echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
@@ -268,7 +268,7 @@ jobs:
       with:
         target: ${{ matrix.target }}
         manylinux: musllinux_1_2
-        args: --release --out dist --no-default-features -F branchless ${{ matrix.target == 'aarch64' && '-F fma' || '' }}
+        args: --release --out dist --no-default-features -F branchless ${{ startsWith( matrix.target , 'aarch64' ) && '-F fma' || '' }}
     - name: Upload wheels
       uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
