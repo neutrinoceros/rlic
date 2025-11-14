@@ -4,8 +4,10 @@ on:
     tags: v*
   pull_request:
     paths:
+    - Cargo.toml
+    - Cargo.lock
+    - .cargo/config.toml
     - pyproject.toml
-    - meson.*
     - .github/workflows/cd.yml
   workflow_dispatch:
 
