@@ -31,14 +31,13 @@ KL = min(NX, NY)
 K0 = np.sin(np.arange(KL) * np.pi / KL, dtype="float32")
 
 test_cases = sorted(
-    (u, v, k, uv_mode)
-    for u, v, k, uv_mode in product(["u0", "u1"], ["v0", "v1"], ["k0"], ["vel", "pol"])
+    (u, v, k) for u, v, k in product(["u0", "u1"], ["v0", "v1"], ["k0"])
 )
 
 
 @pytest.fixture(params=test_cases)
 def known_answer(request):
-    field_u, field_v, field_kernel, field_mode = request.param
+    field_u, field_v, field_kernel = request.param
     if field_u == "u0":
         u = ZERO
     elif field_u == "u1":
@@ -58,23 +57,15 @@ def known_answer(request):
     else:
         raise RuntimeError
 
-    if field_mode == "vel":
-        uv_mode = "velocity"
-    elif field_mode == "pol":
-        uv_mode = "polarization"
-    else:
-        raise RuntimeError
-
     return (
         u,
         v,
         kernel,
-        uv_mode,
-        reference_impl(u, v, texture, kernel, int(uv_mode == "polarization")),
+        reference_impl(u, v, texture, kernel),
     )
 
 
 def test_outputs(known_answer):
-    u, v, kernel, uv_mode, expected = known_answer
-    out = rlic.convolve(texture, u, v, kernel=kernel, uv_mode=uv_mode)
+    u, v, kernel, expected = known_answer
+    out = rlic.convolve(texture, u, v, kernel=kernel)
     assert_allclose(out, expected, rtol=1.5e-7, atol=1e-6)

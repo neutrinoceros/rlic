@@ -21,11 +21,10 @@ if TYPE_CHECKING:
     from numpy import float32 as f32
     from numpy import float64 as f64
 
-    from rlic._typing import Boundary, BoundaryDict, BoundaryPair, UVMode
+    from rlic._typing import Boundary, BoundaryDict, BoundaryPair
 
     F = TypeVar("F", f32, f64)
 
-_KNOWN_UV_MODES = ["velocity", "polarization"]
 _SUPPORTED_DTYPES: list[np.dtype[np.floating]] = [
     np.dtype("float32"),
     np.dtype("float64"),
@@ -39,7 +38,6 @@ def convolve(
     v: ndarray[tuple[int, int], dtype[F]],
     *,
     kernel: ndarray[tuple[int], dtype[F]],
-    uv_mode: UVMode = "velocity",
     boundaries: Boundary | BoundaryDict = "closed",
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[F]]:
@@ -63,11 +61,6 @@ def convolve(
       portion of a field line. The first half of the array represent weights on
       the "past" part of a field line (with respect to a starting point), while
       the second line represents weights on the "future" part.
-
-    uv_mode: 'velocity' (default), or 'polarization', keyword-only
-      By default, the vector (u, v) field is assumed to be velocity-like, i.e.,
-      its direction matters. With uv_mode='polarization', direction is
-      effectively ignored.
 
     boundaries: 'closed' (default), 'periodic', or a dict with keys 'x' and 'y',
       and values are either of these strings, or 2-tuples (left, right) thereof.
@@ -111,10 +104,6 @@ def convolve(
 
     Maximum performance is expected for C order arrays.
 
-    With a kernel.size < 5, uv_mode='polarization' is effectively equivalent to
-    uv_mode='velocity'. However, this is still a valid use case, so, no warning
-    is emitted.
-
     It is recommended (but not required) to use odd-sized kernels, so that
     forward and backward passes are balanced.
 
@@ -136,13 +125,6 @@ def convolve(
             ValueError(
                 f"Invalid number of iterations: {iterations}\n"
                 "Expected a strictly positive integer."
-            )
-        )
-
-    if uv_mode not in _KNOWN_UV_MODES:
-        exceptions.append(
-            ValueError(
-                f"Invalid uv_mode {uv_mode!r}. Expected one of {_KNOWN_UV_MODES}"
             )
         )
 
@@ -213,7 +195,6 @@ def convolve(
             tuple[
                 ndarray[tuple[int, int], dtype[F]],
                 ndarray[tuple[int, int], dtype[F]],
-                UVMode,
             ],
             ndarray[tuple[int], dtype[F]],
             tuple[BoundaryPair, BoundaryPair],
@@ -230,4 +211,4 @@ def convolve(
     else:
         raise RuntimeError
 
-    return retf(texture, (u, v, uv_mode), kernel, (bs.x, bs.y), iterations)
+    return retf(texture, (u, v), kernel, (bs.x, bs.y), iterations)
