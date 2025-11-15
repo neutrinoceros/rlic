@@ -1,13 +1,12 @@
-import sys
-from importlib.metadata import version
-from importlib.util import find_spec
+import textwrap
+
+from runtime_introspect import runtime_feature_set
 
 
-def pytest_report_header(config, start_path):
-    is_gil_enabled = sys.version_info < (3, 13) or sys._is_gil_enabled()
-
+def pytest_report_header(config, start_path) -> list[str]:
+    fs = runtime_feature_set()
+    diagnostics = fs.diagnostics(features=["free-threading"])
     return [
-        f"{is_gil_enabled = }",
-        f"NumPy: {version('numpy')}",
-        f"rlic._core loads from {find_spec('rlic._core').origin}",
+        "Runtime optional features state (snapshot):",
+        textwrap.indent("\n".join(diagnostics), "  "),
     ]
