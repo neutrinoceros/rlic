@@ -1,12 +1,15 @@
 use crate::boundaries::{Boundary, BoundaryPair, BoundarySet};
 use either::Either;
-use num_traits::{abs, signum, Float, Signed};
+use num_traits::{Float, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
 use std::ops::{AddAssign, Mul, Neg};
+
+#[cfg(feature = "branchless")]
+use num_traits::{abs, signum};
 
 #[derive(Clone)]
 enum UVMode {
