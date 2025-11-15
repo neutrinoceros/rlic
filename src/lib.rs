@@ -163,17 +163,15 @@ fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
         }
     }
     #[cfg(feature = "branchless")]
-    {
-        let one: T = 1.0.into();
-        let half: T = 0.5.into();
-        let d1 = current_frac;
+    let one: T = 1.0.into();
+    let half: T = 0.5.into();
+    let d1 = current_frac;
 
-        #[cfg(not(feature = "fma"))]
-        let remaining_frac = (one + signum(velocity)) * (half - d1) + d1;
-        #[cfg(feature = "fma")]
-        let remaining_frac = (one + signum(velocity)).mul_add(half - d1, d1);
-        abs(remaining_frac / velocity)
-    }
+    #[cfg(not(feature = "fma"))]
+    let remaining_frac = (one + signum(velocity)) * (half - d1) + d1;
+    #[cfg(feature = "fma")]
+    let remaining_frac = (one + signum(velocity)).mul_add(half - d1, d1);
+    abs(remaining_frac / velocity)
 }
 
 #[cfg(test)]
