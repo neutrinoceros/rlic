@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - BLD: warning free builds in any configuration
+- WHL: test macos-x86_64 wheels again
 
 ## 0.5.2 - 2025-11-14
 
