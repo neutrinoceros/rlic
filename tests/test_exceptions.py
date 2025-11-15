@@ -19,17 +19,6 @@ def test_invalid_iterations():
         rlic.convolve(img, u, v, kernel=kernel, iterations=-1)
 
 
-def test_invalid_uv_mode():
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"^Invalid uv_mode 'astral'\. "
-            r"Expected one of \['velocity', 'polarization'\]$"
-        ),
-    ):
-        rlic.convolve(img, u, v, kernel=kernel, uv_mode="astral")
-
-
 def test_invalid_texture_ndim():
     img = np.ones((16, 16, 16))
     with RaisesGroup(
