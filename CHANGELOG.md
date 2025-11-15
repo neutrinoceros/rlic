@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        build configurations. These bugs were introduced in version 0.5.2
 - WHL: re-enable fma on manylinux x86_64 wheels, and disable branchless execution,
        bringing this build's configuration in line with the equivalent macos target
+- WHL: build macos-x86_64 wheels natively again, and ensure they are tested
 
 ## 0.5.2 - 2025-11-14
 
