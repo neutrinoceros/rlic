@@ -154,14 +154,15 @@ impl AtLeastF32 for f64 {}
 
 fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
     #[cfg(not(feature = "branchless"))]
-    {
-        if velocity > 0.0.into() {
-            let one: T = 1.0.into();
-            (one - current_frac) / velocity
-        } else {
-            -(current_frac / velocity)
-        }
+    if velocity > 0.0.into() {
+        let one: T = 1.0.into();
+        (one - current_frac) / velocity
+    } else if velocity < 0.0.into() {
+        -(current_frac / velocity)
+    } else {
+        f32::INFINITY.into()
     }
+
     #[cfg(feature = "branchless")]
     {
         let one: T = 1.0.into();
