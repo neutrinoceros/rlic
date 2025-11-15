@@ -463,9 +463,11 @@ covcheck = [
     { name = "coverage" },
     { name = "coverage", extra = ["toml"], marker = "python_full_version < '3.11'" },
     { name = "pytest" },
+    { name = "runtime-introspect" },
 ]
 test = [
     { name = "pytest" },
+    { name = "runtime-introspect" },
 ]
 typecheck = [
     { name = "basedpyright" },
@@ -489,8 +491,12 @@ covcheck = [
     { name = "coverage", specifier = ">=7.10.0" },
     { name = "coverage", extras = ["toml"], marker = "python_full_version < '3.11'" },
     { name = "pytest", specifier = ">=9.0.0" },
+    { name = "runtime-introspect", specifier = ">=0.3.0" },
 ]
-test = [{ name = "pytest", specifier = ">=9.0.0" }]
+test = [
+    { name = "pytest", specifier = ">=9.0.0" },
+    { name = "runtime-introspect", specifier = ">=0.3.0" },
+]
 typecheck = [
     { name = "basedpyright", specifier = ">=1.26.0" },
     { name = "exceptiongroup", specifier = ">=1.0.0" },
@@ -498,6 +504,15 @@ typecheck = [
     { name = "pyright", specifier = ">=1.1.391" },
 ]
 uv-only = [{ name = "vectorplot", git = "https://github.com/neutrinoceros/scikits-vectorplot?rev=9175a46f7d320a187d089eda34abe7819c73984f" }]
+
+[[package]]
+name = "runtime-introspect"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/92/b4/658b75ed32005cd687ea0d868cebf57b595f817d4f67494441c053da9002/runtime_introspect-0.3.0.tar.gz", hash = "sha256:86f8a222f9622a7f8476f1c8e8ea198f3ae25a1ee15aab6685cbdb99059561c5", size = 24759, upload-time = "2025-11-04T18:33:15.664Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/f2/cac39d9077a0f4e11d12a7303c99a094b22b0ca5f8a426ac2a9f65aeaa9b/runtime_introspect-0.3.0-py3-none-any.whl", hash = "sha256:e38f53aab3a450499d09c9603689f2a2ca1827c1fc0fd6d136e4360353cbea63", size = 21004, upload-time = "2025-11-04T18:33:14.652Z" },
+]
 
 [[package]]
 name = "tomli"
