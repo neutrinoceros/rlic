@@ -101,7 +101,7 @@ jobs:
     - run: cargo test --verbose
 
   rust-tests:
-    name: Rust project - ${{ matrix.toolchain }}
+    name: Rust project - ${{ matrix.toolchain }} - ${{ matrix.feature-args }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -109,13 +109,18 @@ jobs:
         - stable
         - beta
         - nightly
+        feature-args:
+        - ''
+        - -F branchless
+        - -F fma
+        - -F branchless,fma
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
     - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-    - run: cargo build --verbose
-    - run: cargo test --verbose
+    - run: cargo build --verbose --no-default-features ${{ matrix.feature-args }}
+    - run: cargo test --verbose --no-default-features ${{ matrix.feature-args }}
 
   rust-tests-future-deps:
     name: Rust project - future dependencies
