@@ -11,25 +11,9 @@ use std::ops::{AddAssign, Mul, Neg};
 #[cfg(feature = "branchless")]
 use num_traits::{abs, signum};
 
-#[derive(Clone)]
-enum UVMode {
-    Velocity,
-    Polarization,
-}
-impl UVMode {
-    fn new(uv_mode: String) -> UVMode {
-        match uv_mode.as_str() {
-            "polarization" => UVMode::Polarization,
-            "velocity" => UVMode::Velocity,
-            _ => panic!("unknown uv_mode"),
-        }
-    }
-}
-
 struct UVField<'a, T> {
     u: ArrayView2<'a, T>,
     v: ArrayView2<'a, T>,
-    mode: UVMode,
 }
 
 struct PixelFraction<T> {
@@ -325,11 +309,6 @@ fn convole_single_pixel<T: AtLeastF32>(
         y: 0.5.into(),
     };
 
-    let mut last_p: UVPoint<T> = UVPoint {
-        u: 0.0.into(),
-        v: 0.0.into(),
-    };
-
     let kmid = kernel.len() / 2;
     let range = match direction {
         Direction::Forward => Either::Right((kmid + 1)..kernel.len()),
@@ -337,22 +316,13 @@ fn convole_single_pixel<T: AtLeastF32>(
     };
 
     for k in range {
-        let mut p = UVPoint {
+        let p = UVPoint {
             u: select_pixel(&uv.u, &coords),
             v: select_pixel(&uv.v, &coords),
         };
         if p.u.is_nan() || p.v.is_nan() {
             break;
         }
-        match uv.mode {
-            UVMode::Polarization => {
-                if (p.u * last_p.u + p.v * last_p.v) < 0.0.into() {
-                    p = -p;
-                }
-                last_p = p.clone();
-            }
-            UVMode::Velocity => {}
-        };
         let mp = match direction {
             Direction::Forward => p.clone(),
             Direction::Backward => -p,
@@ -424,7 +394,7 @@ fn convolve<'py, T: AtLeastF32>(
 fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     texture: PyReadonlyArray2<'py, T>,
-    uv: (PyReadonlyArray2<'py, T>, PyReadonlyArray2<'py, T>, String),
+    uv: (PyReadonlyArray2<'py, T>, PyReadonlyArray2<'py, T>),
     kernel: PyReadonlyArray1<'py, T>,
     boundaries: BoundarySet,
     iterations: i64,
@@ -432,7 +402,6 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     let uv = UVField {
         u: uv.0.as_array(),
         v: uv.1.as_array(),
-        mode: UVMode::new(uv.2),
     };
     let kernel = kernel.as_array();
     let texture = texture.as_array();
@@ -462,11 +431,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     fn convolve_f32<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f32>,
-        uv: (
-            PyReadonlyArray2<'py, f32>,
-            PyReadonlyArray2<'py, f32>,
-            String,
-        ),
+        uv: (PyReadonlyArray2<'py, f32>, PyReadonlyArray2<'py, f32>),
         kernel: PyReadonlyArray1<'py, f32>,
         boundaries: ((String, String), (String, String)),
         iterations: i64,
@@ -480,11 +445,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     fn convolve_f64<'py>(
         py: Python<'py>,
         texture: PyReadonlyArray2<'py, f64>,
-        uv: (
-            PyReadonlyArray2<'py, f64>,
-            PyReadonlyArray2<'py, f64>,
-            String,
-        ),
+        uv: (PyReadonlyArray2<'py, f64>, PyReadonlyArray2<'py, f64>),
         kernel: PyReadonlyArray1<'py, f64>,
         boundaries: ((String, String), (String, String)),
         iterations: i64,

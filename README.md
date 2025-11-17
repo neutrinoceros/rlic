@@ -93,63 +93,6 @@ for n, ax in zip((1, 5, 100), axs_out, strict=True):
 <img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.5.3/static/base_example_out.png" width="900"></a>
 </p>
 
-## Polarization mode
-
-By default, the direction of the vector field affects the result. That is, the
-*sign* of each component matters. Such a vector field is analogous to a velocity
-field. However, the sign of `u` or `v` may sometimes be irrelevant, and only
-their absolute directions should be taken into account. Such a vector field is
-analogous to a polarization field. `rLIC` supports this use case via an
-additional keyword argument, `uv_mode`, which can be either `'velocity'`
-(default), or `'polarization'`. In practice, the difference between these two
-modes in only visible around sharps changes in sign in either `u` or `v`, and
-with certain kernels.
-Let's illustrate one such case
-
-```py
-import matplotlib.pyplot as plt
-import numpy as np
-
-import rlic
-
-SHAPE = NX, NY = (256, 256)
-prng = np.random.default_rng(0)
-
-texture = prng.random(SHAPE)
-kernel = 1 - np.abs(np.linspace(-1, 1, 65, dtype="float64"))
-
-U0 = np.ones(SHAPE)
-ii = np.broadcast_to(np.arange(NX), SHAPE)
-U = np.where(ii<NX/2, -U0, U0)
-V = np.zeros((NX, NX))
-
-fig, axs = plt.subplots(ncols=3, sharex=True, sharey=True, figsize=(15, 5))
-for ax in axs:
-    ax.set(aspect="equal", xticks=[], yticks=[])
-
-ax = axs[0]
-ax.set_title("Input vector field")
-Y, X = np.mgrid[0:NY, 0:NX]
-ax.streamplot(X, Y, U, V)
-
-for uv_mode, ax in zip(("velocity", "polarization"), axs[1:], strict=True):
-    image = rlic.convolve(
-        texture,
-        U,
-        V,
-        kernel=kernel,
-        uv_mode=uv_mode,
-        boundaries={"x": "periodic", "y": "closed"},
-    )
-    ax.set_title(f"{uv_mode=!r}")
-    ax.imshow(image)
-```
-
-<p align="center">
-<a href="https://github.com/neutrinoceros/rlic">
-<img src="https://raw.githubusercontent.com/neutrinoceros/rlic/v0.5.3/static/polarization_example.png" width="900"></a>
-</p>
-
 
 ## Memory Usage
 
