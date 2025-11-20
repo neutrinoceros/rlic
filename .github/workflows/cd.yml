@@ -158,7 +158,7 @@ jobs:
       uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
       with:
         target: ${{ matrix.target }}
-        args: --release --out dist
+        args: --release --out dist --no-default-features -F fma
     - name: Configure uv
       run: |
         echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
