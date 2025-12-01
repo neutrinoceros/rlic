@@ -22,7 +22,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         enable-cache: false
     - name: Pre-publication checks
@@ -36,7 +36,7 @@ jobs:
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         enable-cache: true
         prune-cache: false
@@ -58,7 +58,7 @@ jobs:
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         enable-cache: false
     - run: uv sync --only-group test
@@ -79,7 +79,7 @@ jobs:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         python-version: '3.10'
         enable-cache: false
@@ -113,7 +113,7 @@ jobs:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         python-version: '3.10'
         enable-cache: false
@@ -150,7 +150,7 @@ jobs:
       with:
         python-version: '3.10'
         architecture: ${{ matrix.target }}
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         enable-cache: false
     - uses: dtolnay/rust-toolchain@stable # zizmor: ignore[unpinned-uses]
@@ -186,7 +186,7 @@ jobs:
       with:
         python-version: 3.11
         architecture: arm64
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         enable-cache: false
     - uses: dtolnay/rust-toolchain@stable # zizmor: ignore[unpinned-uses]
@@ -226,7 +226,7 @@ jobs:
       with:
         python-version: '3.10'
         architecture: x64
-    - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         enable-cache: false
     - name: Build wheels
