@@ -50,7 +50,7 @@ class BoundarySet:
         # lets through any str as keys. It should output a very predictable structure.
         match bounds:
             case str() as b:
-                return BoundarySet(x=as_pair(b), y=as_pair(b))  # type: ignore[arg-type]
+                return BoundarySet(x=as_pair(b), y=as_pair(b))
             case {
                 "x": (str() | (str(), str())) as bx,
                 "y": (str() | (str(), str())) as by,
