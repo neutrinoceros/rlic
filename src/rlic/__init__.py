@@ -1,5 +1,8 @@
-"""Line Integral Convolution, implemented in Rust."""
+"""Line Integral Convolution, written in Rust."""
 
-__all__ = ["convolve"]
+__all__ = [
+    "convolve",
+    "equalize_histogram",
+]
 
-from rlic._lib import convolve
+from rlic._lib import convolve, equalize_histogram

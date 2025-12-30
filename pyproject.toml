@@ -117,11 +117,14 @@ exclude_also = [
 [tool.pyright]
 reportImplicitStringConcatenation = false
 reportUnnecessaryTypeIgnoreComment = false # todo: drop this when Python 3.10 is EOL
+reportIgnoreCommentWithoutRule = false
+enableTypeIgnoreComments = true
 
 [tool.mypy]
 strict = true
 show_error_codes = true
 show_error_context = true
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "tests.*"

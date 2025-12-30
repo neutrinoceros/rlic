@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-__all__ = ["convolve"]
+__all__ = [
+    "convolve",
+    "equalize_histogram",
+]
 
 import sys
 from typing import TYPE_CHECKING, cast
@@ -231,3 +234,84 @@ def convolve(
         raise RuntimeError
 
     return retf(texture, (u, v, uv_mode), kernel, (bs.x, bs.y), iterations)
+
+
+def _equalize_histogram_simple(
+    image: ndarray[tuple[int, int], dtype[F]],
+    /,
+    *,
+    bins: int,
+) -> ndarray[tuple[int, int], dtype[F]]:
+    # adapted from scikit-image (exposure.equalize_hist)
+    flat_image = image.ravel()
+
+    hist, bin_edges = np.histogram(flat_image, bins=bins)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+    # cumulative distribution function
+    cdf: ndarray[tuple[int], dtype[F]] = hist.cumsum(dtype=image.dtype)  # type: ignore
+    normalized_cdf: ndarray[tuple[int], dtype[F]] = cdf / cdf[-1]  # type: ignore
+
+    # As of version 2.4, np.interp always promotes to float64, so we
+    # have to cast back to single precision when float32 output is desired
+    return (  # type: ignore[no-any-return]
+        np.interp(image.flat, bin_centers, normalized_cdf)  # type: ignore[return-value]
+        .reshape(image.shape)
+        .astype(image.dtype, copy=False)
+    )
+
+
+def equalize_histogram(
+    image: ndarray[tuple[int, int], dtype[F]],
+    /,
+    *,
+    bins: int = 256,
+    boundaries: Boundary | BoundaryDict = "closed",
+    adaptive_strategy: None = None,
+    contrast_limitation: None = None,
+) -> ndarray[tuple[int, int], dtype[F]]:
+    """Equalize histogram of a gray-scale image.
+
+    Parameters
+    ----------
+    image : 2D array, positional only
+      The input gray-scale image.
+
+    bins: int, keyword-only
+      number of bins to use in histograms
+      By default, this is 256.
+      Reduce this number for faster computations.
+      Increase it to improve the overall contrast of the result.
+
+    boundaries: 'closed' (default), 'periodic', or a dict with keys 'x' and 'y',
+                and values are either of these strings, or 2-tuples (left, right)
+                thereof. Keyword-only
+
+      Only 'closed' boundaries are accepted at the moment.
+      https://github.com/neutrinoceros/rlic/issues/303
+
+    adaptive_strategy: None, keyword-only
+      not implemented
+      https://github.com/neutrinoceros/rlic/issues/301
+      https://github.com/neutrinoceros/rlic/issues/302
+
+    contrast_limitation: None, keyword-only
+      not implemented
+      https://github.com/neutrinoceros/rlic/issues/304
+
+    Returns
+    -------
+    2D array
+        The processed image with values normalized to the [0, 1] interval.
+    """
+    ALL_CLOSED = BoundarySet(x=("closed", "closed"), y=("closed", "closed"))
+    if BoundarySet.from_user_input(boundaries) != ALL_CLOSED:
+        raise NotImplementedError
+
+    if adaptive_strategy is not None:
+        raise NotImplementedError  # type: ignore
+
+    if contrast_limitation is not None:
+        raise NotImplementedError  # type: ignore
+
+    return _equalize_histogram_simple(image, bins=bins)
