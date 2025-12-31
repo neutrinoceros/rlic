@@ -1,7 +1,28 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import rlic
+
+
+def _equalize_histogram_numpy(image, nbins):
+    # ref implementation, adapted from scikit-image (exposure.equalize_hist)
+    flat_image = image.ravel()
+
+    hist, bin_edges = np.histogram(flat_image, bins=nbins)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+    # cumulative distribution function
+    cdf = hist.cumsum(dtype=image.dtype)
+    normalized_cdf = cdf / cdf[-1]
+
+    # As of version 2.4, np.interp always promotes to float64, so we
+    # have to cast back to single precision when float32 output is desired
+    return (
+        np.interp(image.flat, bin_centers, normalized_cdf)
+        .reshape(image.shape)
+        .astype(image.dtype, copy=False)
+    )
 
 
 @pytest.mark.parametrize(
@@ -13,7 +34,7 @@ import rlic
     ],
 )
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_historgram_equalization(nbins, min_rms_reduction, dtype):
+def test_historgram_equalization(nbins, min_rms_reduction, dtype, subtests):
     # histogram equalization produces a new image whose cumulative
     # distribution function (cdf) should be close(r) to a straight line
     # (i.e., approaching a flat intensity distribution)
@@ -46,5 +67,29 @@ def test_historgram_equalization(nbins, min_rms_reduction, dtype):
     id_func = np.linspace(0, 1, nbins)
     rms_in = rms(cdf_in, id_func)
     rms_eq = rms(cdf_eq, id_func)
-    assert rms_eq < rms_in
-    assert (rms_in / rms_eq) > min_rms_reduction
+    with subtests.test("basic properties"):
+        assert rms_eq < rms_in
+        assert (rms_in / rms_eq) > min_rms_reduction
+
+    image_ref = _equalize_histogram_numpy(image, nbins=nbins)
+
+    match dtype:
+        case "float32":
+            rtol = 2e-6
+        case "float64":
+            rtol = 2e-15
+        case _ as _unreachable:
+            raise AssertionError
+    with subtests.test("compare to ref impl"):
+        npt.assert_allclose(image_eq, image_ref, rtol=rtol)
+
+
+def test_historgram_equalization_unsupported_dtype():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"^Found unsupported data type: int64\. "
+            r"Expected of of \[dtype\('float32'\), dtype\('float64'\)\]\.$"
+        ),
+    ):
+        rlic.equalize_histogram(np.eye(3, dtype="int64"), nbins=3)

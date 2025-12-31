@@ -1,8 +1,11 @@
 use crate::boundaries::{Boundary, BoundaryPair, BoundarySet};
 use either::Either;
-use num_traits::{Float, Signed};
+use interpn::one_dim::linear::LinearHoldLast1D;
+use interpn::one_dim::Interp1D;
+use interpn::RectilinearGrid1D;
+use num_traits::{Float, NumCast, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
-use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
+use numpy::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
@@ -453,6 +456,160 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     output.to_pyarray(py)
 }
 
+struct Histogram<T> {
+    bins: Array1<usize>,
+    vmin: T,
+    vmax: T,
+}
+
+impl<T: AtLeastF32 + NumCast> Histogram<T> {
+    fn bin_width(&self) -> T {
+        (self.vmax - self.vmin) / <T as NumCast>::from(self.bins.shape()[0]).unwrap()
+    }
+
+    fn edges(&self) -> Array1<T> {
+        Array1::<T>::linspace(self.vmin, self.vmax, self.bins.shape()[0] + 1)
+    }
+
+    fn centers(&self) -> Array1<T> {
+        let nbins = self.bins.shape()[0];
+        let mut centers = Array1::<T>::zeros(nbins);
+        let half: T = 0.5.into();
+        let offset = half * self.bin_width();
+        let edges = self.edges();
+        for i in 0..nbins {
+            centers[i] = edges[i] + offset;
+        }
+        centers
+    }
+
+    fn cdf(&self) -> Array1<usize> {
+        // convert histogram to normalized cumulative distribution function
+        let mut cdf = self.bins.clone();
+        let nbins = self.bins.shape()[0];
+        for i in 1..nbins {
+            cdf[i] += cdf[i - 1];
+        }
+        cdf
+    }
+
+    fn cdf_as_normalized(&self) -> Array1<T> {
+        let cdf_us = self.cdf();
+        let nbins = self.bins.shape()[0];
+        let mut cdf: Array1<T> = cdf_us.mapv(|elem| <T as NumCast>::from(elem).unwrap());
+        for i in 0..nbins {
+            cdf[i] = cdf[i] / cdf[nbins - 1];
+        }
+        cdf
+    }
+}
+
+fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
+    image: &PyReadonlyArray2<'py, T>,
+    nbins: usize,
+) -> Histogram<T> {
+    let image = image.as_array();
+    let dims = ImageDimensions {
+        x: image.shape()[1],
+        y: image.shape()[0],
+    };
+    let mut vmin: T = T::infinity();
+    let mut vmax: T = -T::infinity();
+
+    for i in 0..dims.y {
+        for j in 0..dims.x {
+            let v = image[[i, j]];
+            if v.is_nan() {
+                continue;
+            };
+            vmin = vmin.min(v);
+            vmax = vmax.max(v);
+        }
+    }
+    let vspan = vmax - vmin;
+    let bin_width = vspan / <T as NumCast>::from(nbins).unwrap();
+
+    let mut hvals = Array1::<usize>::zeros(nbins);
+    for i in 0..dims.y {
+        for j in 0..dims.x {
+            let v = image[[i, j]];
+            let idx: usize = if v == vmax {
+                nbins - 1
+            } else {
+                let f = ((v - vmin) / bin_width).floor();
+                <usize as NumCast>::from(f).unwrap()
+            };
+            hvals[idx] += 1;
+        }
+    }
+    Histogram {
+        bins: hvals,
+        vmin,
+        vmax,
+    }
+}
+
+#[cfg(test)]
+mod test_histogram {
+    use crate::Histogram;
+    use numpy::ndarray::Array1;
+
+    #[test]
+    fn test_ones() {
+        let nbins = 8usize;
+        let vmin = 0.0;
+        let vmax = 8.0;
+        let hist = Histogram {
+            bins: Array1::<usize>::ones(nbins),
+            vmin,
+            vmax,
+        };
+        assert_eq!(hist.bin_width(), 1.0);
+
+        let edges = hist.edges();
+        let edges = edges.as_slice().unwrap();
+        assert_eq!(edges.len(), nbins + 1);
+        assert_eq!(*edges.first().unwrap(), vmin);
+        assert_eq!(*edges.last().unwrap(), vmax);
+        assert_eq!(edges, vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+
+        let centers = hist.centers();
+        let centers = centers.as_slice().unwrap();
+        assert_eq!(centers.len(), nbins);
+        assert_eq!(centers, vec![0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]);
+
+        let cdf = hist.cdf();
+        let cdf = cdf.as_slice().unwrap();
+        assert_eq!(cdf, vec![1, 2, 3, 4, 5, 6, 7, 8]);
+
+        let cdf = hist.cdf_as_normalized();
+        let cdf = cdf.as_slice().unwrap();
+        assert_eq!(cdf, vec![0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]);
+    }
+}
+
+fn adjust_intensity<'py, T: AtLeastF32 + numpy::Element + NumCast>(
+    py: Python<'py>,
+    image: PyReadonlyArray2<'py, T>,
+    hist: Histogram<T>,
+) -> Bound<'py, PyArray2<T>> {
+    let image = image.as_array();
+
+    let bin_centers = hist.centers();
+    let cdf = hist.cdf_as_normalized();
+    let grid =
+        RectilinearGrid1D::new(bin_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
+    let interpolator = LinearHoldLast1D::new(grid);
+
+    let mut output = Array2::<T>::zeros(image.raw_dim());
+    let locs = image.as_slice().unwrap();
+    match interpolator.eval(locs, output.as_slice_mut().unwrap()) {
+        Ok(_) => (),
+        Err(_) => panic!("interpolation failed"),
+    };
+    output.to_pyarray(py)
+}
+
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -493,6 +650,28 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
     }
     m.add_function(wrap_pyfunction!(convolve_f64, m)?)?;
+
+    #[pyfunction]
+    fn equalize_histogram_f32<'py>(
+        py: Python<'py>,
+        image: PyReadonlyArray2<'py, f32>,
+        nbins: usize,
+    ) -> Bound<'py, PyArray2<f32>> {
+        let hist = compute_histogram(&image, nbins);
+        adjust_intensity(py, image, hist)
+    }
+    m.add_function(wrap_pyfunction!(equalize_histogram_f32, m)?)?;
+
+    #[pyfunction]
+    fn equalize_histogram_f64<'py>(
+        py: Python<'py>,
+        image: PyReadonlyArray2<'py, f64>,
+        nbins: usize,
+    ) -> Bound<'py, PyArray2<f64>> {
+        let hist = compute_histogram(&image, nbins);
+        adjust_intensity(py, image, hist)
+    }
+    m.add_function(wrap_pyfunction!(equalize_histogram_f64, m)?)?;
 
     Ok(())
 }

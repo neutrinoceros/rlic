@@ -112,7 +112,7 @@ exclude_also = [
     "^\\s*raise AssertionError\\b",
     "^\\s*raise NotImplementedError\\b",
     "^\\s*raise RuntimeError\\b",
-    "^\\s*case _ as unreachable:",
+    "^\\s*case _ as _?unreachable:",
 ]
 
 [tool.pyright]

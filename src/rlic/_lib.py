@@ -11,7 +11,12 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 
 from rlic._boundaries import BoundarySet
-from rlic._core import convolve_f32, convolve_f64
+from rlic._core import (
+    convolve_f32,
+    convolve_f64,
+    equalize_histogram_f32,
+    equalize_histogram_f64,
+)
 
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
@@ -236,31 +241,6 @@ def convolve(
     return retf(texture, (u, v, uv_mode), kernel, (bs.x, bs.y), iterations)
 
 
-def _equalize_histogram_simple(
-    image: ndarray[tuple[int, int], dtype[F]],
-    /,
-    *,
-    nbins: int,
-) -> ndarray[tuple[int, int], dtype[F]]:
-    # adapted from scikit-image (exposure.equalize_hist)
-    flat_image = image.ravel()
-
-    hist, bin_edges = np.histogram(flat_image, bins=nbins)
-    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
-
-    # cumulative distribution function
-    cdf: ndarray[tuple[int], dtype[F]] = hist.cumsum(dtype=image.dtype)  # type: ignore
-    normalized_cdf: ndarray[tuple[int], dtype[F]] = cdf / cdf[-1]  # type: ignore
-
-    # As of version 2.4, np.interp always promotes to float64, so we
-    # have to cast back to single precision when float32 output is desired
-    return (  # type: ignore[no-any-return]
-        np.interp(image.flat, bin_centers, normalized_cdf)  # type: ignore[return-value]
-        .reshape(image.shape)
-        .astype(image.dtype, copy=False)
-    )
-
-
 def equalize_histogram(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
@@ -314,4 +294,23 @@ def equalize_histogram(
     if contrast_limitation is not None:
         raise NotImplementedError  # type: ignore
 
-    return _equalize_histogram_simple(image, nbins=nbins)
+    if image.dtype not in _SUPPORTED_DTYPES:
+        raise TypeError(
+            f"Found unsupported data type: {image.dtype}. "
+            f"Expected of of {_SUPPORTED_DTYPES}."
+        )
+
+    retf: Callable[
+        [ndarray[tuple[int, int], dtype[F]], int],
+        ndarray[tuple[int, int], dtype[F]],
+    ]
+
+    input_dtype = image.dtype
+    if input_dtype == np.dtype("float32"):
+        retf = equalize_histogram_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+    elif input_dtype == np.dtype("float64"):
+        retf = equalize_histogram_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+    else:
+        raise AssertionError
+
+    return retf(image, nbins)
