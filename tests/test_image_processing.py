@@ -40,4 +40,4 @@ def test_historgram_equalization(bins, min_rms_reduction):
     id_func = np.linspace(0, 1, bins)
     rms_in = rms(cdf_in, id_func)
     rms_eq = rms(cdf_eq, id_func)
-    assert (rms_eq / rms_in) < min_rms_reduction
+    assert (rms_in / rms_eq) > min_rms_reduction
