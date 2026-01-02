@@ -23,7 +23,11 @@ def test_historgram_equalization(bins, min_rms_reduction):
 
     IMAGE_SHAPE = (256, 128)
     prng = np.random.default_rng(0)
-    image = prng.normal(size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE)
+    image = np.clip(
+        prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
+        a_min=0.0,
+        a_max=None,
+    )
 
     def normalized_cdf(a):
         hist, bin_edges = np.histogram(a.ravel(), bins=bins)
@@ -40,4 +44,5 @@ def test_historgram_equalization(bins, min_rms_reduction):
     id_func = np.linspace(0, 1, bins)
     rms_in = rms(cdf_in, id_func)
     rms_eq = rms(cdf_eq, id_func)
+    assert rms_eq < rms_in
     assert (rms_in / rms_eq) > min_rms_reduction
