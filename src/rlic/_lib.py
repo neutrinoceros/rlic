@@ -240,12 +240,12 @@ def _equalize_histogram_simple(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
     *,
-    bins: int,
+    nbins: int,
 ) -> ndarray[tuple[int, int], dtype[F]]:
     # adapted from scikit-image (exposure.equalize_hist)
     flat_image = image.ravel()
 
-    hist, bin_edges = np.histogram(flat_image, bins=bins)
+    hist, bin_edges = np.histogram(flat_image, bins=nbins)
     bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
     # cumulative distribution function
@@ -265,7 +265,7 @@ def equalize_histogram(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
     *,
-    bins: int = 256,
+    nbins: int = 256,
     boundaries: Boundary | BoundaryDict = "closed",
     adaptive_strategy: None = None,
     contrast_limitation: None = None,
@@ -277,7 +277,7 @@ def equalize_histogram(
     image : 2D array, positional only
       The input gray-scale image.
 
-    bins: int, keyword-only
+    nbins: int, keyword-only
       number of bins to use in histograms
       By default, this is 256.
       Reduce this number for faster computations.
@@ -314,4 +314,4 @@ def equalize_histogram(
     if contrast_limitation is not None:
         raise NotImplementedError  # type: ignore
 
-    return _equalize_histogram_simple(image, bins=bins)
+    return _equalize_histogram_simple(image, nbins=nbins)

@@ -5,7 +5,7 @@ import rlic
 
 
 @pytest.mark.parametrize(
-    "bins, min_rms_reduction",
+    "nbins, min_rms_reduction",
     [
         (12, 2.0),
         (64, 10.0),
@@ -13,7 +13,7 @@ import rlic
     ],
 )
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_historgram_equalization(bins, min_rms_reduction, dtype):
+def test_historgram_equalization(nbins, min_rms_reduction, dtype):
     # histogram equalization produces a new image whose cumulative
     # distribution function (cdf) should be close(r) to a straight line
     # (i.e., approaching a flat intensity distribution)
@@ -32,18 +32,18 @@ def test_historgram_equalization(bins, min_rms_reduction, dtype):
     )
 
     def normalized_cdf(a):
-        hist, bin_edges = np.histogram(a.ravel(), bins=bins)
+        hist, bin_edges = np.histogram(a.ravel(), bins=nbins)
         cdf = hist.cumsum(dtype=dtype)
         return cdf / cdf[-1]
 
     def rms(a, b):
         return np.sqrt(np.mean((a - b) ** 2))
 
-    image_eq = rlic.equalize_histogram(image, bins=bins)
+    image_eq = rlic.equalize_histogram(image, nbins=nbins)
     cdf_in = normalized_cdf(image)
     cdf_eq = normalized_cdf(image_eq)
 
-    id_func = np.linspace(0, 1, bins)
+    id_func = np.linspace(0, 1, nbins)
     rms_in = rms(cdf_in, id_func)
     rms_eq = rms(cdf_eq, id_func)
     assert rms_eq < rms_in
