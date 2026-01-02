@@ -12,7 +12,8 @@ import rlic
         (256, 50.0),
     ],
 )
-def test_historgram_equalization(bins, min_rms_reduction):
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_historgram_equalization(bins, min_rms_reduction, dtype):
     # histogram equalization produces a new image whose cumulative
     # distribution function (cdf) should be close(r) to a straight line
     # (i.e., approaching a flat intensity distribution)
@@ -27,12 +28,13 @@ def test_historgram_equalization(bins, min_rms_reduction):
         prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
         a_min=0.0,
         a_max=None,
+        dtype=dtype,
     )
 
     def normalized_cdf(a):
         hist, bin_edges = np.histogram(a.ravel(), bins=bins)
-        cdf = hist.cumsum()
-        return cdf / float(cdf.max())
+        cdf = hist.cumsum(dtype=dtype)
+        return cdf / cdf[-1]
 
     def rms(a, b):
         return np.sqrt(np.mean((a - b) ** 2))
