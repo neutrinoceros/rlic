@@ -5,7 +5,7 @@ use interpn::one_dim::Interp1D;
 use interpn::RectilinearGrid1D;
 use num_traits::{Float, NumCast, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
-use numpy::ndarray::{Array1, Array2, ArrayView1, ArrayView2};
+use numpy::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
@@ -464,15 +464,15 @@ struct Histogram<T> {
 
 impl<T: AtLeastF32 + NumCast> Histogram<T> {
     fn bin_width(&self) -> T {
-        (self.vmax - self.vmin) / <T as NumCast>::from(self.bins.shape()[0]).unwrap()
+        (self.vmax - self.vmin) / <T as NumCast>::from(self.bins.len()).unwrap()
     }
 
     fn edges(&self) -> Array1<T> {
-        Array1::<T>::linspace(self.vmin, self.vmax, self.bins.shape()[0] + 1)
+        Array1::<T>::linspace(self.vmin, self.vmax, self.bins.len() + 1)
     }
 
     fn centers(&self) -> Array1<T> {
-        let nbins = self.bins.shape()[0];
+        let nbins = self.bins.len();
         let mut centers = Array1::<T>::zeros(nbins);
         let half: T = 0.5.into();
         let offset = half * self.bin_width();
@@ -486,8 +486,7 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
     fn cdf(&self) -> Array1<usize> {
         // convert histogram to normalized cumulative distribution function
         let mut cdf = self.bins.clone();
-        let nbins = self.bins.shape()[0];
-        for i in 1..nbins {
+        for i in 1..cdf.len() {
             cdf[i] += cdf[i - 1];
         }
         cdf
@@ -495,10 +494,11 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
 
     fn cdf_as_normalized(&self) -> Array1<T> {
         let cdf_us = self.cdf();
-        let nbins = self.bins.shape()[0];
+        let nbins = self.bins.len();
         let mut cdf: Array1<T> = cdf_us.mapv(|elem| <T as NumCast>::from(elem).unwrap());
+        let tot = cdf[nbins - 1];
         for i in 0..nbins {
-            cdf[i] = cdf[i] / cdf[nbins - 1];
+            cdf[i] = cdf[i] / tot;
         }
         cdf
     }
@@ -519,9 +519,6 @@ fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
     for i in 0..dims.y {
         for j in 0..dims.x {
             let v = image[[i, j]];
-            if v.is_nan() {
-                continue;
-            };
             vmin = vmin.min(v);
             vmax = vmax.max(v);
         }
@@ -529,19 +526,23 @@ fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
     let vspan = vmax - vmin;
     let bin_width = vspan / <T as NumCast>::from(nbins).unwrap();
 
-    let mut hvals = Array1::<usize>::zeros(nbins);
+    // padding one extra bin on the right allows for a branchless optimization:
+    // pixels that contain exactly vmax are counted in the extra bin
+    let mut hvals = Array1::<usize>::zeros(nbins + 1);
     for i in 0..dims.y {
         for j in 0..dims.x {
             let v = image[[i, j]];
-            let idx: usize = if v == vmax {
-                nbins - 1
-            } else {
-                let f = ((v - vmin) / bin_width).floor();
-                <usize as NumCast>::from(f).unwrap()
-            };
+            let f = ((v - vmin) / bin_width).floor();
+            let idx = <usize as NumCast>::from(f).unwrap();
             hvals[idx] += 1;
         }
     }
+
+    // move data from the last bin to the previous one
+    hvals[nbins - 1] += hvals[nbins];
+    let hvals = hvals.slice(s![..-1]).to_owned();
+    assert_eq!(hvals.len(), nbins);
+
     Histogram {
         bins: hvals,
         vmin,
