@@ -26,3 +26,11 @@ def convolve_f64(
     boundaries: tuple[BoundaryPair, BoundaryPair],
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[f64]]: ...
+def equalize_histogram_f32(
+    image: ndarray[tuple[int, int], dtype[f32]],
+    nbins: int,
+) -> ndarray[tuple[int, int], dtype[f32]]: ...
+def equalize_histogram_f64(
+    image: ndarray[tuple[int, int], dtype[f64]],
+    nbins: int,
+) -> ndarray[tuple[int, int], dtype[f64]]: ...
