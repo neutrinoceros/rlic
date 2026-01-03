@@ -553,11 +553,10 @@ fn reduce_histogram<T: Copy>(subhists: VecDeque<Histogram<T>>) -> Histogram<T> {
     }
 }
 
-fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
-    image: &PyReadonlyArray2<'py, T>,
+fn compute_histogram<T: AtLeastF32 + numpy::Element + NumCast>(
+    image: ArrayView2<T>,
     nbins: usize,
 ) -> Histogram<T> {
-    let image = image.as_array();
     let dims = ImageDimensions {
         x: image.shape()[1],
         y: image.shape()[0],
@@ -620,13 +619,10 @@ mod test_histogram {
     }
 }
 
-fn adjust_intensity<'py, T: AtLeastF32 + numpy::Element + NumCast>(
-    py: Python<'py>,
-    image: PyReadonlyArray2<'py, T>,
+fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
+    image: ArrayView2<T>,
     hist: Histogram<T>,
-) -> Bound<'py, PyArray2<T>> {
-    let image = image.as_array();
-
+) -> Array2<T> {
     let bin_centers = hist.centers();
     let cdf = hist.cdf_as_normalized();
     let grid =
@@ -639,7 +635,7 @@ fn adjust_intensity<'py, T: AtLeastF32 + numpy::Element + NumCast>(
         Ok(_) => (),
         Err(_) => panic!("interpolation failed"),
     };
-    output.to_pyarray(py)
+    output
 }
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -689,8 +685,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         image: PyReadonlyArray2<'py, f32>,
         nbins: usize,
     ) -> Bound<'py, PyArray2<f32>> {
-        let hist = compute_histogram(&image, nbins);
-        adjust_intensity(py, image, hist)
+        let image = image.as_array();
+        let hist = compute_histogram(image, nbins);
+        adjust_intensity(image, hist).to_pyarray(py)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_f32, m)?)?;
 
@@ -700,8 +697,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         image: PyReadonlyArray2<'py, f64>,
         nbins: usize,
     ) -> Bound<'py, PyArray2<f64>> {
-        let hist = compute_histogram(&image, nbins);
-        adjust_intensity(py, image, hist)
+        let image = image.as_array();
+        let hist = compute_histogram(image, nbins);
+        adjust_intensity(image, hist).to_pyarray(py)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_f64, m)?)?;
 
