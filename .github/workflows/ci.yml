@@ -52,7 +52,7 @@ jobs:
       with:
         enable-cache: false
     - name: Pre-publication checks
-      run: uv run scripts/pre_publish_checks.py
+      run: uv run scripts/pre_publish_checks.py --allow-dev-version
 
   lint-rust:
     runs-on: ubuntu-latest

@@ -6,6 +6,7 @@
 #     "tomli==2.2.1 ; python_version < '3.11'",
 # ]
 # ///
+import argparse
 import re
 import subprocess
 import sys
@@ -28,8 +29,13 @@ logger.add(sys.stderr, colorize=True, format="<level>{level:<5} {message}</level
 REV_REGEXP = re.compile(
     r"(?P<prefix>https://raw\.githubusercontent\.com/neutrinoceros/rlic/)[^/]*(?P<suffix>.*)",
 )
-STABLE_VER_REGEXP = re.compile(r"^\d+\.*\d+\.\d+$")
-STABLE_TAG_REGEXP = re.compile(r"^v\d+\.*\d+\.\d+$")
+STABLE_VER_STRING = r"\d+\.\d+\.\d+"
+STABLE_VER_REGEXP = re.compile(f"^{STABLE_VER_STRING}$")
+STABLE_TAG_REGEXP = re.compile(f"^v{STABLE_VER_STRING}$")
+
+DEV_VER_STRING = rf"{STABLE_VER_STRING}\.dev\d+"
+DEV_VER_REGEXP = re.compile(f"^{DEV_VER_STRING}$")
+
 ROOT = Path(__file__).parents[1]
 README = ROOT / "README.md"
 PYPROJECT_TOML = ROOT / "pyproject.toml"
@@ -50,11 +56,17 @@ class Metadata:
         return Version(self.latest_git_tag)
 
 
-def check_static_version(md: Metadata) -> int:
-    if not STABLE_VER_REGEXP.match(str(md.current_python_static_version)):
+def check_static_version(md: Metadata, *, allow_dev: bool) -> int:
+    if allow_dev:
+        regexp = DEV_VER_REGEXP
+        version_kind = "dev"
+    else:
+        regexp = STABLE_VER_REGEXP
+        version_kind = "stable"
+    if not regexp.match(str(md.current_python_static_version)):
         logger.error(
             f"Current static version {md.current_python_static_version} doesn't "
-            "conform to expected pattern for a stable sem-ver version.",
+            f"conform to expected pattern for a {version_kind} version.",
         )
         return 1
     elif md.current_python_static_version < md.latest_git_version:
@@ -63,7 +75,11 @@ def check_static_version(md: Metadata) -> int:
             f"to be older than latest git tag {md.latest_git_tag}",
         )
         return 1
-    elif md.current_python_static_version != md.current_rust_static_version:
+    elif md.current_python_static_version != md.current_rust_static_version and not (
+        allow_dev
+        and Version(str(md.current_python_static_version).removesuffix(".dev0"))
+        == md.current_rust_static_version
+    ):
         logger.error(
             f"Python package version {md.current_python_static_version} and "
             f"rust crate version {md.current_rust_static_version} differ."
@@ -101,6 +117,10 @@ def check_readme(md: Metadata) -> int:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--allow-dev-version", action="store_true")
+    args = parser.parse_args()
+
     with open(PYPROJECT_TOML, "rb") as fh:
         package_table = tomllib.load(fh)
         current_python_static_version = Version(package_table["project"]["version"])
@@ -121,7 +141,7 @@ def main() -> int:
         cp_stdout,
     )
 
-    return check_static_version(md) + check_readme(md)
+    return check_static_version(md, allow_dev=args.allow_dev_version) + check_readme(md)
 
 
 if __name__ == "__main__":
