@@ -9,6 +9,7 @@ use numpy::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
+use std::collections::VecDeque;
 use std::ops::{AddAssign, Mul, Neg};
 
 #[cfg(feature = "branchless")]
@@ -535,9 +536,9 @@ fn compute_subhistogram<T: AtLeastF32>(
     }
 }
 
-fn reduce_histogram<T: Copy>(subhists: Vec<Histogram<T>>) -> Histogram<T> {
+fn reduce_histogram<T: Copy>(subhists: VecDeque<Histogram<T>>) -> Histogram<T> {
     // it is assumed that all input histograms have the exact same range and nbins
-    let h0 = subhists.first().unwrap();
+    let h0 = subhists.front().unwrap();
     let nbins = h0.bins.len();
     let mut hvals = Array1::<usize>::zeros(nbins);
     for h in &subhists {
@@ -572,10 +573,10 @@ fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
         }
     }
 
-    let mut subhistograms: Vec<Histogram<T>> = vec![];
+    let mut subhistograms = VecDeque::with_capacity(dims.y + 1);
     for i in 0..dims.y {
         let arr = image.index_axis(Axis(0), i);
-        subhistograms.push(compute_subhistogram(arr, vmin, vmax, nbins));
+        subhistograms.push_back(compute_subhistogram(arr, vmin, vmax, nbins));
     }
     reduce_histogram(subhistograms)
 }
