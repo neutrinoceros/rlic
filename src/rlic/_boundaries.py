@@ -18,7 +18,7 @@ else:
     from typing_extensions import assert_never  # pyright: ignore[reportUnreachable]
 
 if TYPE_CHECKING:
-    from rlic._typing import AnyBoundary, Boundary, BoundaryDict, BoundaryPair
+    from rlic._typing import Boundary, BoundarySpec, Pair, PairSpec
 
 
 # boundaries that can be combined with another value on the opposite side
@@ -29,7 +29,7 @@ COMBO_DISALLOWED_BOUNDS = frozenset({"periodic"})
 SUPPORTED_BOUNDS = frozenset(COMBO_ALLOWED_BOUNDS | COMBO_DISALLOWED_BOUNDS)
 
 
-def as_pair(b: AnyBoundary, /) -> BoundaryPair:
+def as_pair(b: PairSpec[Boundary], /) -> Pair[Boundary]:
     match b:
         case str():
             return (b, b)
@@ -41,20 +41,20 @@ def as_pair(b: AnyBoundary, /) -> BoundaryPair:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class BoundarySet:
-    x: BoundaryPair
-    y: BoundaryPair
+    x: Pair[Boundary]
+    y: Pair[Boundary]
 
     @staticmethod
-    def from_user_input(bounds: Boundary | BoundaryDict, /) -> BoundarySet | None:
+    def from_spec(spec: Boundary | BoundarySpec, /) -> BoundarySet | None:
         # this function is responsible for validating the keys in a dict input, but
         # lets through any str as keys. It should output a very predictable structure.
-        match bounds:
+        match spec:
             case str() as b:
                 return BoundarySet(x=as_pair(b), y=as_pair(b))
             case {
                 "x": (str() | (str(), str())) as bx,
                 "y": (str() | (str(), str())) as by,
-            } if len(bounds) == 2:
+            } if len(spec) == 2:
                 return BoundarySet(x=as_pair(bx), y=as_pair(by))
             case _:
                 # signal an invalid input

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from numpy import float64 as f64
 
     from rlic._histeq_adaptive_strategy import SlidingWindowSpec
-    from rlic._typing import Boundary, BoundaryDict, BoundaryPair, UVMode
+    from rlic._typing import Boundary, BoundarySpec, Pair, UVMode
 
     F = TypeVar("F", f32, f64)
 
@@ -49,7 +49,7 @@ def convolve(
     *,
     kernel: ndarray[tuple[int], dtype[F]],
     uv_mode: UVMode = "velocity",
-    boundaries: Boundary | BoundaryDict = "closed",
+    boundaries: Boundary | BoundarySpec = "closed",
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[F]]:
     """2-dimensional line integral convolution.
@@ -201,7 +201,7 @@ def convolve(
     if np.any(~np.isfinite(kernel)):
         exceptions.append(ValueError("Found non-finite value(s) in kernel."))
 
-    if (bs := BoundarySet.from_user_input(boundaries)) is None:
+    if (bs := BoundarySet.from_spec(boundaries)) is None:
         exceptions.append(TypeError(f"Invalid boundary specification {boundaries}"))
     else:
         exceptions.extend(bs.collect_exceptions())
@@ -225,7 +225,7 @@ def convolve(
                 UVMode,
             ],
             ndarray[tuple[int], dtype[F]],
-            tuple[BoundaryPair, BoundaryPair],
+            Pair[Pair[Boundary]],
             int,
         ],
         ndarray[tuple[int, int], dtype[F]],
@@ -247,7 +247,7 @@ def equalize_histogram(
     /,
     *,
     nbins: int = 256,
-    boundaries: Boundary | BoundaryDict = "closed",
+    boundaries: Boundary | BoundarySpec = "closed",
     adaptive_strategy: SlidingWindowSpec | None = None,
     contrast_limitation: None = None,
 ) -> ndarray[tuple[int, int], dtype[F]]:
@@ -286,7 +286,7 @@ def equalize_histogram(
         The processed image with values normalized to the [0, 1] interval.
     """
     ALL_CLOSED = BoundarySet(x=("closed", "closed"), y=("closed", "closed"))
-    if BoundarySet.from_user_input(boundaries) != ALL_CLOSED:
+    if BoundarySet.from_spec(boundaries) != ALL_CLOSED:
         raise NotImplementedError
 
     if adaptive_strategy is not None:
