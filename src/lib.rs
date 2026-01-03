@@ -5,7 +5,7 @@ use interpn::one_dim::Interp1D;
 use interpn::RectilinearGrid1D;
 use num_traits::{Float, NumCast, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
-use numpy::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use numpy::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
@@ -504,6 +504,54 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
     }
 }
 
+fn compute_subhistogram<T: AtLeastF32>(
+    arr: ArrayView1<T>,
+    vmin: T,
+    vmax: T,
+    nbins: usize,
+) -> Histogram<T> {
+    let vspan = vmax - vmin;
+    let bin_width = vspan / <T as NumCast>::from(nbins).unwrap();
+
+    // padding one extra bin on the right allows for a branchless optimization:
+    // pixels that contain exactly vmax are counted in the extra bin
+    let mut hvals = Array1::<usize>::zeros(nbins + 1);
+    for i in 0..arr.len() {
+        let v = arr[i];
+        let f = ((v - vmin) / bin_width).floor();
+        let idx = <usize as NumCast>::from(f).unwrap();
+        hvals[idx] += 1;
+    }
+
+    // move data from the last bin to the previous one
+    hvals[nbins - 1] += hvals[nbins];
+    let hvals = hvals.slice(s![..-1]).to_owned();
+    assert_eq!(hvals.len(), nbins);
+
+    Histogram {
+        bins: hvals,
+        vmin,
+        vmax,
+    }
+}
+
+fn reduce_histogram<T: Copy>(subhists: Vec<Histogram<T>>) -> Histogram<T> {
+    // it is assumed that all input histograms have the exact same range and nbins
+    let h0 = subhists.first().unwrap();
+    let nbins = h0.bins.len();
+    let mut hvals = Array1::<usize>::zeros(nbins);
+    for h in &subhists {
+        for i in 0..nbins {
+            hvals[i] += h.bins[i];
+        }
+    }
+    Histogram {
+        bins: hvals,
+        vmin: h0.vmin,
+        vmax: h0.vmax,
+    }
+}
+
 fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
     image: &PyReadonlyArray2<'py, T>,
     nbins: usize,
@@ -523,31 +571,13 @@ fn compute_histogram<'py, T: AtLeastF32 + numpy::Element + NumCast>(
             vmax = vmax.max(v);
         }
     }
-    let vspan = vmax - vmin;
-    let bin_width = vspan / <T as NumCast>::from(nbins).unwrap();
 
-    // padding one extra bin on the right allows for a branchless optimization:
-    // pixels that contain exactly vmax are counted in the extra bin
-    let mut hvals = Array1::<usize>::zeros(nbins + 1);
+    let mut subhistograms: Vec<Histogram<T>> = vec![];
     for i in 0..dims.y {
-        for j in 0..dims.x {
-            let v = image[[i, j]];
-            let f = ((v - vmin) / bin_width).floor();
-            let idx = <usize as NumCast>::from(f).unwrap();
-            hvals[idx] += 1;
-        }
+        let arr = image.index_axis(Axis(0), i);
+        subhistograms.push(compute_subhistogram(arr, vmin, vmax, nbins));
     }
-
-    // move data from the last bin to the previous one
-    hvals[nbins - 1] += hvals[nbins];
-    let hvals = hvals.slice(s![..-1]).to_owned();
-    assert_eq!(hvals.len(), nbins);
-
-    Histogram {
-        bins: hvals,
-        vmin,
-        vmax,
-    }
+    reduce_histogram(subhistograms)
 }
 
 #[cfg(test)]
