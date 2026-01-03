@@ -2,7 +2,7 @@ from numpy import dtype, ndarray
 from numpy import float32 as f32
 from numpy import float64 as f64
 
-from rlic._typing import BoundaryPair, UVMode
+from rlic._typing import Boundary, Pair, UVMode
 
 def convolve_f32(
     texture: ndarray[tuple[int, int], dtype[f32]],
@@ -12,7 +12,7 @@ def convolve_f32(
         UVMode,
     ],
     kernel: ndarray[tuple[int], dtype[f32]],
-    boundaries: tuple[BoundaryPair, BoundaryPair],
+    boundaries: Pair[Pair[Boundary]],
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[f32]]: ...
 def convolve_f64(
@@ -23,7 +23,7 @@ def convolve_f64(
         UVMode,
     ],
     kernel: ndarray[tuple[int], dtype[f64]],
-    boundaries: tuple[BoundaryPair, BoundaryPair],
+    boundaries: Pair[Pair[Boundary]],
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[f64]]: ...
 def equalize_histogram_f32(

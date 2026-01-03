@@ -4,7 +4,9 @@ __all__ = [
 
 import sys
 from dataclasses import dataclass
-from typing import Literal, TypeAlias, TypedDict, TypeVar
+from typing import Literal, TypeAlias, TypedDict
+
+from rlic._typing import Pair, PairSpec
 
 if sys.version_info >= (3, 11):
     from typing import NotRequired, assert_never  # pyright: ignore[reportUnreachable]
@@ -16,9 +18,6 @@ else:
 
 SUPPORTED_KINDS = frozenset({"sliding-window"})
 StrategyKind: TypeAlias = Literal["sliding-window"]
-T = TypeVar("T")
-Pair: TypeAlias = tuple[T, T]
-PairSpec: TypeAlias = T | Pair[T]
 
 
 SlidingWindowSpec = TypedDict(

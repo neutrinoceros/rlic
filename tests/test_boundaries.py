@@ -13,7 +13,7 @@ from rlic._boundaries import (
 
 
 @pytest.mark.parametrize(
-    "bounds_input, expected_output",
+    "spec, expected_output",
     [
         pytest.param("a", BoundarySet(x=("a", "a"), y=("a", "a")), id="expand-all"),
         pytest.param(
@@ -33,13 +33,13 @@ from rlic._boundaries import (
         ),
     ],
 )
-def test_from_user_input(bounds_input, expected_output):
-    result = BoundarySet.from_user_input(bounds_input)
+def test_from_spec(spec, expected_output):
+    result = BoundarySet.from_spec(spec)
     assert result == expected_output
 
 
 @pytest.mark.parametrize(
-    "invalid_input",
+    "spec",
     [
         123,
         None,
@@ -49,8 +49,8 @@ def test_from_user_input(bounds_input, expected_output):
         {"x": "a", "y": "b", "z": "c"},  # extra key not allowed
     ],
 )
-def test_from_user_input_invalid_type(invalid_input):
-    assert BoundarySet.from_user_input(invalid_input) is None
+def test_from_spec_invalid_type(spec):
+    assert BoundarySet.from_spec(spec) is None
 
 
 @pytest.mark.parametrize(
