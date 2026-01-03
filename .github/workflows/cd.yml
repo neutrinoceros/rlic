@@ -201,7 +201,7 @@ jobs:
     - name: Test wheel
       run: |
         uv sync --only-group test
-        uv pip install numpy
+        uv pip install numpy typing-extensions
         uv pip install rlic --no-index --find-links dist --no-deps
         uv run --no-sync pytest --color=yes
     - name: Upload wheels
