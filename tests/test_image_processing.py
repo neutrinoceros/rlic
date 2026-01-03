@@ -3,6 +3,77 @@ import numpy.testing as npt
 import pytest
 
 import rlic
+from rlic._histeq_adaptive_strategy import Strategy
+
+
+def test_missing_strategy_kind():
+    with pytest.raises(TypeError, match=r"^strategy dict is missing a 'kind' key\.$"):
+        Strategy.from_spec({})
+
+
+def test_unknown_strategy_kind():
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"^Unknown strategy kind 'not-a-kind'\. "
+            r"Expected one of \['sliding-window'\]$"
+        ),
+    ):
+        Strategy.from_spec({"kind": "not-a-kind"})
+
+
+def test_sliding_window_missing_tile_size():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"Neither 'tile-size' nor 'tile-size-max' keys were found\. "
+            r"Either are allowed, but exactly one is expected\."
+        ),
+    ):
+        Strategy.from_spec({"kind": "sliding-window"})
+
+
+def test_sliding_window_both_tile_sizes_keys():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"Both 'tile-size' and 'tile-size-max' keys were provided\. "
+            r"Only one of them can be specified at a time\."
+        ),
+    ):
+        Strategy.from_spec(
+            {"kind": "sliding-window", "tile-size": 11, "tile-size-max": 13}
+        )
+
+
+@pytest.mark.parametrize(
+    "spec, expected",
+    [
+        pytest.param(
+            {"kind": "sliding-window", "tile-size": 13},
+            Strategy(kind="sliding-window", tile_size=(13, 13)),
+            id="int-tile-size",
+        ),
+        pytest.param(
+            {"kind": "sliding-window", "tile-size": (13, 15)},
+            Strategy(kind="sliding-window", tile_size=(13, 15)),
+            id="tuple-tile-size",
+        ),
+        pytest.param(
+            {"kind": "sliding-window", "tile-size-max": 13},
+            Strategy(kind="sliding-window", tile_size_max=(13, 13)),
+            id="int-tile-size-max",
+        ),
+        pytest.param(
+            {"kind": "sliding-window", "tile-size-max": (13, 15)},
+            Strategy(kind="sliding-window", tile_size_max=(13, 15)),
+            id="tuple-tile-size-max",
+        ),
+    ],
+)
+def test_sliding_window_from_spec(spec, expected):
+    strategy = Strategy.from_spec(spec)
+    assert strategy == expected
 
 
 def _equalize_histogram_numpy(image, nbins):
