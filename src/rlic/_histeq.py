@@ -5,7 +5,7 @@ __all__ = [
 
 import sys
 from dataclasses import dataclass
-from typing import Literal, TypeAlias, TypedDict
+from typing import Literal, TypeAlias, TypedDict, cast
 
 from rlic._typing import Pair, PairSpec
 
@@ -46,11 +46,35 @@ def as_pair(s: PairSpec[int], /) -> Pair[int]:
             assert_never(unreachable)  # type: ignore[arg-type]
 
 
+MSG_EVEN = "{prefix}{axis} tile size {size} is even. Only odd values are allowed."
+MSG_TOO_LOW = (
+    "{prefix}{axis} tile size {size} is too low. The minimum allowed value is 3"
+)
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Strategy:
     kind: StrategyKind
     tile_size: Pair[int] | None = None
     tile_size_max: Pair[int] | None = None
+
+    def __post_init__(self) -> None:
+        for attr, prefix in [
+            ("tile_size", ""),
+            ("tile_size_max", "Maximum "),
+        ]:
+            if (pair := cast("Pair[int]", getattr(self, attr))) is None:
+                continue
+
+            for size, axis in zip(pair, ("x", "y"), strict=True):
+                if size < 3:
+                    raise ValueError(
+                        MSG_TOO_LOW.format(prefix=prefix, axis=axis, size=size)
+                    )
+                if not size % 2:
+                    raise ValueError(
+                        MSG_EVEN.format(prefix=prefix, axis=axis, size=size)
+                    )
 
     @staticmethod
     def from_spec(spec: SlidingTileSpec, /) -> "Strategy":
