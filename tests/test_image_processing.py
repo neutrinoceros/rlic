@@ -1,9 +1,11 @@
+import re
+
 import numpy as np
 import numpy.testing as npt
 import pytest
 
 import rlic
-from rlic._histeq import Strategy
+from rlic._histeq import MSG_EVEN, MSG_TOO_LOW, Strategy
 
 
 def test_missing_strategy_kind():
@@ -57,6 +59,33 @@ def test_sliding_tile_both_tile_sizes_keys():
         Strategy.from_spec(
             {"kind": "sliding-tile", "tile-size": 11, "tile-size-max": 13}
         )
+
+
+@pytest.mark.parametrize(
+    "key, prefix", [("tile-size", ""), ("tile-size-max", "Maximum ")]
+)
+@pytest.mark.parametrize(
+    "size, axis, msg",
+    [
+        *((v, "x", MSG_TOO_LOW) for v in [-1, 0, 1, 2]),
+        ((-1, -1), "x", MSG_TOO_LOW),
+        ((-1, 3), "x", MSG_TOO_LOW),
+        ((3, -1), "y", MSG_TOO_LOW),
+        (4, "x", MSG_EVEN),
+        ((4, 3), "x", MSG_EVEN),
+        ((3, 4), "y", MSG_EVEN),
+    ],
+)
+def test_sliding_invalid_tile_size_value(key, size, prefix, axis, msg):
+    if isinstance(size, tuple):
+        s = size[0] if axis == "x" else size[1]
+    else:
+        s = size
+    with pytest.raises(
+        ValueError,
+        match=re.escape(msg.format(prefix=prefix, axis=axis, size=s)),
+    ):
+        Strategy.from_spec({"kind": "sliding-tile", key: size})
 
 
 @pytest.mark.parametrize(
