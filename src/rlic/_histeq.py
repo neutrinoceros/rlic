@@ -1,3 +1,4 @@
+# pyright: reportUnreachable=false, reportUnnecessaryComparison=false
 __all__ = [
     "Strategy",
 ]
@@ -9,12 +10,9 @@ from typing import Literal, TypeAlias, TypedDict
 from rlic._typing import Pair, PairSpec
 
 if sys.version_info >= (3, 11):
-    from typing import NotRequired, assert_never  # pyright: ignore[reportUnreachable]
+    from typing import NotRequired, assert_never
 else:
-    from typing_extensions import (  # pyright: ignore[reportUnreachable]
-        NotRequired,
-        assert_never,
-    )
+    from typing_extensions import NotRequired, assert_never
 
 SUPPORTED_KINDS = frozenset({"sliding-tile"})
 StrategyKind: TypeAlias = Literal["sliding-tile"]
@@ -44,8 +42,8 @@ def as_pair(s: PairSpec[int], /) -> Pair[int]:
             return (s, s)
         case (int(s1), int(s2)):
             return (s1, s2)
-        case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
-            assert_never(unreachable)  # type: ignore
+        case _ as unreachable:
+            assert_never(unreachable)  # type: ignore[arg-type]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -57,12 +55,12 @@ class Strategy:
     @staticmethod
     def from_spec(spec: SlidingTileSpec, /) -> "Strategy":
         match kind := spec.get("kind"):
-            case None:  # pyright: ignore[reportUnnecessaryComparison]
-                raise TypeError("strategy dict is missing a 'kind' key.")  # pyright: ignore[reportUnreachable]
+            case None:
+                raise TypeError("strategy dict is missing a 'kind' key.")
             case "sliding-tile":
                 pass
-            case _:  # pyright: ignore[reportUnnecessaryComparison]
-                raise ValueError(  # pyright: ignore[reportUnreachable]
+            case _:
+                raise ValueError(
                     f"Unknown strategy kind {kind!r}. Expected one of {sorted(SUPPORTED_KINDS)}"
                 )
 
@@ -78,14 +76,14 @@ class Strategy:
                 kwarg = {"tile_size": as_pair(ts)}  # type: ignore[arg-type]
             case (None, ((int() | (int(), int())) as ts)):
                 kwarg = {"tile_size_max": as_pair(ts)}
-            case (ts, None):  # pyright: ignore[reportUnnecessaryComparison]
-                raise TypeError(  # pyright: ignore[reportUnreachable]
+            case (ts, None):
+                raise TypeError(
                     "Incorrect type associated with key 'tile-size'. "
                     f"Received {ts} with type {type(ts)}. "
                     "Expected a single int, or a pair thereof."
                 )
-            case (None, ts):  # pyright: ignore[reportUnnecessaryComparison]
-                raise TypeError(  # pyright: ignore[reportUnreachable]
+            case (None, ts):
+                raise TypeError(
                     "Incorrect type associated with key 'tile-size-max'. "
                     f"Received {ts} with type {type(ts)}. "
                     "Expected a single int, or a pair thereof."
