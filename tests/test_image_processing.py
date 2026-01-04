@@ -3,13 +3,26 @@ import re
 import numpy as np
 import numpy.testing as npt
 import pytest
+from pytest import RaisesExc, RaisesGroup
 
 import rlic
-from rlic._histeq import MSG_EVEN, MSG_TOO_LOW, Strategy
+from rlic._histeq import MSG_EVEN, MSG_TOO_LOW, Strategy, as_pair
 
 
-def test_missing_strategy_kind():
+@pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
+def test_missing_strategy_kind(key):
     with pytest.raises(TypeError, match=r"^strategy dict is missing a 'kind' key\.$"):
+        Strategy.from_spec({key: 3})
+
+
+def test_empty_spec():
+    with RaisesGroup(
+        RaisesExc(TypeError, match=r"^strategy dict is missing a 'kind' key\.$"),
+        RaisesExc(
+            TypeError,
+            match=r"^Neither 'tile-size' nor 'tile-size-max' keys were found\. Either are allowed, but exactly one is expected\.$",
+        ),
+    ):
         Strategy.from_spec({})
 
 
@@ -21,7 +34,7 @@ def test_unknown_strategy_kind():
             r"Expected one of \['sliding-tile'\]$"
         ),
     ):
-        Strategy.from_spec({"kind": "not-a-kind"})
+        Strategy.from_spec({"kind": "not-a-kind", "tile-size-max": 3})
 
 
 def test_sliding_tile_missing_tile_size():
@@ -67,23 +80,46 @@ def test_sliding_tile_both_tile_sizes_keys():
 @pytest.mark.parametrize(
     "size, axis, msg",
     [
-        *((v, "x", MSG_TOO_LOW) for v in [-1, 0, 1, 2]),
-        ((-1, -1), "x", MSG_TOO_LOW),
         ((-1, 3), "x", MSG_TOO_LOW),
         ((3, -1), "y", MSG_TOO_LOW),
-        (4, "x", MSG_EVEN),
         ((4, 3), "x", MSG_EVEN),
         ((3, 4), "y", MSG_EVEN),
     ],
 )
-def test_sliding_invalid_tile_size_value(key, size, prefix, axis, msg):
-    if isinstance(size, tuple):
-        s = size[0] if axis == "x" else size[1]
+def test_sliding_single_invalid_tile_size_value(key, size, prefix, axis, msg):
+    if axis == "x":
+        s = size[0]
     else:
-        s = size
+        s = size[1]
     with pytest.raises(
         ValueError,
         match=re.escape(msg.format(prefix=prefix, axis=axis, size=s)),
+    ):
+        Strategy.from_spec({"kind": "sliding-tile", key: size})
+
+
+@pytest.mark.parametrize(
+    "key, prefix", [("tile-size", ""), ("tile-size-max", "Maximum ")]
+)
+@pytest.mark.parametrize(
+    "size, msg",
+    [
+        (1, MSG_TOO_LOW),
+        ((1, 1), MSG_TOO_LOW),
+        (4, MSG_EVEN),
+    ],
+)
+def test_sliding_two_invalid_tile_size_value(key, size, prefix, msg):
+    ps = as_pair(size)
+    with RaisesGroup(
+        RaisesExc(
+            ValueError,
+            match=re.escape(msg.format(prefix=prefix, axis="x", size=ps[0])),
+        ),
+        RaisesExc(
+            ValueError,
+            match=re.escape(msg.format(prefix=prefix, axis="y", size=ps[1])),
+        ),
     ):
         Strategy.from_spec({"kind": "sliding-tile", key: size})
 
