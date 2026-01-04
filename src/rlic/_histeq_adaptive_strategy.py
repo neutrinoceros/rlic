@@ -67,16 +67,29 @@ class Strategy:
                 )
 
         kwarg: TileSizeSpec | TileSizeMaxSpec
+
         match (spec.get("tile-size"), spec.get("tile-size-max")):
             case (None, None):
                 raise TypeError(
                     "Neither 'tile-size' nor 'tile-size-max' keys were found. "
                     "Either are allowed, but exactly one is expected."
                 )
-            case (ts, None):
+            case (((int() | (int(), int())) as ts), None):
                 kwarg = {"tile_size": as_pair(ts)}  # type: ignore[arg-type]
-            case (None, ts):
+            case (None, ((int() | (int(), int())) as ts)):
                 kwarg = {"tile_size_max": as_pair(ts)}
+            case (ts, None):  # pyright: ignore[reportUnnecessaryComparison]
+                raise TypeError(  # pyright: ignore[reportUnreachable]
+                    "Incorrect type associated with key 'tile-size'. "
+                    f"Received {ts} with type {type(ts)}. "
+                    "Expected a single int, or a pair thereof."
+                )
+            case (None, ts):  # pyright: ignore[reportUnnecessaryComparison]
+                raise TypeError(  # pyright: ignore[reportUnreachable]
+                    "Incorrect type associated with key 'tile-size-max'. "
+                    f"Received {ts} with type {type(ts)}. "
+                    "Expected a single int, or a pair thereof."
+                )
             case _:
                 raise TypeError(
                     "Both 'tile-size' and 'tile-size-max' keys were provided. "
