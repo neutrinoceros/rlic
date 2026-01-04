@@ -2,7 +2,8 @@ from numpy import dtype, ndarray
 from numpy import float32 as f32
 from numpy import float64 as f64
 
-from rlic._typing import Boundary, Pair, UVMode
+from rlic._boundaries import Boundary
+from rlic._typing import Pair, UVMode
 
 def convolve_f32(
     texture: ndarray[tuple[int, int], dtype[f32]],
