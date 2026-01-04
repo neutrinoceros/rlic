@@ -16,14 +16,14 @@ else:
         assert_never,
     )
 
-SUPPORTED_KINDS = frozenset({"sliding-window"})
-StrategyKind: TypeAlias = Literal["sliding-window"]
+SUPPORTED_KINDS = frozenset({"sliding-tile"})
+StrategyKind: TypeAlias = Literal["sliding-tile"]
 
 
-SlidingWindowSpec = TypedDict(
-    "SlidingWindowSpec",
+SlidingTileSpec = TypedDict(
+    "SlidingTileSpec",
     {
-        "kind": Literal["sliding-window"],
+        "kind": Literal["sliding-tile"],
         "tile-size": NotRequired[PairSpec[int]],
         "tile-size-max": NotRequired[PairSpec[int]],
     },
@@ -55,11 +55,11 @@ class Strategy:
     tile_size_max: Pair[int] | None = None
 
     @staticmethod
-    def from_spec(spec: SlidingWindowSpec, /) -> "Strategy":
+    def from_spec(spec: SlidingTileSpec, /) -> "Strategy":
         match kind := spec.get("kind"):
             case None:  # pyright: ignore[reportUnnecessaryComparison]
                 raise TypeError("strategy dict is missing a 'kind' key.")  # pyright: ignore[reportUnreachable]
-            case "sliding-window":
+            case "sliding-tile":
                 pass
             case _:  # pyright: ignore[reportUnnecessaryComparison]
                 raise ValueError(  # pyright: ignore[reportUnreachable]

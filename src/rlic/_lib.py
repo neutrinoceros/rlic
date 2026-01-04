@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from numpy import float32 as f32
     from numpy import float64 as f64
 
-    from rlic._histeq_adaptive_strategy import SlidingWindowSpec
+    from rlic._histeq import SlidingTileSpec
     from rlic._typing import Boundary, BoundarySpec, Pair, UVMode
 
     F = TypeVar("F", f32, f64)
@@ -248,7 +248,7 @@ def equalize_histogram(
     *,
     nbins: int = 256,
     boundaries: Boundary | BoundarySpec = "closed",
-    adaptive_strategy: SlidingWindowSpec | None = None,
+    adaptive_strategy: SlidingTileSpec | None = None,
     contrast_limitation: None = None,
 ) -> ndarray[tuple[int, int], dtype[F]]:
     """Equalize histogram of a gray-scale image.
@@ -271,7 +271,7 @@ def equalize_histogram(
       Only 'closed' boundaries are accepted at the moment.
       https://github.com/neutrinoceros/rlic/issues/303
 
-    adaptive_strategy: None (default) or a sliding-window specification, keyword-only
+    adaptive_strategy: None (default) or a sliding-tile specification, keyword-only
       not implemented
       https://github.com/neutrinoceros/rlic/issues/301
       https://github.com/neutrinoceros/rlic/issues/302

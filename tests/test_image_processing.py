@@ -3,7 +3,7 @@ import numpy.testing as npt
 import pytest
 
 import rlic
-from rlic._histeq_adaptive_strategy import Strategy
+from rlic._histeq import Strategy
 
 
 def test_missing_strategy_kind():
@@ -16,7 +16,7 @@ def test_unknown_strategy_kind():
         ValueError,
         match=(
             r"^Unknown strategy kind 'not-a-kind'\. "
-            r"Expected one of \['sliding-window'\]$"
+            r"Expected one of \['sliding-tile'\]$"
         ),
     ):
         Strategy.from_spec({"kind": "not-a-kind"})
@@ -30,7 +30,7 @@ def test_sliding_window_missing_tile_size():
             r"Either are allowed, but exactly one is expected\."
         ),
     ):
-        Strategy.from_spec({"kind": "sliding-window"})
+        Strategy.from_spec({"kind": "sliding-tile"})
 
 
 @pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
@@ -43,7 +43,7 @@ def test_sliding_window_invalid_type_tile_size(key):
             r"Expected a single int, or a pair thereof\."
         ),
     ):
-        Strategy.from_spec({"kind": "sliding-window", key: 1.5})
+        Strategy.from_spec({"kind": "sliding-tile", key: 1.5})
 
 
 def test_sliding_window_both_tile_sizes_keys():
@@ -55,7 +55,7 @@ def test_sliding_window_both_tile_sizes_keys():
         ),
     ):
         Strategy.from_spec(
-            {"kind": "sliding-window", "tile-size": 11, "tile-size-max": 13}
+            {"kind": "sliding-tile", "tile-size": 11, "tile-size-max": 13}
         )
 
 
@@ -63,23 +63,23 @@ def test_sliding_window_both_tile_sizes_keys():
     "spec, expected",
     [
         pytest.param(
-            {"kind": "sliding-window", "tile-size": 13},
-            Strategy(kind="sliding-window", tile_size=(13, 13)),
+            {"kind": "sliding-tile", "tile-size": 13},
+            Strategy(kind="sliding-tile", tile_size=(13, 13)),
             id="int-tile-size",
         ),
         pytest.param(
-            {"kind": "sliding-window", "tile-size": (13, 15)},
-            Strategy(kind="sliding-window", tile_size=(13, 15)),
+            {"kind": "sliding-tile", "tile-size": (13, 15)},
+            Strategy(kind="sliding-tile", tile_size=(13, 15)),
             id="tuple-tile-size",
         ),
         pytest.param(
-            {"kind": "sliding-window", "tile-size-max": 13},
-            Strategy(kind="sliding-window", tile_size_max=(13, 13)),
+            {"kind": "sliding-tile", "tile-size-max": 13},
+            Strategy(kind="sliding-tile", tile_size_max=(13, 13)),
             id="int-tile-size-max",
         ),
         pytest.param(
-            {"kind": "sliding-window", "tile-size-max": (13, 15)},
-            Strategy(kind="sliding-window", tile_size_max=(13, 15)),
+            {"kind": "sliding-tile", "tile-size-max": (13, 15)},
+            Strategy(kind="sliding-tile", tile_size_max=(13, 15)),
             id="tuple-tile-size-max",
         ),
     ],
