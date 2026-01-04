@@ -12,6 +12,7 @@ from rlic._typing import Pair, PairSpec
 if sys.version_info >= (3, 11):
     from typing import NotRequired, assert_never
 else:
+    from exceptiongroup import ExceptionGroup
     from typing_extensions import NotRequired, assert_never
 
 SUPPORTED_KINDS = frozenset({"sliding-tile"})
@@ -58,67 +59,90 @@ class Strategy:
     tile_size: Pair[int] | None = None
     tile_size_max: Pair[int] | None = None
 
-    def __post_init__(self) -> None:
-        for attr, prefix in [
-            ("tile_size", ""),
-            ("tile_size_max", "Maximum "),
-        ]:
-            if (pair := cast("Pair[int]", getattr(self, attr))) is None:
-                continue
+    @classmethod
+    def from_spec(cls, spec: SlidingTileSpec, /) -> "Strategy":
+        exceptions: list[Exception] = []
 
-            for size, axis in zip(pair, ("x", "y"), strict=True):
-                if size < 3:
-                    raise ValueError(
-                        MSG_TOO_LOW.format(prefix=prefix, axis=axis, size=size)
-                    )
-                if not size % 2:
-                    raise ValueError(
-                        MSG_EVEN.format(prefix=prefix, axis=axis, size=size)
-                    )
-
-    @staticmethod
-    def from_spec(spec: SlidingTileSpec, /) -> "Strategy":
         match kind := spec.get("kind"):
             case None:
-                raise TypeError("strategy dict is missing a 'kind' key.")
+                exceptions.append(TypeError("strategy dict is missing a 'kind' key."))
             case "sliding-tile":
                 pass
             case _:
-                raise ValueError(
-                    f"Unknown strategy kind {kind!r}. Expected one of {sorted(SUPPORTED_KINDS)}"
+                exceptions.append(
+                    ValueError(
+                        f"Unknown strategy kind {kind!r}. Expected one of {sorted(SUPPORTED_KINDS)}"
+                    )
                 )
 
-        kwarg: TileSizeSpec | TileSizeMaxSpec
+        kwarg: TileSizeSpec | TileSizeMaxSpec | None = None
 
         match (spec.get("tile-size"), spec.get("tile-size-max")):
             case (None, None):
-                raise TypeError(
-                    "Neither 'tile-size' nor 'tile-size-max' keys were found. "
-                    "Either are allowed, but exactly one is expected."
+                exceptions.append(
+                    TypeError(
+                        "Neither 'tile-size' nor 'tile-size-max' keys were found. "
+                        "Either are allowed, but exactly one is expected."
+                    )
                 )
             case (((int() | (int(), int())) as ts), None):
-                kwarg = {"tile_size": as_pair(ts)}  # type: ignore[arg-type]
+                kwarg = {"tile_size": as_pair(ts)}  # type: ignore[arg-type, assignment]
             case (None, ((int() | (int(), int())) as ts)):
                 kwarg = {"tile_size_max": as_pair(ts)}
             case (ts, None):
-                raise TypeError(
-                    "Incorrect type associated with key 'tile-size'. "
-                    f"Received {ts} with type {type(ts)}. "
-                    "Expected a single int, or a pair thereof."
+                exceptions.append(
+                    TypeError(
+                        "Incorrect type associated with key 'tile-size'. "
+                        f"Received {ts} with type {type(ts)}. "
+                        "Expected a single int, or a pair thereof."
+                    )
                 )
             case (None, ts):
-                raise TypeError(
-                    "Incorrect type associated with key 'tile-size-max'. "
-                    f"Received {ts} with type {type(ts)}. "
-                    "Expected a single int, or a pair thereof."
+                exceptions.append(
+                    TypeError(
+                        "Incorrect type associated with key 'tile-size-max'. "
+                        f"Received {ts} with type {type(ts)}. "
+                        "Expected a single int, or a pair thereof."
+                    )
                 )
             case _:
-                raise TypeError(
-                    "Both 'tile-size' and 'tile-size-max' keys were provided. "
-                    "Only one of them can be specified at a time."
+                exceptions.append(
+                    TypeError(
+                        "Both 'tile-size' and 'tile-size-max' keys were provided. "
+                        "Only one of them can be specified at a time."
+                    )
                 )
+
+        if kwarg is None:
+            cls.report(exceptions)
+            raise AssertionError
+
+        key = next(iter(kwarg.keys()))
+        pair = cast("Pair[int]", next(iter(kwarg.values())))
+        prefix = "Maximum " if key == "tile_size_max" else ""
+        for size, axis in zip(pair, ("x", "y"), strict=True):
+            if size < 3:
+                exceptions.append(
+                    ValueError(MSG_TOO_LOW.format(prefix=prefix, axis=axis, size=size))
+                )
+            if not size % 2:
+                exceptions.append(
+                    ValueError(MSG_EVEN.format(prefix=prefix, axis=axis, size=size))
+                )
+
+        cls.report(exceptions)
 
         return Strategy(
             kind=kind,
             **kwarg,  # pyright: ignore[reportArgumentType]
         )
+
+    @staticmethod
+    def report(exceptions: list[Exception]) -> None:
+        if len(exceptions) == 1:
+            raise exceptions[0]
+        elif exceptions:
+            raise ExceptionGroup(
+                "Found multiple issues with adaptive strategy specifications",
+                exceptions,
+            )
