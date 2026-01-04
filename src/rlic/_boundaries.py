@@ -1,3 +1,4 @@
+# pyright: reportUnreachable=false, reportUnnecessaryComparison=false
 from __future__ import annotations
 
 __all__ = [
@@ -12,10 +13,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if sys.version_info >= (3, 11):
-    from typing import assert_never  # pyright: ignore[reportUnreachable]
+    from typing import assert_never
 else:
-    from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
-    from typing_extensions import assert_never  # pyright: ignore[reportUnreachable]
+    from exceptiongroup import ExceptionGroup
+    from typing_extensions import assert_never
 
 if TYPE_CHECKING:
     from rlic._typing import Boundary, BoundarySpec, Pair, PairSpec
@@ -35,8 +36,8 @@ def as_pair(b: PairSpec[Boundary], /) -> Pair[Boundary]:
             return (b, b)
         case (str(b1), str(b2)):
             return (b1, b2)
-        case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
-            assert_never(unreachable)  # type: ignore
+        case _ as unreachable:
+            assert_never(unreachable)  # type: ignore[arg-type]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
