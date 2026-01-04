@@ -33,6 +33,19 @@ def test_sliding_window_missing_tile_size():
         Strategy.from_spec({"kind": "sliding-window"})
 
 
+@pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
+def test_sliding_window_invalid_type_tile_size(key):
+    with pytest.raises(
+        TypeError,
+        match=(
+            rf"Incorrect type associated with key {key!r}. "
+            r"Received 1\.5 with type <class 'float'>\. "
+            r"Expected a single int, or a pair thereof\."
+        ),
+    ):
+        Strategy.from_spec({"kind": "sliding-window", key: 1.5})
+
+
 def test_sliding_window_both_tile_sizes_keys():
     with pytest.raises(
         TypeError,
