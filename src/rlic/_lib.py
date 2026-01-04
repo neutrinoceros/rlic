@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from numpy import float32 as f32
     from numpy import float64 as f64
 
-    from rlic._boundaries import Boundary, BoundarySpec
+    from rlic._boundaries import BoundarySpec, BoundaryStr
     from rlic._histeq import SlidingTileSpec
     from rlic._typing import Pair, UVMode
 
@@ -226,7 +226,7 @@ def convolve(
                 UVMode,
             ],
             ndarray[tuple[int], dtype[F]],
-            Pair[Pair[Boundary]],
+            Pair[Pair[BoundaryStr]],
             int,
         ],
         ndarray[tuple[int, int], dtype[F]],

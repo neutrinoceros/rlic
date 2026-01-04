@@ -22,15 +22,15 @@ if TYPE_CHECKING:
     from rlic._typing import Pair, PairSpec
 
 
-Boundary: TypeAlias = Literal["closed", "periodic"]
+BoundaryStr: TypeAlias = Literal["closed", "periodic"]
 
 
 class BoundaryDictSpec(TypedDict):
-    x: PairSpec[Boundary]
-    y: PairSpec[Boundary]
+    x: PairSpec[BoundaryStr]
+    y: PairSpec[BoundaryStr]
 
 
-BoundarySpec: TypeAlias = Boundary | BoundaryDictSpec
+BoundarySpec: TypeAlias = BoundaryStr | BoundaryDictSpec
 
 # boundaries that can be combined with another value on the opposite side
 COMBO_ALLOWED_BOUNDS = frozenset({"closed"})
@@ -40,7 +40,7 @@ COMBO_DISALLOWED_BOUNDS = frozenset({"periodic"})
 SUPPORTED_BOUNDS = frozenset(COMBO_ALLOWED_BOUNDS | COMBO_DISALLOWED_BOUNDS)
 
 
-def as_pair(b: PairSpec[Boundary], /) -> Pair[Boundary]:
+def as_pair(b: PairSpec[BoundaryStr], /) -> Pair[BoundaryStr]:
     match b:
         case str():
             return (b, b)
@@ -52,8 +52,8 @@ def as_pair(b: PairSpec[Boundary], /) -> Pair[Boundary]:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class BoundarySet:
-    x: Pair[Boundary]
-    y: Pair[Boundary]
+    x: Pair[BoundaryStr]
+    y: Pair[BoundaryStr]
 
     @staticmethod
     def from_spec(spec: BoundarySpec, /) -> BoundarySet | None:
