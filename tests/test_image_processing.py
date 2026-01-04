@@ -22,7 +22,7 @@ def test_unknown_strategy_kind():
         Strategy.from_spec({"kind": "not-a-kind"})
 
 
-def test_sliding_window_missing_tile_size():
+def test_sliding_tile_missing_tile_size():
     with pytest.raises(
         TypeError,
         match=(
@@ -34,7 +34,7 @@ def test_sliding_window_missing_tile_size():
 
 
 @pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
-def test_sliding_window_invalid_type_tile_size(key):
+def test_sliding_tile_invalid_type_tile_size(key):
     with pytest.raises(
         TypeError,
         match=(
@@ -46,7 +46,7 @@ def test_sliding_window_invalid_type_tile_size(key):
         Strategy.from_spec({"kind": "sliding-tile", key: 1.5})
 
 
-def test_sliding_window_both_tile_sizes_keys():
+def test_sliding_tile_both_tile_sizes_keys():
     with pytest.raises(
         TypeError,
         match=(
@@ -84,7 +84,7 @@ def test_sliding_window_both_tile_sizes_keys():
         ),
     ],
 )
-def test_sliding_window_from_spec(spec, expected):
+def test_sliding_tile_from_spec(spec, expected):
     strategy = Strategy.from_spec(spec)
     assert strategy == expected
 
