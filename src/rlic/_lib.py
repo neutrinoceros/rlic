@@ -29,8 +29,9 @@ if TYPE_CHECKING:
     from numpy import float32 as f32
     from numpy import float64 as f64
 
+    from rlic._boundaries import Boundary, BoundarySpec
     from rlic._histeq import SlidingTileSpec
-    from rlic._typing import Boundary, BoundarySpec, Pair, UVMode
+    from rlic._typing import Pair, UVMode
 
     F = TypeVar("F", f32, f64)
 
@@ -49,7 +50,7 @@ def convolve(
     *,
     kernel: ndarray[tuple[int], dtype[F]],
     uv_mode: UVMode = "velocity",
-    boundaries: Boundary | BoundarySpec = "closed",
+    boundaries: BoundarySpec = "closed",
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[F]]:
     """2-dimensional line integral convolution.
@@ -247,7 +248,7 @@ def equalize_histogram(
     /,
     *,
     nbins: int = 256,
-    boundaries: Boundary | BoundarySpec = "closed",
+    boundaries: BoundarySpec = "closed",
     adaptive_strategy: SlidingTileSpec | None = None,
     contrast_limitation: None = None,
 ) -> ndarray[tuple[int, int], dtype[F]]:

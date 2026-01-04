@@ -10,7 +10,7 @@ __all__ = [
 
 import sys
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, TypeAlias, TypedDict
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -19,8 +19,18 @@ else:
     from typing_extensions import assert_never
 
 if TYPE_CHECKING:
-    from rlic._typing import Boundary, BoundarySpec, Pair, PairSpec
+    from rlic._typing import Pair, PairSpec
 
+
+Boundary: TypeAlias = Literal["closed", "periodic"]
+
+
+class BoundaryDictSpec(TypedDict):
+    x: PairSpec[Boundary]
+    y: PairSpec[Boundary]
+
+
+BoundarySpec: TypeAlias = Boundary | BoundaryDictSpec
 
 # boundaries that can be combined with another value on the opposite side
 COMBO_ALLOWED_BOUNDS = frozenset({"closed"})
@@ -46,7 +56,7 @@ class BoundarySet:
     y: Pair[Boundary]
 
     @staticmethod
-    def from_spec(spec: Boundary | BoundarySpec, /) -> BoundarySet | None:
+    def from_spec(spec: BoundarySpec, /) -> BoundarySet | None:
         # this function is responsible for validating the keys in a dict input, but
         # lets through any str as keys. It should output a very predictable structure.
         match spec:
