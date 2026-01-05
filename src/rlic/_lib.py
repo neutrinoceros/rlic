@@ -16,10 +16,16 @@ from rlic._core import (
     convolve_f64,
     equalize_histogram_f32,
     equalize_histogram_f64,
+    equalize_histogram_sliding_tile_f32,
+    equalize_histogram_sliding_tile_f64,
 )
+from rlic._histeq import Strategy
 
-if sys.version_info < (3, 11):
+if sys.version_info >= (3, 11):
+    from typing import assert_never  # pyright: ignore[reportUnreachable]
+else:
     from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
+    from typing_extensions import assert_never  # pyright: ignore[reportUnreachable]
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -290,9 +296,6 @@ def equalize_histogram(
     if BoundarySet.from_spec(boundaries) != ALL_CLOSED:
         raise NotImplementedError
 
-    if adaptive_strategy is not None:
-        raise NotImplementedError
-
     if contrast_limitation is not None:
         raise NotImplementedError  # type: ignore
 
@@ -302,17 +305,36 @@ def equalize_histogram(
             f"Expected of of {_SUPPORTED_DTYPES}."
         )
 
-    retf: Callable[
-        [ndarray[tuple[int, int], dtype[F]], int],
-        ndarray[tuple[int, int], dtype[F]],
-    ]
-
     input_dtype = image.dtype
-    if input_dtype == np.dtype("float32"):
-        retf = equalize_histogram_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
-    elif input_dtype == np.dtype("float64"):
-        retf = equalize_histogram_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+    if adaptive_strategy is None:
+        histeq: Callable[
+            [ndarray[tuple[int, int], dtype[F]], int],
+            ndarray[tuple[int, int], dtype[F]],
+        ]
+        if input_dtype == np.dtype("float32"):
+            histeq = equalize_histogram_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        elif input_dtype == np.dtype("float64"):
+            histeq = equalize_histogram_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        else:
+            raise AssertionError
+        return histeq(image, nbins)
     else:
-        raise AssertionError
+        strat = Strategy.from_spec(adaptive_strategy).resolve_tile_shape(image.shape)
+        tile_shape_max = cast("Pair[int]", strat.tile_shape_max)
+        match strat.kind:
+            case "sliding-tile":
+                pass
+            case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
+                assert_never(unreachable)
 
-    return retf(image, nbins)
+        histeq_st: Callable[
+            [ndarray[tuple[int, int], dtype[F]], int, Pair[int]],
+            ndarray[tuple[int, int], dtype[F]],
+        ]
+        if input_dtype == np.dtype("float32"):
+            histeq_st = equalize_histogram_sliding_tile_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        elif input_dtype == np.dtype("float64"):
+            histeq_st = equalize_histogram_sliding_tile_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        else:
+            raise AssertionError
+        return histeq_st(image, nbins, tile_shape_max)
