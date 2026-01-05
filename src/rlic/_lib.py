@@ -14,9 +14,10 @@ from rlic._boundaries import BoundarySet
 from rlic._core import (
     convolve_f32,
     convolve_f64,
-    equalize_histogram_f32,
-    equalize_histogram_f64,
+    equalize_histogram_sliding_tile_f32,
+    equalize_histogram_sliding_tile_f64,
 )
+from rlic._histeq import Strategy
 
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
@@ -290,7 +291,17 @@ def equalize_histogram(
     if BoundarySet.from_spec(boundaries) != ALL_CLOSED:
         raise NotImplementedError
 
-    if adaptive_strategy is not None:
+    if adaptive_strategy is None:
+        strat = Strategy(kind="sliding-tile", tile_size_max=image.shape)
+    else:
+        strat = Strategy.from_spec(adaptive_strategy)
+
+    if strat.kind == "sliding-tile":
+        if strat.tile_size is not None:
+            raise NotImplementedError
+        if strat.tile_size_max != image.shape:
+            raise NotImplementedError
+    else:
         raise NotImplementedError
 
     if contrast_limitation is not None:
@@ -303,16 +314,16 @@ def equalize_histogram(
         )
 
     retf: Callable[
-        [ndarray[tuple[int, int], dtype[F]], int],
+        [ndarray[tuple[int, int], dtype[F]], int, tuple[int, int]],
         ndarray[tuple[int, int], dtype[F]],
     ]
 
     input_dtype = image.dtype
     if input_dtype == np.dtype("float32"):
-        retf = equalize_histogram_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        retf = equalize_histogram_sliding_tile_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
     elif input_dtype == np.dtype("float64"):
-        retf = equalize_histogram_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        retf = equalize_histogram_sliding_tile_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
     else:
         raise AssertionError
 
-    return retf(image, nbins)
+    return retf(image, nbins, cast("Pair[int]", strat.tile_size_max))  # type: ignore[redundant-cast]

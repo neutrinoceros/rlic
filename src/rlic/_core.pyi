@@ -27,11 +27,13 @@ def convolve_f64(
     boundaries: Pair[Pair[BoundaryStr]],
     iterations: int = 1,
 ) -> ndarray[tuple[int, int], dtype[f64]]: ...
-def equalize_histogram_f32(
+def equalize_histogram_sliding_tile_f32(
     image: ndarray[tuple[int, int], dtype[f32]],
     nbins: int,
+    tile_size_max: Pair[int],
 ) -> ndarray[tuple[int, int], dtype[f32]]: ...
-def equalize_histogram_f64(
+def equalize_histogram_sliding_tile_f64(
     image: ndarray[tuple[int, int], dtype[f64]],
     nbins: int,
+    tile_size_max: Pair[int],
 ) -> ndarray[tuple[int, int], dtype[f64]]: ...

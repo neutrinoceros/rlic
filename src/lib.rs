@@ -637,6 +637,19 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     };
 }
 
+fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
+    py: Python<'py>,
+    image: PyReadonlyArray2<'py, T>,
+    nbins: usize,
+    _tile_size_max: (usize, usize),
+) -> Bound<'py, PyArray2<T>> {
+    let image = image.as_array();
+    let hist = compute_histogram(image, nbins);
+    let mut out = Array2::<T>::zeros(image.raw_dim());
+    adjust_intensity(image, hist, &mut out);
+    out.to_pyarray(py)
+}
+
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -679,32 +692,26 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(convolve_f64, m)?)?;
 
     #[pyfunction]
-    fn equalize_histogram_f32<'py>(
+    fn equalize_histogram_sliding_tile_f32<'py>(
         py: Python<'py>,
         image: PyReadonlyArray2<'py, f32>,
         nbins: usize,
+        tile_size_max: (usize, usize),
     ) -> Bound<'py, PyArray2<f32>> {
-        let image = image.as_array();
-        let hist = compute_histogram(image, nbins);
-        let mut out = Array2::<f32>::zeros(image.raw_dim());
-        adjust_intensity(image, hist, &mut out);
-        out.to_pyarray(py)
+        equalize_histogram_sliding_tile(py, image, nbins, tile_size_max)
     }
-    m.add_function(wrap_pyfunction!(equalize_histogram_f32, m)?)?;
+    m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f32, m)?)?;
 
     #[pyfunction]
-    fn equalize_histogram_f64<'py>(
+    fn equalize_histogram_sliding_tile_f64<'py>(
         py: Python<'py>,
         image: PyReadonlyArray2<'py, f64>,
         nbins: usize,
+        tile_size_max: (usize, usize),
     ) -> Bound<'py, PyArray2<f64>> {
-        let image = image.as_array();
-        let hist = compute_histogram(image, nbins);
-        let mut out = Array2::<f64>::zeros(image.raw_dim());
-        adjust_intensity(image, hist, &mut out);
-        out.to_pyarray(py)
+        equalize_histogram_sliding_tile(py, image, nbins, tile_size_max)
     }
-    m.add_function(wrap_pyfunction!(equalize_histogram_f64, m)?)?;
+    m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f64, m)?)?;
 
     Ok(())
 }
