@@ -1,4 +1,5 @@
 import re
+import sys
 
 import numpy as np
 import numpy.testing as npt
@@ -7,6 +8,11 @@ from pytest import RaisesExc, RaisesGroup
 
 import rlic
 from rlic._histeq import MSG_EVEN, MSG_TOO_LOW, Strategy, as_pair
+
+if sys.version_info >= (3, 13):
+    from copy import replace as copy_replace
+else:
+    from dataclasses import replace as copy_replace
 
 
 @pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
@@ -59,6 +65,26 @@ def test_sliding_tile_invalid_type_tile_size(key):
         ),
     ):
         Strategy.from_spec({"kind": "sliding-tile", key: 1.5})
+
+
+@pytest.mark.parametrize(
+    "tile_shape_max, containing_shape, expected_shape",
+    [
+        ((-1, -1), (5, 7), (5, 7)),
+        ((-1, 3), (5, 7), (5, 3)),
+        ((3, -1), (5, 7), (3, 7)),
+        # even values are allowed in containing shapes, but padded in the output
+        ((-1, -1), (6, 8), (7, 9)),
+        ((-1, 3), (6, 8), (7, 3)),
+        ((3, -1), (6, 8), (3, 9)),
+    ],
+)
+def test_strategy_resolve_shape(tile_shape_max, containing_shape, expected_shape):
+    s0 = Strategy(kind="sliding-window", tile_shape_max=tile_shape_max)
+    s1 = s0.resolve_tile_shape(containing_shape)
+    assert s1 is not s0
+    assert s1.tile_shape_max == expected_shape
+    assert copy_replace(s0, tile_shape_max=s1.tile_shape_max) == s1
 
 
 def test_sliding_tile_both_tile_sizes_keys():
@@ -124,27 +150,33 @@ def test_sliding_two_invalid_tile_size_value(key, size, prefix, msg):
         Strategy.from_spec({"kind": "sliding-tile", key: size})
 
 
+@pytest.mark.parametrize("spec", [-2, -1, (-1, -1), (5, -1), (-1, 5)])
+def test_stragegy_from_spec_negative_max_size(spec):
+    strat = Strategy.from_spec({"kind": "sliding-tile", "tile-size-max": spec})
+    assert strat.tile_shape_max == as_pair(spec)
+
+
 @pytest.mark.parametrize(
     "spec, expected",
     [
         pytest.param(
             {"kind": "sliding-tile", "tile-size": 13},
-            Strategy(kind="sliding-tile", tile_size=(13, 13)),
+            Strategy(kind="sliding-tile", tile_shape=(13, 13)),
             id="int-tile-size",
         ),
         pytest.param(
             {"kind": "sliding-tile", "tile-size": (13, 15)},
-            Strategy(kind="sliding-tile", tile_size=(13, 15)),
+            Strategy(kind="sliding-tile", tile_shape=(13, 15)),
             id="tuple-tile-size",
         ),
         pytest.param(
             {"kind": "sliding-tile", "tile-size-max": 13},
-            Strategy(kind="sliding-tile", tile_size_max=(13, 13)),
+            Strategy(kind="sliding-tile", tile_shape_max=(13, 13)),
             id="int-tile-size-max",
         ),
         pytest.param(
             {"kind": "sliding-tile", "tile-size-max": (13, 15)},
-            Strategy(kind="sliding-tile", tile_size_max=(13, 15)),
+            Strategy(kind="sliding-tile", tile_shape_max=(13, 15)),
             id="tuple-tile-size-max",
         ),
     ],
