@@ -80,8 +80,8 @@ def test_sliding_tile_both_tile_sizes_keys():
 @pytest.mark.parametrize(
     "size, axis, msg",
     [
-        ((-1, 3), "x", MSG_TOO_LOW),
-        ((3, -1), "y", MSG_TOO_LOW),
+        ((1, 3), "x", MSG_TOO_LOW),
+        ((3, 1), "y", MSG_TOO_LOW),
         ((4, 3), "x", MSG_EVEN),
         ((3, 4), "y", MSG_EVEN),
     ],
