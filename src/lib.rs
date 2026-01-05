@@ -622,20 +622,19 @@ mod test_histogram {
 fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     image: ArrayView2<T>,
     hist: Histogram<T>,
-) -> Array2<T> {
+    out: &mut Array2<T>,
+) {
     let bin_centers = hist.centers();
     let cdf = hist.cdf_as_normalized();
     let grid =
         RectilinearGrid1D::new(bin_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
     let interpolator = LinearHoldLast1D::new(grid);
 
-    let mut output = Array2::<T>::zeros(image.raw_dim());
     let locs = image.as_slice().unwrap();
-    match interpolator.eval(locs, output.as_slice_mut().unwrap()) {
+    match interpolator.eval(locs, out.as_slice_mut().unwrap()) {
         Ok(_) => (),
         Err(_) => panic!("interpolation failed"),
     };
-    output
 }
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -687,7 +686,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     ) -> Bound<'py, PyArray2<f32>> {
         let image = image.as_array();
         let hist = compute_histogram(image, nbins);
-        adjust_intensity(image, hist).to_pyarray(py)
+        let mut out = Array2::<f32>::zeros(image.raw_dim());
+        adjust_intensity(image, hist, &mut out);
+        out.to_pyarray(py)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_f32, m)?)?;
 
@@ -699,7 +700,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     ) -> Bound<'py, PyArray2<f64>> {
         let image = image.as_array();
         let hist = compute_histogram(image, nbins);
-        adjust_intensity(image, hist).to_pyarray(py)
+        let mut out = Array2::<f64>::zeros(image.raw_dim());
+        adjust_intensity(image, hist, &mut out);
+        out.to_pyarray(py)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_f64, m)?)?;
 
