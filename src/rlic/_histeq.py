@@ -15,6 +15,11 @@ else:
     from exceptiongroup import ExceptionGroup
     from typing_extensions import NotRequired, assert_never
 
+if sys.version_info >= (3, 13):
+    from copy import replace as copy_replace
+else:
+    from dataclasses import replace as copy_replace
+
 SUPPORTED_KINDS = frozenset({"sliding-tile"})
 StrategyKind: TypeAlias = Literal["sliding-tile"]
 
@@ -29,12 +34,12 @@ SlidingTileSpec = TypedDict(
 )
 
 
-class TileSizeSpec(TypedDict):
-    tile_size: PairSpec[int]
+class TileShapeSpec(TypedDict):
+    tile_shape: PairSpec[int]
 
 
-class TileSizeMaxSpec(TypedDict):
-    tile_size_max: PairSpec[int]
+class TileShapeMaxSpec(TypedDict):
+    tile_shape_max: PairSpec[int]
 
 
 def as_pair(s: PairSpec[int], /) -> Pair[int]:
@@ -56,8 +61,8 @@ MSG_TOO_LOW = (
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Strategy:
     kind: StrategyKind
-    tile_size: Pair[int] | None = None
-    tile_size_max: Pair[int] | None = None
+    tile_shape: Pair[int] | None = None
+    tile_shape_max: Pair[int] | None = None
 
     @classmethod
     def from_spec(cls, spec: SlidingTileSpec, /) -> "Strategy":
@@ -75,7 +80,7 @@ class Strategy:
                     )
                 )
 
-        kwarg: TileSizeSpec | TileSizeMaxSpec | None = None
+        kwarg: TileShapeSpec | TileShapeMaxSpec | None = None
 
         match (spec.get("tile-size"), spec.get("tile-size-max")):
             case (None, None):
@@ -86,9 +91,9 @@ class Strategy:
                     )
                 )
             case (((int() | (int(), int())) as ts), None):
-                kwarg = {"tile_size": as_pair(ts)}  # type: ignore[arg-type, assignment]
+                kwarg = {"tile_shape": as_pair(ts)}  # type: ignore[arg-type, assignment]
             case (None, ((int() | (int(), int())) as ts)):
-                kwarg = {"tile_size_max": as_pair(ts)}
+                kwarg = {"tile_shape_max": as_pair(ts)}
             case (ts, None):
                 exceptions.append(
                     TypeError(
@@ -119,8 +124,13 @@ class Strategy:
 
         key = next(iter(kwarg.keys()))
         pair = cast("Pair[int]", next(iter(kwarg.values())))
-        prefix = "Maximum " if key == "tile_size_max" else ""
+        if key == "tile_shape_max":
+            prefix = "Maximum "
+        else:
+            prefix = ""
         for size, axis in zip(pair, ("x", "y"), strict=True):
+            if size < 0:
+                continue
             if size < 3:
                 exceptions.append(
                     ValueError(MSG_TOO_LOW.format(prefix=prefix, axis=axis, size=size))
@@ -146,3 +156,21 @@ class Strategy:
                 "Found multiple issues with adaptive strategy specifications",
                 exceptions,
             )
+
+    def resolve_tile_shape(self, containing_shape: Pair[int], /) -> "Strategy":
+        if self.tile_shape_max is None:
+            raise AssertionError
+        assert all(s > 0 for s in containing_shape)
+        base_shape = self.tile_shape_max
+        ret_shape_mut = list(base_shape)
+        for i in range(2):
+            if not (s := containing_shape[i]) % 2:
+                s += 1
+            if base_shape[i] < 0:
+                ret_shape_mut[i] = s
+            else:
+                ret_shape_mut[i] = min(ret_shape_mut[i], s)
+        ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
+        assert all(s > 0 for s in ret_shape)
+        assert all(s % 2 for s in ret_shape)
+        return copy_replace(self, tile_shape_max=ret_shape)
