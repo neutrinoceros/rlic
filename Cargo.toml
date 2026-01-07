@@ -16,8 +16,8 @@ crate-type = ["cdylib"]
 #
 # maturin 1.8.6 (2025-05-13) reduced the need to keep this version in sync, but
 # I don't want to rely on it yet, as it's too new at the time of writing
-pyo3 = { version = "0.27.1", features = ["extension-module", "abi3-py310"] }
-numpy = "0.27.0"
+pyo3 = { version = "0.27.2", features = ["extension-module", "abi3-py310"] }
+numpy = "0.27.1"
 num-traits = "0.2.19"
 either = "1.15.0"
 interpn = "0.9.1"
