@@ -706,15 +706,18 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     image: PyReadonlyArray2<'py, T>,
     nbins: usize,
-    tile_shape_max: ArrayDimensions,
+    tile_shape_max: (usize, usize),
 ) -> Bound<'py, PyArray2<T>> {
-    // stub implementation
     let image = image.as_array();
     let dims = ArrayDimensions {
         x: image.shape()[1],
         y: image.shape()[0],
     };
 
+    let tile_shape_max = ArrayDimensions {
+        x: tile_shape_max.1,
+        y: tile_shape_max.0,
+    };
     let mut row_vmin: T;
     let mut row_vmax: T;
     let last_pixel = dims.last_pixel_index();
@@ -845,15 +848,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         nbins: usize,
         tile_shape_max: (usize, usize),
     ) -> Bound<'py, PyArray2<f32>> {
-        equalize_histogram_sliding_tile(
-            py,
-            image,
-            nbins,
-            ArrayDimensions {
-                x: tile_shape_max.1,
-                y: tile_shape_max.0,
-            },
-        )
+        equalize_histogram_sliding_tile(py, image, nbins, tile_shape_max)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f32, m)?)?;
 
@@ -864,15 +859,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         nbins: usize,
         tile_shape_max: (usize, usize),
     ) -> Bound<'py, PyArray2<f64>> {
-        equalize_histogram_sliding_tile(
-            py,
-            image,
-            nbins,
-            ArrayDimensions {
-                x: tile_shape_max.1,
-                y: tile_shape_max.0,
-            },
-        )
+        equalize_histogram_sliding_tile(py, image, nbins, tile_shape_max)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f64, m)?)?;
 
