@@ -41,17 +41,33 @@ struct PixelFraction<T> {
     y: T,
 }
 
-#[derive(Clone)]
-struct ImageDimensions {
+#[derive(Clone, Copy, PartialEq)]
+struct ArrayDimensions {
+    // can be used to represent the size of an image or view
     x: usize,
     y: usize,
+}
+
+impl ArrayDimensions {
+    fn last_pixel_index(&self) -> PixelIndex {
+        PixelIndex {
+            i: (self.y - 1),
+            j: (self.x - 1),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+struct PixelIndex {
+    i: usize, // y
+    j: usize, // x
 }
 
 #[derive(Clone)]
 struct PixelCoordinates {
     x: usize,
     y: usize,
-    dimensions: ImageDimensions,
+    dimensions: ArrayDimensions,
 }
 impl PixelCoordinates {
     fn apply_one_dir(c: &mut usize, image_size: usize, boundaries: &BoundaryPair) {
@@ -138,14 +154,14 @@ fn select_pixel<T: Copy>(arr: &ArrayView2<T>, coords: &PixelCoordinates) -> T {
 mod test_pixel_select {
     use numpy::ndarray::array;
 
-    use crate::{select_pixel, ImageDimensions, PixelCoordinates};
+    use crate::{select_pixel, ArrayDimensions, PixelCoordinates};
     #[test]
     fn selection() {
         let arr = array![[1.0, 2.0], [3.0, 4.0]];
         let coords = PixelCoordinates {
             x: 1,
             y: 1,
-            dimensions: ImageDimensions { x: 4, y: 4 },
+            dimensions: ArrayDimensions { x: 4, y: 4 },
         };
         let res = select_pixel(&arr.view(), &coords);
         assert_eq!(res, 4.0);
@@ -277,7 +293,7 @@ fn advance<T: AtLeastF32>(
 #[cfg(test)]
 mod test_advance {
     use crate::{
-        advance, Boundary, BoundaryPair, BoundarySet, ImageDimensions, PixelCoordinates,
+        advance, ArrayDimensions, Boundary, BoundaryPair, BoundarySet, PixelCoordinates,
         PixelFraction, UVPoint,
     };
 
@@ -287,7 +303,7 @@ mod test_advance {
         let mut coords = PixelCoordinates {
             x: 5,
             y: 5,
-            dimensions: ImageDimensions { x: 10, y: 10 },
+            dimensions: ArrayDimensions { x: 10, y: 10 },
         };
         let mut pix_frac = PixelFraction { x: 0.5, y: 0.5 };
         let boundaries = BoundarySet {
@@ -380,7 +396,7 @@ fn convolve<'py, T: AtLeastF32>(
     input: ArrayView2<T>,
     output: &mut Array2<T>,
 ) {
-    let dims = ImageDimensions {
+    let dims = ArrayDimensions {
         x: uv.u.shape()[1],
         y: uv.u.shape()[0],
     };
@@ -400,7 +416,7 @@ fn convolve<'py, T: AtLeastF32>(
             let starting_point = PixelCoordinates {
                 x: j,
                 y: i,
-                dimensions: dims.clone(),
+                dimensions: dims,
             };
             convole_single_pixel(
                 pixel_value,
@@ -557,7 +573,7 @@ fn compute_histogram<T: AtLeastF32 + numpy::Element + NumCast>(
     image: ArrayView2<T>,
     nbins: usize,
 ) -> Histogram<T> {
-    let dims = ImageDimensions {
+    let dims = ArrayDimensions {
         x: image.shape()[1],
         y: image.shape()[0],
     };
@@ -663,28 +679,6 @@ fn equalize_histogram<'py, T: AtLeastF32 + numpy::Element>(
     let mut out = Array2::<T>::zeros(image.raw_dim());
     adjust_intensity(image, hist, &mut out);
     out.to_pyarray(py)
-}
-
-#[derive(Clone, Copy, PartialEq)]
-struct PixelIndex {
-    i: usize, // y
-    j: usize, // x
-}
-
-#[derive(Clone, Copy, PartialEq)]
-struct ArrayDimensions {
-    // can be used to represent the size of an image or view
-    x: usize,
-    y: usize,
-}
-
-impl ArrayDimensions {
-    fn last_pixel_index(&self) -> PixelIndex {
-        PixelIndex {
-            i: (self.y - 1),
-            j: (self.x - 1),
-        }
-    }
 }
 
 fn get_tile_view<'a, T: numpy::Element>(
