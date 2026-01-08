@@ -168,8 +168,6 @@ class Strategy:
                 s += 1
             if base_shape[i] < 0:
                 ret_shape_mut[i] = s
-            else:
-                ret_shape_mut[i] = min(ret_shape_mut[i], s)
         ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
         assert all(s > 0 for s in ret_shape)
         assert all(s % 2 for s in ret_shape)

@@ -274,3 +274,32 @@ def test_historgram_equalization_unsupported_dtype():
         ),
     ):
         rlic.equalize_histogram(np.eye(3, dtype="int64"), nbins=3)
+
+
+@pytest.mark.parametrize("nbins", [12, 64, 256])
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests):
+    IMAGE_SHAPE = (7, 5)  # tmp
+    prng = np.random.default_rng(0)
+    image = np.clip(
+        prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
+        a_min=0.0,
+        a_max=None,
+        dtype=dtype,
+    )
+
+    res_default = rlic.equalize_histogram(
+        image,
+        nbins=nbins,
+        adaptive_strategy=None,
+    )
+
+    # use a sliding tile that always contains the entire
+    # image to help comparing with the non-adaptive case
+    st_shape = (2 * IMAGE_SHAPE[0] + 1, 2 * IMAGE_SHAPE[1] + 1)
+    res_st = rlic.equalize_histogram(
+        image,
+        nbins=nbins,
+        adaptive_strategy={"kind": "sliding-tile", "tile-size-max": st_shape},
+    )
+    npt.assert_array_equal(res_st, res_default)

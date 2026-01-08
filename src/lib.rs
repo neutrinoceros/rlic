@@ -536,12 +536,12 @@ fn compute_subhistogram<T: AtLeastF32>(
     }
 }
 
-fn reduce_histogram<T: Copy>(subhists: VecDeque<Histogram<T>>) -> Histogram<T> {
+fn reduce_histogram<T: Copy>(subhists: &VecDeque<Histogram<T>>) -> Histogram<T> {
     // it is assumed that all input histograms have the exact same range and nbins
     let h0 = subhists.front().unwrap();
     let nbins = h0.bins.len();
     let mut hvals = Array1::<usize>::zeros(nbins);
-    for h in &subhists {
+    for h in subhists {
         for i in 0..nbins {
             hvals[i] += h.bins[i];
         }
@@ -577,7 +577,7 @@ fn compute_histogram<T: AtLeastF32 + numpy::Element + NumCast>(
         let arr = image.index_axis(Axis(0), i);
         subhistograms.push_back(compute_subhistogram(arr, vmin, vmax, nbins));
     }
-    reduce_histogram(subhistograms)
+    reduce_histogram(&subhistograms)
 }
 
 #[cfg(test)]
@@ -634,7 +634,173 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     match interpolator.eval(locs, out.as_slice_mut().unwrap()) {
         Ok(_) => (),
         Err(_) => panic!("interpolation failed"),
+    }
+}
+fn adjust_pixel_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
+    pixel: T,
+    hist: &Histogram<T>,
+    out: &mut T,
+) {
+    let bin_centers = hist.centers();
+    let cdf = hist.cdf_as_normalized();
+    let grid =
+        RectilinearGrid1D::new(bin_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
+    let interpolator = LinearHoldLast1D::new(grid);
+
+    *out = match interpolator.eval_one(pixel) {
+        Ok(res) => res,
+        Err(_) => panic!("interpolation failed"),
     };
+}
+
+fn equalize_histogram<'py, T: AtLeastF32 + numpy::Element>(
+    py: Python<'py>,
+    image: PyReadonlyArray2<'py, T>,
+    nbins: usize,
+) -> Bound<'py, PyArray2<T>> {
+    let image = image.as_array();
+    let hist = compute_histogram(image, nbins);
+    let mut out = Array2::<T>::zeros(image.raw_dim());
+    adjust_intensity(image, hist, &mut out);
+    out.to_pyarray(py)
+}
+
+#[derive(Clone, Copy, PartialEq)]
+struct PixelIndex {
+    i: usize, // y
+    j: usize, // x
+}
+
+#[derive(Clone, Copy, PartialEq)]
+struct ArrayDimensions {
+    // can be used to represent the size of an image or view
+    x: usize,
+    y: usize,
+}
+
+impl ArrayDimensions {
+    fn last_pixel_index(&self) -> PixelIndex {
+        PixelIndex {
+            i: (self.y - 1),
+            j: (self.x - 1),
+        }
+    }
+}
+
+fn get_tile_view<'a, T: numpy::Element>(
+    image: &'a ArrayView2<'a, T>,
+    center_pixel: PixelIndex,
+    tile_shape_max: ArrayDimensions,
+) -> ArrayView2<'a, T> {
+    // since tile_shape_max only contains odd numbers,
+    // the result of an integer division by 2 always corresponds
+    // to the maximum number of pixels on one side of the central one,
+    // *excluding* the latter.
+    let half_tile_shape_max = ArrayDimensions {
+        x: tile_shape_max.x / 2,
+        y: tile_shape_max.y / 2,
+    };
+    let dims = ArrayDimensions {
+        x: image.shape()[1],
+        y: image.shape()[0],
+    };
+    let tile_left_idx = PixelIndex {
+        i: center_pixel.i.saturating_sub(half_tile_shape_max.y),
+        j: center_pixel.j.saturating_sub(half_tile_shape_max.x),
+    };
+    let tile_right_idx = PixelIndex {
+        i: if center_pixel.i + half_tile_shape_max.y > dims.y - 1 {
+            dims.y - 1
+        } else {
+            center_pixel.i + half_tile_shape_max.y
+        },
+        j: if center_pixel.j + half_tile_shape_max.x > dims.x - 1 {
+            dims.x - 1
+        } else {
+            center_pixel.j + half_tile_shape_max.x
+        },
+    };
+    image.slice(s![
+        tile_left_idx.i..tile_right_idx.i + 1,
+        tile_left_idx.j..tile_right_idx.j + 1,
+    ])
+}
+
+fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
+    py: Python<'py>,
+    image: PyReadonlyArray2<'py, T>,
+    nbins: usize,
+    tile_shape_max: ArrayDimensions,
+) -> Bound<'py, PyArray2<T>> {
+    // stub implementation
+    let image = image.as_array();
+    let dims = ArrayDimensions {
+        x: image.shape()[1],
+        y: image.shape()[0],
+    };
+
+    let mut row_vmin: T;
+    let mut row_vmax: T;
+    let last_pixel = dims.last_pixel_index();
+    let mut center_pixel = PixelIndex { i: 0, j: 0 };
+    let mut out = Array2::<T>::zeros(image.raw_dim());
+    while center_pixel.j <= last_pixel.j || center_pixel.i <= last_pixel.i {
+        center_pixel.i = 0;
+        for i in 0..dims.y {
+            let tile = get_tile_view(&image, center_pixel, tile_shape_max);
+            let tile_dims = ArrayDimensions {
+                x: tile.shape()[1],
+                y: tile.shape()[0],
+            };
+
+            // TODO: separate and reuse this loop
+            // TODO: rewrite as to work on any flatten array ?
+            let mut vmin = T::infinity();
+            let mut vmax = -T::infinity();
+            for i in 0..tile_dims.y {
+                for j in 0..tile_dims.x {
+                    let v = tile[[i, j]];
+                    vmin = vmin.min(v);
+                    vmax = vmax.max(v);
+                }
+            }
+            let mut subhists = VecDeque::with_capacity(tile_dims.y + 1);
+            for k in 0..tile_dims.y {
+                let row = tile.index_axis(Axis(0), k);
+                subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
+            }
+            let row = image.row(i);
+            row_vmin = T::infinity();
+            row_vmax = -T::infinity();
+            for v in row {
+                row_vmin = row_vmin.min(*v);
+                row_vmax = row_vmax.max(*v);
+            }
+
+            if (row_vmin < vmin) || (row_vmax > vmax) {
+                subhists.truncate(0);
+                // refresh extrema
+                vmin = vmin.min(row_vmin);
+                vmax = vmax.max(row_vmax);
+
+                for it in 0..tile_dims.y {
+                    let row = tile.index_axis(Axis(0), it);
+                    subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
+                }
+            }
+            let hist = reduce_histogram(&subhists);
+
+            let in_pix = image[[center_pixel.i, center_pixel.j]];
+            let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
+            adjust_pixel_intensity(in_pix, &hist, out_pix);
+            center_pixel.i += 1;
+        }
+        assert_eq!(center_pixel.i, last_pixel.i + 1);
+        center_pixel.j += 1;
+    }
+    assert_eq!(center_pixel.j, last_pixel.j + 1);
+
+    out.to_pyarray(py)
 }
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -684,11 +850,7 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         image: PyReadonlyArray2<'py, f32>,
         nbins: usize,
     ) -> Bound<'py, PyArray2<f32>> {
-        let image = image.as_array();
-        let hist = compute_histogram(image, nbins);
-        let mut out = Array2::<f32>::zeros(image.raw_dim());
-        adjust_intensity(image, hist, &mut out);
-        out.to_pyarray(py)
+        equalize_histogram(py, image, nbins)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_f32, m)?)?;
 
@@ -698,13 +860,47 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         image: PyReadonlyArray2<'py, f64>,
         nbins: usize,
     ) -> Bound<'py, PyArray2<f64>> {
-        let image = image.as_array();
-        let hist = compute_histogram(image, nbins);
-        let mut out = Array2::<f64>::zeros(image.raw_dim());
-        adjust_intensity(image, hist, &mut out);
-        out.to_pyarray(py)
+        equalize_histogram(py, image, nbins)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_f64, m)?)?;
+
+    #[pyfunction]
+    fn equalize_histogram_sliding_tile_f32<'py>(
+        py: Python<'py>,
+        image: PyReadonlyArray2<'py, f32>,
+        nbins: usize,
+        tile_shape_max: (usize, usize),
+    ) -> Bound<'py, PyArray2<f32>> {
+        equalize_histogram_sliding_tile(
+            py,
+            image,
+            nbins,
+            ArrayDimensions {
+                x: tile_shape_max.1,
+                y: tile_shape_max.0,
+            },
+        )
+    }
+    m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f32, m)?)?;
+
+    #[pyfunction]
+    fn equalize_histogram_sliding_tile_f64<'py>(
+        py: Python<'py>,
+        image: PyReadonlyArray2<'py, f64>,
+        nbins: usize,
+        tile_shape_max: (usize, usize),
+    ) -> Bound<'py, PyArray2<f64>> {
+        equalize_histogram_sliding_tile(
+            py,
+            image,
+            nbins,
+            ArrayDimensions {
+                x: tile_shape_max.1,
+                y: tile_shape_max.0,
+            },
+        )
+    }
+    m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f64, m)?)?;
 
     Ok(())
 }
