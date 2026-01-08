@@ -1,4 +1,4 @@
-use crate::boundaries::{Boundary, BoundaryPair, BoundarySet};
+use crate::boundaries::BoundarySet;
 use either::Either;
 use interpn::one_dim::linear::LinearHoldLast1D;
 use interpn::one_dim::Interp1D;
@@ -63,32 +63,9 @@ struct PixelIndex {
     j: usize, // x
 }
 
-#[derive(Clone)]
-struct PixelCoordinates {
-    x: usize,
-    y: usize,
-    dimensions: ArrayDimensions,
-}
-impl PixelCoordinates {
-    fn apply_one_dir(c: &mut usize, image_size: usize, boundaries: &BoundaryPair) {
-        if *c == usize::MAX {
-            *c = match boundaries.left {
-                Boundary::Closed => 0,
-                Boundary::Periodic => image_size - 1,
-            };
-        } else if *c == image_size {
-            *c = match boundaries.right {
-                Boundary::Closed => image_size - 1,
-                Boundary::Periodic => 0,
-            };
-        }
-    }
-    fn apply(&mut self, boundaries: &BoundarySet) {
-        PixelCoordinates::apply_one_dir(&mut self.x, self.dimensions.x, &boundaries.x);
-        PixelCoordinates::apply_one_dir(&mut self.y, self.dimensions.y, &boundaries.y);
-    }
-}
 mod boundaries {
+    use crate::{ArrayDimensions, PixelIndex};
+
     pub enum Boundary {
         Closed,
         Periodic,
@@ -106,12 +83,27 @@ mod boundaries {
     pub struct BoundaryPair {
         pub left: Boundary,
         pub right: Boundary,
+        pub image_size: usize,
     }
     impl BoundaryPair {
-        fn new(pair: (String, String)) -> BoundaryPair {
+        fn new(pair: (String, String), image_size: usize) -> BoundaryPair {
             BoundaryPair {
                 left: Boundary::new(pair.0),
                 right: Boundary::new(pair.1),
+                image_size,
+            }
+        }
+        fn apply_one_dir(&self, c: &mut usize) {
+            if *c == usize::MAX {
+                *c = match self.left {
+                    Boundary::Closed => 0,
+                    Boundary::Periodic => self.image_size - 1,
+                };
+            } else if *c == self.image_size {
+                *c = match self.right {
+                    Boundary::Closed => self.image_size - 1,
+                    Boundary::Periodic => 0,
+                };
             }
         }
     }
@@ -121,11 +113,18 @@ mod boundaries {
         pub y: BoundaryPair,
     }
     impl BoundarySet {
-        pub fn new(set: ((String, String), (String, String))) -> BoundarySet {
+        pub fn new(
+            set: ((String, String), (String, String)),
+            dims: ArrayDimensions,
+        ) -> BoundarySet {
             BoundarySet {
-                x: BoundaryPair::new(set.0),
-                y: BoundaryPair::new(set.1),
+                x: BoundaryPair::new(set.0, dims.x),
+                y: BoundaryPair::new(set.1, dims.y),
             }
+        }
+        pub fn apply(&self, pc: &mut PixelIndex) {
+            self.x.apply_one_dir(&mut pc.j);
+            self.y.apply_one_dir(&mut pc.i);
         }
     }
 }
@@ -146,24 +145,20 @@ impl<T: Neg<Output = T> + Copy> Neg for UVPoint<T> {
     }
 }
 
-fn select_pixel<T: Copy>(arr: &ArrayView2<T>, coords: &PixelCoordinates) -> T {
-    arr[[coords.y, coords.x]]
+fn select_pixel<T: Copy>(arr: &ArrayView2<T>, idx: PixelIndex) -> T {
+    arr[[idx.i, idx.j]]
 }
 
 #[cfg(test)]
 mod test_pixel_select {
     use numpy::ndarray::array;
 
-    use crate::{select_pixel, ArrayDimensions, PixelCoordinates};
+    use crate::{select_pixel, PixelIndex};
     #[test]
     fn selection() {
         let arr = array![[1.0, 2.0], [3.0, 4.0]];
-        let coords = PixelCoordinates {
-            x: 1,
-            y: 1,
-            dimensions: ArrayDimensions { x: 4, y: 4 },
-        };
-        let res = select_pixel(&arr.view(), &coords);
+        let idx = PixelIndex { i: 1, j: 1 };
+        let res = select_pixel(&arr.view(), idx);
         assert_eq!(res, 4.0);
     }
 }
@@ -253,7 +248,7 @@ fn update_state<T: AtLeastF32>(
 #[inline(always)]
 fn advance<T: AtLeastF32>(
     uv: &UVPoint<T>,
-    coords: &mut PixelCoordinates,
+    idx: &mut PixelIndex,
     pix_frac: &mut PixelFraction<T>,
     boundaries: &BoundarySet,
 ) {
@@ -269,7 +264,7 @@ fn advance<T: AtLeastF32>(
         update_state(
             &uv.u,
             &uv.v,
-            &mut coords.x,
+            &mut idx.j,
             &mut pix_frac.x,
             &mut pix_frac.y,
             &tx,
@@ -279,7 +274,7 @@ fn advance<T: AtLeastF32>(
         update_state(
             &uv.v,
             &uv.u,
-            &mut coords.y,
+            &mut idx.i,
             &mut pix_frac.y,
             &mut pix_frac.x,
             &ty,
@@ -287,38 +282,28 @@ fn advance<T: AtLeastF32>(
     }
     // All boundary conditions must be applicable on each step.
     // This is done to allow for complex cases like shearing boxes.
-    coords.apply(boundaries);
+    boundaries.apply(idx);
 }
 
 #[cfg(test)]
 mod test_advance {
-    use crate::{
-        advance, ArrayDimensions, Boundary, BoundaryPair, BoundarySet, PixelCoordinates,
-        PixelFraction, UVPoint,
-    };
+    use crate::{advance, ArrayDimensions, BoundarySet, PixelFraction, PixelIndex, UVPoint};
 
     #[test]
     fn zero_vel() {
         let uv = UVPoint { u: 0.0, v: 0.0 };
-        let mut coords = PixelCoordinates {
-            x: 5,
-            y: 5,
-            dimensions: ArrayDimensions { x: 10, y: 10 },
-        };
+        let mut idx = PixelIndex { i: 5, j: 5 };
         let mut pix_frac = PixelFraction { x: 0.5, y: 0.5 };
-        let boundaries = BoundarySet {
-            x: BoundaryPair {
-                left: Boundary::Closed,
-                right: Boundary::Closed,
-            },
-            y: BoundaryPair {
-                left: Boundary::Closed,
-                right: Boundary::Closed,
-            },
-        };
-        advance(&uv, &mut coords, &mut pix_frac, &boundaries);
-        assert_eq!(coords.x, 5);
-        assert_eq!(coords.y, 5);
+        let boundaries = BoundarySet::new(
+            (
+                (String::from("closed"), String::from("closed")),
+                (String::from("closed"), String::from("closed")),
+            ),
+            ArrayDimensions { x: 10, y: 10 },
+        );
+        advance(&uv, &mut idx, &mut pix_frac, &boundaries);
+        assert_eq!(idx.j, 5);
+        assert_eq!(idx.i, 5);
         assert_eq!(pix_frac.x, 0.5);
         assert_eq!(pix_frac.y, 0.5);
     }
@@ -332,14 +317,14 @@ enum Direction {
 #[inline(always)]
 fn convole_single_pixel<T: AtLeastF32>(
     pixel_value: &mut T,
-    starting_point: &PixelCoordinates,
+    starting_point: PixelIndex,
     uv: &UVField<T>,
     kernel: &ArrayView1<T>,
     input: &ArrayView2<T>,
     boundaries: &BoundarySet,
     direction: &Direction,
 ) {
-    let mut coords: PixelCoordinates = starting_point.clone();
+    let mut idx: PixelIndex = starting_point;
     let mut pix_frac = PixelFraction {
         x: 0.5.into(),
         y: 0.5.into(),
@@ -358,8 +343,8 @@ fn convole_single_pixel<T: AtLeastF32>(
 
     for k in range {
         let mut p = UVPoint {
-            u: select_pixel(&uv.u, &coords),
-            v: select_pixel(&uv.v, &coords),
+            u: select_pixel(&uv.u, idx),
+            v: select_pixel(&uv.v, idx),
         };
         if p.u.is_nan() || p.v.is_nan() {
             break;
@@ -377,14 +362,14 @@ fn convole_single_pixel<T: AtLeastF32>(
             Direction::Forward => p.clone(),
             Direction::Backward => -p,
         };
-        advance(&mp, &mut coords, &mut pix_frac, boundaries);
+        advance(&mp, &mut idx, &mut pix_frac, boundaries);
         #[cfg(not(feature = "fma"))]
         {
-            *pixel_value += kernel[[k]] * select_pixel(input, &coords);
+            *pixel_value += kernel[[k]] * select_pixel(input, idx);
         }
         #[cfg(feature = "fma")]
         {
-            *pixel_value = kernel[[k]].mul_add(select_pixel(input, &coords), *pixel_value);
+            *pixel_value = kernel[[k]].mul_add(select_pixel(input, idx), *pixel_value);
         }
     }
 }
@@ -396,14 +381,10 @@ fn convolve<'py, T: AtLeastF32>(
     input: ArrayView2<T>,
     output: &mut Array2<T>,
 ) {
-    let dims = ArrayDimensions {
-        x: uv.u.shape()[1],
-        y: uv.u.shape()[0],
-    };
     let kmid = kernel.len() / 2;
 
-    for i in 0..dims.y {
-        for j in 0..dims.x {
+    for i in 0..boundaries.y.image_size {
+        for j in 0..boundaries.x.image_size {
             let pixel_value = &mut output[[i, j]];
             #[cfg(not(feature = "fma"))]
             {
@@ -413,14 +394,10 @@ fn convolve<'py, T: AtLeastF32>(
             {
                 *pixel_value = kernel[[kmid]].mul_add(input[[i, j]], *pixel_value);
             }
-            let starting_point = PixelCoordinates {
-                x: j,
-                y: i,
-                dimensions: dims,
-            };
+            let starting_point = PixelIndex { i, j };
             convole_single_pixel(
                 pixel_value,
-                &starting_point,
+                starting_point,
                 uv,
                 &kernel,
                 &input,
@@ -430,7 +407,7 @@ fn convolve<'py, T: AtLeastF32>(
 
             convole_single_pixel(
                 pixel_value,
-                &starting_point,
+                starting_point,
                 uv,
                 &kernel,
                 &input,
@@ -446,7 +423,7 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     texture: PyReadonlyArray2<'py, T>,
     uv: (PyReadonlyArray2<'py, T>, PyReadonlyArray2<'py, T>, String),
     kernel: PyReadonlyArray1<'py, T>,
-    boundaries: BoundarySet,
+    boundaries: ((String, String), (String, String)),
     iterations: i64,
 ) -> Bound<'py, PyArray2<T>> {
     let uv = UVField {
@@ -460,6 +437,11 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
         Array2::from_shape_vec(texture.raw_dim(), texture.iter().cloned().collect()).unwrap();
     let mut output = Array2::<T>::zeros(texture.raw_dim());
 
+    let dims = ArrayDimensions {
+        x: uv.u.shape()[1],
+        y: uv.u.shape()[0],
+    };
+    let boundaries = BoundarySet::new(boundaries, dims);
     let mut it_count = 0;
     while it_count < iterations {
         convolve(&uv, kernel, &boundaries, input.view(), &mut output);
@@ -815,7 +797,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         boundaries: ((String, String), (String, String)),
         iterations: i64,
     ) -> Bound<'py, PyArray2<f32>> {
-        let boundaries = BoundarySet::new(boundaries);
         convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
     }
     m.add_function(wrap_pyfunction!(convolve_f32, m)?)?;
@@ -833,7 +814,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         boundaries: ((String, String), (String, String)),
         iterations: i64,
     ) -> Bound<'py, PyArray2<f64>> {
-        let boundaries = BoundarySet::new(boundaries);
         convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
     }
     m.add_function(wrap_pyfunction!(convolve_f64, m)?)?;
