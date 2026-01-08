@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - WHL: disable branchless execution on windows x86_64 wheels
 - FEAT: add a public `rlic.equalize_histogram` post-processing function
+- FEAT: add support for Sliding Window (Tile) Histogram Equalization
 
 ## 0.5.3 - 2025-11-15
 
