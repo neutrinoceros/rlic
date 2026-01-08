@@ -5,7 +5,7 @@ use interpn::one_dim::Interp1D;
 use interpn::RectilinearGrid1D;
 use num_traits::{Float, NumCast, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
-use numpy::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
+use numpy::ndarray::{s, Array1, Array2, ArrayView, ArrayView1, ArrayView2, Axis, Dimension};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
@@ -702,6 +702,19 @@ fn get_tile_view<'a, T: numpy::Element>(
     ])
 }
 
+fn get_array_limits<A: AtLeastF32 + numpy::Element, D>(arr: ArrayView<A, D>) -> (A, A)
+where
+    D: Dimension,
+{
+    let mut vmin = A::infinity();
+    let mut vmax = -A::infinity();
+    for v in arr.iter() {
+        vmin = vmin.min(*v);
+        vmax = vmax.max(*v);
+    }
+    (vmin, vmax)
+}
+
 fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     image: PyReadonlyArray2<'py, T>,
@@ -718,8 +731,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         x: tile_shape_max.1,
         y: tile_shape_max.0,
     };
-    let mut row_vmin: T;
-    let mut row_vmax: T;
+
     let last_pixel = dims.last_pixel_index();
     let mut center_pixel = PixelIndex { i: 0, j: 0 };
     let mut out = Array2::<T>::zeros(image.raw_dim());
@@ -732,29 +744,19 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 y: tile.shape()[0],
             };
 
-            // TODO: separate and reuse this loop
-            // TODO: rewrite as to work on any flatten array ?
-            let mut vmin = T::infinity();
-            let mut vmax = -T::infinity();
-            for i in 0..tile_dims.y {
-                for j in 0..tile_dims.x {
-                    let v = tile[[i, j]];
-                    vmin = vmin.min(v);
-                    vmax = vmax.max(v);
-                }
-            }
+            let tile_limits = get_array_limits(tile);
+            let mut vmin = tile_limits.0;
+            let mut vmax = tile_limits.1;
+
             let mut subhists = VecDeque::with_capacity(tile_dims.y + 1);
             for k in 0..tile_dims.y {
                 let row = tile.index_axis(Axis(0), k);
                 subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
             }
             let row = image.row(i);
-            row_vmin = T::infinity();
-            row_vmax = -T::infinity();
-            for v in row {
-                row_vmin = row_vmin.min(*v);
-                row_vmax = row_vmax.max(*v);
-            }
+            let row_limits = get_array_limits(row);
+            let row_vmin = row_limits.0;
+            let row_vmax = row_limits.1;
 
             if (row_vmin < vmin) || (row_vmax > vmax) {
                 subhists.truncate(0);
