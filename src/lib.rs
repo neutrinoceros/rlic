@@ -731,8 +731,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         },
     };
 
-    while center_pixel.j <= last_pixel.j || center_pixel.i <= last_pixel.i {
-        center_pixel.i = 0;
+    for j in 0..dims.x {
+        center_pixel.j = j;
         let mut subhists_need_reinit = true;
         let mut hist_reduction_needed = true;
         let mut previous_tile_indices = (PixelIndex { i: 0, j: 0 }, PixelIndex { i: 0, j: 0 });
@@ -745,6 +745,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         };
 
         for i in 0..dims.y {
+            center_pixel.i = i;
             let tile_indices = get_tile_indices(dims, center_pixel, tile_shape_max);
             if tile_indices != previous_tile_indices {
                 tile = get_tile_view(&image, tile_indices);
@@ -794,12 +795,10 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             let in_pix = image[[center_pixel.i, center_pixel.j]];
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
             adjust_pixel_intensity(in_pix, &hist, out_pix);
-            center_pixel.i += 1;
         }
-        assert_eq!(center_pixel.i, last_pixel.i + 1);
-        center_pixel.j += 1;
+        assert_eq!(center_pixel.i, last_pixel.i);
     }
-    assert_eq!(center_pixel.j, last_pixel.j + 1);
+    assert_eq!(center_pixel.j, last_pixel.j);
 
     out.to_pyarray(py)
 }
