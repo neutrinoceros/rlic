@@ -739,6 +739,10 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         let mut previous_tile_dims = ArrayDimensions { x: 0, y: 0 };
         let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
         let mut tile_dims: ArrayDimensions = dims;
+        let mut vrange: Range<T> = Range {
+            min: 0.0.into(),
+            max: 0.0.into(),
+        };
 
         for i in 0..dims.y {
             let tile_indices = get_tile_indices(dims, center_pixel, tile_shape_max);
@@ -755,10 +759,9 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 if tile_indices.0.i != previous_tile_indices.0.i {
                     subhists.pop_front();
                 }
+                vrange = get_value_range(tile);
                 previous_tile_indices = tile_indices;
             }
-
-            let mut vrange = get_value_range(tile);
 
             let row = image.row(i);
             let row_vrange = get_value_range(row);
