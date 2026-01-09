@@ -754,6 +754,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             left: 0.0.into(),
             right: 0.0.into(),
         };
+        let mut row: ArrayView1<T>;
+        let mut row_vrange: Range<T> = vrange;
 
         for i in 0..dims.y {
             center_pixel.i = i;
@@ -772,11 +774,12 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                     subhists.pop_front();
                 }
                 vrange = get_value_range(tile);
+
+                row = image.row(i);
+                row_vrange = get_value_range(row);
+
                 previous_tile_range = tile_range;
             }
-
-            let row = image.row(i);
-            let row_vrange = get_value_range(row);
 
             if subhists_need_reinit
                 || (row_vrange.left < vrange.left)
@@ -794,6 +797,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 subhists_need_reinit = false;
             }
             if subhists.len() < tile_dims.y {
+                row = image.row(i);
                 subhists.push_back(compute_subhistogram(row, vrange, nbins));
                 hist_reduction_needed = true;
             }
