@@ -166,10 +166,10 @@ class Strategy:
         for i in range(2):
             s = containing_shape[i]
             if base_shape[i] == -1:
-                # store s if odd, s+1 otherwise
-                ret_shape_mut[i] = s | 1
-            elif base_shape[i] < 0:
-                ret_shape_mut[i] = 2 * s + 1
+                ret_shape_mut[i] = s
+            elif base_shape[i] == -2:
+                ret_shape_mut[i] = 2 * s
+            ret_shape_mut[i] |= 1  # add 1 if the value is even
         ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
         assert all(s > 0 for s in ret_shape)
         assert all(s % 2 for s in ret_shape)
