@@ -653,23 +653,24 @@ fn get_tile_range(
         x: tile_shape_max.x / 2,
         y: tile_shape_max.y / 2,
     };
-    let x = Range {
-        left: center_pixel.j.saturating_sub(half_tile_shape_max.x),
-        right: if center_pixel.j + half_tile_shape_max.x > dims.x - 1 {
-            dims.x - 1
-        } else {
-            center_pixel.j + half_tile_shape_max.x
+    ViewRange {
+        x: Range {
+            left: center_pixel.j.saturating_sub(half_tile_shape_max.x),
+            right: if center_pixel.j + half_tile_shape_max.x > dims.x - 1 {
+                dims.x - 1
+            } else {
+                center_pixel.j + half_tile_shape_max.x
+            },
         },
-    };
-    let y = Range {
-        left: center_pixel.i.saturating_sub(half_tile_shape_max.y),
-        right: if center_pixel.i + half_tile_shape_max.y > dims.y - 1 {
-            dims.y - 1
-        } else {
-            center_pixel.i + half_tile_shape_max.y
+        y: Range {
+            left: center_pixel.i.saturating_sub(half_tile_shape_max.y),
+            right: if center_pixel.i + half_tile_shape_max.y > dims.y - 1 {
+                dims.y - 1
+            } else {
+                center_pixel.i + half_tile_shape_max.y
+            },
         },
-    };
-    ViewRange { x, y }
+    }
 }
 
 fn get_tile_view<'a, T: numpy::Element>(
