@@ -79,9 +79,8 @@ def test_sliding_tile_invalid_type_tile_size(key):
         ((3, -1), (6, 8), (3, 9)),
         # negative values are special cased:
         # -1 means "match the containing shape"
-        # -2 and below mean "double the containing shape"
+        # -2 means "double the containing shape"
         ((-2, -2), (5, 7), (11, 15)),
-        ((-3, -3), (5, 7), (11, 15)),
     ],
 )
 def test_strategy_resolve_shape(tile_shape_max, containing_shape, expected_shape):
