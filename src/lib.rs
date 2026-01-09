@@ -727,15 +727,15 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     let mut cdf_grid =
         RectilinearGrid1D::new(hist_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
     let mut cdf_interpolator = LinearHoldLast1D::new(cdf_grid);
+    let mut subhists_need_reinit = true;
+    let mut hist_reduction_needed = true;
+    let mut previous_tile_range = ViewRange {
+        x: Range { left: 0, right: 0 },
+        y: Range { left: 0, right: 0 },
+    };
 
     for j in 0..dims.x {
         center_pixel.j = j;
-        let mut subhists_need_reinit = true;
-        let mut hist_reduction_needed = true;
-        let mut previous_tile_range = ViewRange {
-            x: Range { left: 0, right: 0 },
-            y: Range { left: 0, right: 0 },
-        };
         let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
         let mut tile_dims: ArrayDimensions = dims;
         let mut vrange: Range<T> = Range {
