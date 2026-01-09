@@ -457,12 +457,12 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
 
 #[derive(Clone, Copy)]
 struct Range<T> {
-    min: T,
-    max: T,
+    left: T,
+    right: T,
 }
 impl<T: Sub<Output = T> + Copy> Range<T> {
     fn span(&self) -> T {
-        self.max - self.min
+        self.right - self.left
     }
 }
 
@@ -477,7 +477,7 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
     }
 
     fn edges(&self) -> Array1<T> {
-        Array1::<T>::linspace(self.range.min, self.range.max, self.bins.len() + 1)
+        Array1::<T>::linspace(self.range.left, self.range.right, self.bins.len() + 1)
     }
 
     fn centers(&self) -> Array1<T> {
@@ -524,7 +524,7 @@ fn compute_subhistogram<T: AtLeastF32>(
     // pixels that contain exactly vmax are counted in the extra bin
     let mut bins = Array1::<usize>::zeros(nbins + 1);
     for v in arr.iter() {
-        let f = ((*v - range.min) / bin_width).floor();
+        let f = ((*v - range.left) / bin_width).floor();
         let idx = <usize as NumCast>::from(f).unwrap();
         bins[idx] += 1;
     }
@@ -575,15 +575,18 @@ mod test_histogram {
         let nbins = 8usize;
         let hist = Histogram {
             bins: Array1::<usize>::ones(nbins),
-            range: Range { min: 0.0, max: 8.0 },
+            range: Range {
+                left: 0.0,
+                right: 8.0,
+            },
         };
         assert_eq!(hist.bin_width(), 1.0);
 
         let edges = hist.edges();
         let edges = edges.as_slice().unwrap();
         assert_eq!(edges.len(), nbins + 1);
-        assert_eq!(*edges.first().unwrap(), hist.range.min);
-        assert_eq!(*edges.last().unwrap(), hist.range.max);
+        assert_eq!(*edges.first().unwrap(), hist.range.left);
+        assert_eq!(*edges.last().unwrap(), hist.range.right);
         assert_eq!(edges, vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
 
         let centers = hist.centers();
@@ -693,13 +696,13 @@ fn get_value_range<A: AtLeastF32 + numpy::Element, D>(arr: ArrayView<A, D>) -> R
 where
     D: Dimension,
 {
-    let mut min = A::infinity();
-    let mut max = -A::infinity();
+    let mut left = A::infinity();
+    let mut right = -A::infinity();
     for v in arr.iter() {
-        min = min.min(*v);
-        max = max.max(*v);
+        left = left.min(*v);
+        right = right.max(*v);
     }
-    Range { min, max }
+    Range { left, right }
 }
 
 fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
@@ -726,8 +729,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     let mut hist = Histogram {
         bins: (Array1::<usize>::zeros(nbins)),
         range: Range {
-            min: 0.0.into(),
-            max: 1.0.into(),
+            left: 0.0.into(),
+            right: 1.0.into(),
         },
     };
 
@@ -740,8 +743,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
         let mut tile_dims: ArrayDimensions = dims;
         let mut vrange: Range<T> = Range {
-            min: 0.0.into(),
-            max: 0.0.into(),
+            left: 0.0.into(),
+            right: 0.0.into(),
         };
 
         for i in 0..dims.y {
@@ -768,13 +771,13 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             let row_vrange = get_value_range(row);
 
             if subhists_need_reinit
-                || (row_vrange.min < vrange.min)
-                || (row_vrange.max > vrange.max)
+                || (row_vrange.left < vrange.left)
+                || (row_vrange.right > vrange.right)
             {
                 subhists.truncate(0);
                 // refresh range
-                vrange.min = vrange.min.min(row_vrange.min);
-                vrange.max = vrange.max.max(row_vrange.max);
+                vrange.left = vrange.left.min(row_vrange.left);
+                vrange.right = vrange.right.max(row_vrange.right);
 
                 for row in tile.axis_iter(Axis(0)) {
                     subhists.push_back(compute_subhistogram(row, vrange, nbins));
