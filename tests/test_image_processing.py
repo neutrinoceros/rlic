@@ -77,6 +77,11 @@ def test_sliding_tile_invalid_type_tile_size(key):
         ((-1, -1), (6, 8), (7, 9)),
         ((-1, 3), (6, 8), (7, 3)),
         ((3, -1), (6, 8), (3, 9)),
+        # negative values are special cased:
+        # -1 means "match the containing shape"
+        # -2 and below mean "double the containing shape"
+        ((-2, -2), (5, 7), (11, 15)),
+        ((-3, -3), (5, 7), (11, 15)),
     ],
 )
 def test_strategy_resolve_shape(tile_shape_max, containing_shape, expected_shape):
@@ -294,12 +299,14 @@ def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests)
         adaptive_strategy=None,
     )
 
-    # use a sliding tile that always contains the entire
-    # image to help comparing with the non-adaptive case
-    st_shape = (2 * IMAGE_SHAPE[0] + 1, 2 * IMAGE_SHAPE[1] + 1)
     res_st = rlic.equalize_histogram(
         image,
         nbins=nbins,
-        adaptive_strategy={"kind": "sliding-tile", "tile-size-max": st_shape},
+        adaptive_strategy={
+            "kind": "sliding-tile",
+            # use a sliding tile that always contains the entire
+            # image to help comparing with the non-adaptive case
+            "tile-size-max": -2,
+        },
     )
     npt.assert_array_equal(res_st, res_default)
