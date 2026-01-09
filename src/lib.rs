@@ -621,7 +621,7 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
         Err(_) => panic!("interpolation failed"),
     }
 }
-fn adjust_pixel_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
+fn adjust_intensity_single_pixel<T: AtLeastF32 + numpy::Element + NumCast>(
     pixel: T,
     hist: &Histogram<T>,
     out: &mut T,
@@ -805,7 +805,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
 
             let in_pix = image[[center_pixel.i, center_pixel.j]];
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
-            adjust_pixel_intensity(in_pix, &hist, out_pix);
+            adjust_intensity_single_pixel(in_pix, &hist, out_pix);
         }
         assert_eq!(center_pixel.i, last_pixel.i);
     }
