@@ -763,15 +763,17 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 subhists_need_reinit = true;
             }
 
-            if subhists_need_reinit
-                || (row_vrange.left < vrange.left)
-                || (row_vrange.right > vrange.right)
-            {
-                subhists.truncate(0);
-                // refresh range
-                vrange.left = vrange.left.min(row_vrange.left);
-                vrange.right = vrange.right.max(row_vrange.right);
+            if row_vrange.left < vrange.left {
+                vrange.left = row_vrange.left;
+                subhists_need_reinit = true;
+            }
+            if row_vrange.right > vrange.right {
+                vrange.right = row_vrange.right;
+                subhists_need_reinit = true;
+            }
 
+            if subhists_need_reinit {
+                subhists.truncate(0);
                 for row in tile.axis_iter(Axis(0)) {
                     subhists.push_back(compute_subhistogram(row, vrange, nbins));
                 }
