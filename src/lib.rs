@@ -48,15 +48,6 @@ struct ArrayDimensions {
     y: usize,
 }
 
-impl ArrayDimensions {
-    fn last_pixel_index(&self) -> PixelIndex {
-        PixelIndex {
-            i: (self.y - 1),
-            j: (self.x - 1),
-        }
-    }
-}
-
 #[derive(Clone, Copy, PartialEq)]
 struct PixelIndex {
     i: usize, // y
@@ -727,7 +718,6 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         y: tile_shape_max.0,
     };
 
-    let last_pixel = dims.last_pixel_index();
     let mut center_pixel = PixelIndex { i: 0, j: 0 };
     let mut out = Array2::<T>::zeros(image.raw_dim());
     let mut subhists = VecDeque::with_capacity(tile_shape_max.y + 1);
@@ -807,9 +797,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
             adjust_intensity_single_pixel(in_pix, &hist, out_pix);
         }
-        assert_eq!(center_pixel.i, last_pixel.i);
     }
-    assert_eq!(center_pixel.j, last_pixel.j);
 
     out.to_pyarray(py)
 }
