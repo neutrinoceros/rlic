@@ -663,11 +663,11 @@ fn equalize_histogram<'py, T: AtLeastF32 + numpy::Element>(
     out.to_pyarray(py)
 }
 
-fn get_tile_view<'a, T: numpy::Element>(
-    image: &'a ArrayView2<'a, T>,
+fn get_tile_indices(
+    dims: ArrayDimensions,
     center_pixel: PixelIndex,
     tile_shape_max: ArrayDimensions,
-) -> ArrayView2<'a, T> {
+) -> (PixelIndex, PixelIndex) {
     // since tile_shape_max only contains odd numbers,
     // the result of an integer division by 2 always corresponds
     // to the maximum number of pixels on one side of the central one,
@@ -675,10 +675,6 @@ fn get_tile_view<'a, T: numpy::Element>(
     let half_tile_shape_max = ArrayDimensions {
         x: tile_shape_max.x / 2,
         y: tile_shape_max.y / 2,
-    };
-    let dims = ArrayDimensions {
-        x: image.shape()[1],
-        y: image.shape()[0],
     };
     let tile_left_idx = PixelIndex {
         i: center_pixel.i.saturating_sub(half_tile_shape_max.y),
@@ -696,9 +692,16 @@ fn get_tile_view<'a, T: numpy::Element>(
             center_pixel.j + half_tile_shape_max.x
         },
     };
+    (tile_left_idx, tile_right_idx)
+}
+
+fn get_tile_view<'a, T: numpy::Element>(
+    image: &'a ArrayView2<'a, T>,
+    indices: (PixelIndex, PixelIndex),
+) -> ArrayView2<'a, T> {
     image.slice(s![
-        tile_left_idx.i..tile_right_idx.i + 1,
-        tile_left_idx.j..tile_right_idx.j + 1,
+        indices.0.i..indices.1.i + 1,
+        indices.0.j..indices.1.j + 1,
     ])
 }
 
@@ -735,30 +738,50 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     let last_pixel = dims.last_pixel_index();
     let mut center_pixel = PixelIndex { i: 0, j: 0 };
     let mut out = Array2::<T>::zeros(image.raw_dim());
+    let mut subhists = VecDeque::with_capacity(tile_shape_max.y + 1);
+    let mut hist = Histogram {
+        bins: (Array1::<usize>::zeros(nbins)),
+        vmin: 0.0.into(),
+        vmax: 1.0.into(),
+    };
+
     while center_pixel.j <= last_pixel.j || center_pixel.i <= last_pixel.i {
         center_pixel.i = 0;
+        let mut subhists_need_reinit = true;
+        let mut hist_reduction_needed = true;
+        let mut previous_tile_indices = (PixelIndex { i: 0, j: 0 }, PixelIndex { i: 0, j: 0 });
+        let mut previous_tile_dims = ArrayDimensions { x: 0, y: 0 };
+        let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
+        let mut tile_dims: ArrayDimensions = dims;
+
         for i in 0..dims.y {
-            let tile = get_tile_view(&image, center_pixel, tile_shape_max);
-            let tile_dims = ArrayDimensions {
-                x: tile.shape()[1],
-                y: tile.shape()[0],
-            };
+            let tile_indices = get_tile_indices(dims, center_pixel, tile_shape_max);
+            if tile_indices != previous_tile_indices {
+                tile = get_tile_view(&image, tile_indices);
+                tile_dims = ArrayDimensions {
+                    x: tile.shape()[1],
+                    y: tile.shape()[0],
+                };
+                if tile_dims != previous_tile_dims {
+                    subhists_need_reinit = true;
+                    previous_tile_dims = tile_dims;
+                }
+                if tile_indices.0.i != previous_tile_indices.0.i {
+                    subhists.pop_front();
+                }
+                previous_tile_indices = tile_indices;
+            }
 
             let tile_limits = get_array_limits(tile);
             let mut vmin = tile_limits.0;
             let mut vmax = tile_limits.1;
 
-            let mut subhists = VecDeque::with_capacity(tile_dims.y + 1);
-            for k in 0..tile_dims.y {
-                let row = tile.index_axis(Axis(0), k);
-                subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
-            }
             let row = image.row(i);
             let row_limits = get_array_limits(row);
             let row_vmin = row_limits.0;
             let row_vmax = row_limits.1;
 
-            if (row_vmin < vmin) || (row_vmax > vmax) {
+            if subhists_need_reinit || (row_vmin < vmin) || (row_vmax > vmax) {
                 subhists.truncate(0);
                 // refresh extrema
                 vmin = vmin.min(row_vmin);
@@ -768,8 +791,18 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                     let row = tile.index_axis(Axis(0), it);
                     subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
                 }
+                hist_reduction_needed = true;
+                subhists_need_reinit = false;
             }
-            let hist = reduce_histogram(&subhists);
+            if subhists.len() < tile_dims.y {
+                subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
+                hist_reduction_needed = true;
+            }
+            assert_eq!(subhists.len(), tile_dims.y);
+            if hist_reduction_needed {
+                hist = reduce_histogram(&subhists);
+                hist_reduction_needed = false;
+            }
 
             let in_pix = image[[center_pixel.i, center_pixel.j]];
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
