@@ -523,9 +523,8 @@ fn compute_subhistogram<T: AtLeastF32>(
     // padding one extra bin on the right allows for a branchless optimization:
     // pixels that contain exactly vmax are counted in the extra bin
     let mut bins = Array1::<usize>::zeros(nbins + 1);
-    for i in 0..arr.len() {
-        let v = arr[i];
-        let f = ((v - range.min) / bin_width).floor();
+    for v in arr.iter() {
+        let f = ((*v - range.min) / bin_width).floor();
         let idx = <usize as NumCast>::from(f).unwrap();
         bins[idx] += 1;
     }
@@ -558,16 +557,10 @@ fn compute_histogram<T: AtLeastF32 + numpy::Element + NumCast>(
     image: ArrayView2<T>,
     nbins: usize,
 ) -> Histogram<T> {
-    let dims = ArrayDimensions {
-        x: image.shape()[1],
-        y: image.shape()[0],
-    };
     let range = get_value_range(image);
-
-    let mut subhistograms = VecDeque::with_capacity(dims.y + 1);
-    for i in 0..dims.y {
-        let arr = image.index_axis(Axis(0), i);
-        subhistograms.push_back(compute_subhistogram(arr, range, nbins));
+    let mut subhistograms = VecDeque::with_capacity(image.shape()[0] + 1);
+    for row in image.axis_iter(Axis(0)) {
+        subhistograms.push_back(compute_subhistogram(row, range, nbins));
     }
     reduce_histogram(&subhistograms)
 }
