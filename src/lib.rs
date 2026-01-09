@@ -455,7 +455,7 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     output.to_pyarray(py)
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 struct Range<T> {
     left: T,
     right: T,
@@ -650,11 +650,16 @@ fn equalize_histogram<'py, T: AtLeastF32 + numpy::Element>(
     out.to_pyarray(py)
 }
 
-fn get_tile_indices(
+#[derive(Copy, Clone, PartialEq)]
+struct ViewRange {
+    x: Range<usize>,
+    y: Range<usize>,
+}
+fn get_tile_range(
     dims: ArrayDimensions,
     center_pixel: PixelIndex,
     tile_shape_max: ArrayDimensions,
-) -> (PixelIndex, PixelIndex) {
+) -> ViewRange {
     // since tile_shape_max only contains odd numbers,
     // the result of an integer division by 2 always corresponds
     // to the maximum number of pixels on one side of the central one,
@@ -663,32 +668,32 @@ fn get_tile_indices(
         x: tile_shape_max.x / 2,
         y: tile_shape_max.y / 2,
     };
-    let tile_left_idx = PixelIndex {
-        i: center_pixel.i.saturating_sub(half_tile_shape_max.y),
-        j: center_pixel.j.saturating_sub(half_tile_shape_max.x),
-    };
-    let tile_right_idx = PixelIndex {
-        i: if center_pixel.i + half_tile_shape_max.y > dims.y - 1 {
-            dims.y - 1
-        } else {
-            center_pixel.i + half_tile_shape_max.y
-        },
-        j: if center_pixel.j + half_tile_shape_max.x > dims.x - 1 {
+    let x = Range {
+        left: center_pixel.j.saturating_sub(half_tile_shape_max.x),
+        right: if center_pixel.j + half_tile_shape_max.x > dims.x - 1 {
             dims.x - 1
         } else {
             center_pixel.j + half_tile_shape_max.x
         },
     };
-    (tile_left_idx, tile_right_idx)
+    let y = Range {
+        left: center_pixel.i.saturating_sub(half_tile_shape_max.y),
+        right: if center_pixel.i + half_tile_shape_max.y > dims.y - 1 {
+            dims.y - 1
+        } else {
+            center_pixel.i + half_tile_shape_max.y
+        },
+    };
+    ViewRange { x, y }
 }
 
 fn get_tile_view<'a, T: numpy::Element>(
     image: &'a ArrayView2<'a, T>,
-    indices: (PixelIndex, PixelIndex),
+    range: ViewRange,
 ) -> ArrayView2<'a, T> {
     image.slice(s![
-        indices.0.i..indices.1.i + 1,
-        indices.0.j..indices.1.j + 1,
+        range.y.left..range.y.right + 1,
+        range.x.left..range.x.right + 1,
     ])
 }
 
@@ -738,7 +743,10 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         center_pixel.j = j;
         let mut subhists_need_reinit = true;
         let mut hist_reduction_needed = true;
-        let mut previous_tile_indices = (PixelIndex { i: 0, j: 0 }, PixelIndex { i: 0, j: 0 });
+        let mut previous_tile_range = ViewRange {
+            x: Range { left: 0, right: 0 },
+            y: Range { left: 0, right: 0 },
+        };
         let mut previous_tile_dims = ArrayDimensions { x: 0, y: 0 };
         let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
         let mut tile_dims: ArrayDimensions = dims;
@@ -749,9 +757,9 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
 
         for i in 0..dims.y {
             center_pixel.i = i;
-            let tile_indices = get_tile_indices(dims, center_pixel, tile_shape_max);
-            if tile_indices != previous_tile_indices {
-                tile = get_tile_view(&image, tile_indices);
+            let tile_range = get_tile_range(dims, center_pixel, tile_shape_max);
+            if tile_range != previous_tile_range {
+                tile = get_tile_view(&image, tile_range);
                 tile_dims = ArrayDimensions {
                     x: tile.shape()[1],
                     y: tile.shape()[0],
@@ -760,11 +768,11 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                     subhists_need_reinit = true;
                     previous_tile_dims = tile_dims;
                 }
-                if tile_indices.0.i != previous_tile_indices.0.i {
+                if tile_range.y.left != previous_tile_range.y.left {
                     subhists.pop_front();
                 }
                 vrange = get_value_range(tile);
-                previous_tile_indices = tile_indices;
+                previous_tile_range = tile_range;
             }
 
             let row = image.row(i);
