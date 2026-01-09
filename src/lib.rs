@@ -10,7 +10,7 @@ use numpy::{PyArray2, ToPyArray};
 use pyo3::types::PyModuleMethods;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, Bound, PyResult, Python};
 use std::collections::VecDeque;
-use std::ops::{AddAssign, Mul, Neg};
+use std::ops::{AddAssign, Mul, Neg, Sub};
 
 #[cfg(feature = "branchless")]
 use num_traits::{abs, signum};
@@ -455,19 +455,29 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
     output.to_pyarray(py)
 }
 
+#[derive(Clone, Copy)]
+struct Range<T> {
+    min: T,
+    max: T,
+}
+impl<T: Sub<Output = T> + Copy> Range<T> {
+    fn span(&self) -> T {
+        self.max - self.min
+    }
+}
+
 struct Histogram<T> {
     bins: Array1<usize>,
-    vmin: T,
-    vmax: T,
+    range: Range<T>,
 }
 
 impl<T: AtLeastF32 + NumCast> Histogram<T> {
     fn bin_width(&self) -> T {
-        (self.vmax - self.vmin) / <T as NumCast>::from(self.bins.len()).unwrap()
+        self.range.span() / <T as NumCast>::from(self.bins.len()).unwrap()
     }
 
     fn edges(&self) -> Array1<T> {
-        Array1::<T>::linspace(self.vmin, self.vmax, self.bins.len() + 1)
+        Array1::<T>::linspace(self.range.min, self.range.max, self.bins.len() + 1)
     }
 
     fn centers(&self) -> Array1<T> {
@@ -505,49 +515,42 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
 
 fn compute_subhistogram<T: AtLeastF32>(
     arr: ArrayView1<T>,
-    vmin: T,
-    vmax: T,
+    range: Range<T>,
     nbins: usize,
 ) -> Histogram<T> {
-    let vspan = vmax - vmin;
-    let bin_width = vspan / <T as NumCast>::from(nbins).unwrap();
+    let bin_width = range.span() / <T as NumCast>::from(nbins).unwrap();
 
     // padding one extra bin on the right allows for a branchless optimization:
     // pixels that contain exactly vmax are counted in the extra bin
-    let mut hvals = Array1::<usize>::zeros(nbins + 1);
+    let mut bins = Array1::<usize>::zeros(nbins + 1);
     for i in 0..arr.len() {
         let v = arr[i];
-        let f = ((v - vmin) / bin_width).floor();
+        let f = ((v - range.min) / bin_width).floor();
         let idx = <usize as NumCast>::from(f).unwrap();
-        hvals[idx] += 1;
+        bins[idx] += 1;
     }
 
     // move data from the last bin to the previous one
-    hvals[nbins - 1] += hvals[nbins];
-    let hvals = hvals.slice(s![..-1]).to_owned();
-    assert_eq!(hvals.len(), nbins);
+    bins[nbins - 1] += bins[nbins];
+    let bins = bins.slice(s![..-1]).to_owned();
+    assert_eq!(bins.len(), nbins);
 
-    Histogram {
-        bins: hvals,
-        vmin,
-        vmax,
-    }
+    Histogram { bins, range }
 }
 
 fn reduce_histogram<T: Copy>(subhists: &VecDeque<Histogram<T>>) -> Histogram<T> {
     // it is assumed that all input histograms have the exact same range and nbins
     let h0 = subhists.front().unwrap();
     let nbins = h0.bins.len();
-    let mut hvals = Array1::<usize>::zeros(nbins);
+    let mut bins = Array1::<usize>::zeros(nbins);
     for h in subhists {
         for i in 0..nbins {
-            hvals[i] += h.bins[i];
+            bins[i] += h.bins[i];
         }
     }
     Histogram {
-        bins: hvals,
-        vmin: h0.vmin,
-        vmax: h0.vmax,
+        bins,
+        range: h0.range,
     }
 }
 
@@ -559,47 +562,35 @@ fn compute_histogram<T: AtLeastF32 + numpy::Element + NumCast>(
         x: image.shape()[1],
         y: image.shape()[0],
     };
-    let mut vmin: T = T::infinity();
-    let mut vmax: T = -T::infinity();
-
-    for i in 0..dims.y {
-        for j in 0..dims.x {
-            let v = image[[i, j]];
-            vmin = vmin.min(v);
-            vmax = vmax.max(v);
-        }
-    }
+    let range = get_value_range(image);
 
     let mut subhistograms = VecDeque::with_capacity(dims.y + 1);
     for i in 0..dims.y {
         let arr = image.index_axis(Axis(0), i);
-        subhistograms.push_back(compute_subhistogram(arr, vmin, vmax, nbins));
+        subhistograms.push_back(compute_subhistogram(arr, range, nbins));
     }
     reduce_histogram(&subhistograms)
 }
 
 #[cfg(test)]
 mod test_histogram {
-    use crate::Histogram;
+    use crate::{Histogram, Range};
     use numpy::ndarray::Array1;
 
     #[test]
     fn test_ones() {
         let nbins = 8usize;
-        let vmin = 0.0;
-        let vmax = 8.0;
         let hist = Histogram {
             bins: Array1::<usize>::ones(nbins),
-            vmin,
-            vmax,
+            range: Range { min: 0.0, max: 8.0 },
         };
         assert_eq!(hist.bin_width(), 1.0);
 
         let edges = hist.edges();
         let edges = edges.as_slice().unwrap();
         assert_eq!(edges.len(), nbins + 1);
-        assert_eq!(*edges.first().unwrap(), vmin);
-        assert_eq!(*edges.last().unwrap(), vmax);
+        assert_eq!(*edges.first().unwrap(), hist.range.min);
+        assert_eq!(*edges.last().unwrap(), hist.range.max);
         assert_eq!(edges, vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
 
         let centers = hist.centers();
@@ -705,17 +696,17 @@ fn get_tile_view<'a, T: numpy::Element>(
     ])
 }
 
-fn get_array_limits<A: AtLeastF32 + numpy::Element, D>(arr: ArrayView<A, D>) -> (A, A)
+fn get_value_range<A: AtLeastF32 + numpy::Element, D>(arr: ArrayView<A, D>) -> Range<A>
 where
     D: Dimension,
 {
-    let mut vmin = A::infinity();
-    let mut vmax = -A::infinity();
+    let mut min = A::infinity();
+    let mut max = -A::infinity();
     for v in arr.iter() {
-        vmin = vmin.min(*v);
-        vmax = vmax.max(*v);
+        min = min.min(*v);
+        max = max.max(*v);
     }
-    (vmin, vmax)
+    Range { min, max }
 }
 
 fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
@@ -741,8 +732,10 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     let mut subhists = VecDeque::with_capacity(tile_shape_max.y + 1);
     let mut hist = Histogram {
         bins: (Array1::<usize>::zeros(nbins)),
-        vmin: 0.0.into(),
-        vmax: 1.0.into(),
+        range: Range {
+            min: 0.0.into(),
+            max: 1.0.into(),
+        },
     };
 
     while center_pixel.j <= last_pixel.j || center_pixel.i <= last_pixel.i {
@@ -772,29 +765,28 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 previous_tile_indices = tile_indices;
             }
 
-            let tile_limits = get_array_limits(tile);
-            let mut vmin = tile_limits.0;
-            let mut vmax = tile_limits.1;
+            let mut vrange = get_value_range(tile);
 
             let row = image.row(i);
-            let row_limits = get_array_limits(row);
-            let row_vmin = row_limits.0;
-            let row_vmax = row_limits.1;
+            let row_vrange = get_value_range(row);
 
-            if subhists_need_reinit || (row_vmin < vmin) || (row_vmax > vmax) {
+            if subhists_need_reinit
+                || (row_vrange.min < vrange.min)
+                || (row_vrange.max > vrange.max)
+            {
                 subhists.truncate(0);
-                // refresh extrema
-                vmin = vmin.min(row_vmin);
-                vmax = vmax.max(row_vmax);
+                // refresh range
+                vrange.min = vrange.min.min(row_vrange.min);
+                vrange.max = vrange.max.max(row_vrange.max);
 
                 for row in tile.axis_iter(Axis(0)) {
-                    subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
+                    subhists.push_back(compute_subhistogram(row, vrange, nbins));
                 }
                 hist_reduction_needed = true;
                 subhists_need_reinit = false;
             }
             if subhists.len() < tile_dims.y {
-                subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
+                subhists.push_back(compute_subhistogram(row, vrange, nbins));
                 hist_reduction_needed = true;
             }
             assert_eq!(subhists.len(), tile_dims.y);
