@@ -787,8 +787,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 vmin = vmin.min(row_vmin);
                 vmax = vmax.max(row_vmax);
 
-                for it in 0..tile_dims.y {
-                    let row = tile.index_axis(Axis(0), it);
+                for row in tile.axis_iter(Axis(0)) {
                     subhists.push_back(compute_subhistogram(row, vmin, vmax, nbins));
                 }
                 hist_reduction_needed = true;
