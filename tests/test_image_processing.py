@@ -283,7 +283,7 @@ def test_historgram_equalization_unsupported_dtype():
 @pytest.mark.parametrize("nbins", [12, 64, 256])
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests):
-    IMAGE_SHAPE = (7, 5)  # tmp
+    IMAGE_SHAPE = (256, 128)
     prng = np.random.default_rng(0)
     image = np.clip(
         prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
