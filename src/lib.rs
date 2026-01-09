@@ -747,7 +747,6 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             x: Range { left: 0, right: 0 },
             y: Range { left: 0, right: 0 },
         };
-        let mut previous_tile_dims = ArrayDimensions { x: 0, y: 0 };
         let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
         let mut tile_dims: ArrayDimensions = dims;
         let mut vrange: Range<T> = Range {
@@ -766,10 +765,6 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                     x: tile.shape()[1],
                     y: tile.shape()[0],
                 };
-                if tile_dims != previous_tile_dims {
-                    subhists_need_reinit = true;
-                    previous_tile_dims = tile_dims;
-                }
                 if tile_range.y.left != previous_tile_range.y.left {
                     subhists.pop_front();
                 }
@@ -779,6 +774,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 row_vrange = get_value_range(row);
 
                 previous_tile_range = tile_range;
+                subhists_need_reinit = true;
             }
 
             if subhists_need_reinit
