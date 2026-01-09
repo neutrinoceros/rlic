@@ -613,16 +613,10 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     }
 }
 fn adjust_intensity_single_pixel<T: AtLeastF32 + numpy::Element + NumCast>(
+    interpolator: &LinearHoldLast1D<RectilinearGrid1D<'_, T>>,
     pixel: T,
-    hist: &Histogram<T>,
     out: &mut T,
 ) {
-    let bin_centers = hist.centers();
-    let cdf = hist.cdf_as_normalized();
-    let grid =
-        RectilinearGrid1D::new(bin_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
-    let interpolator = LinearHoldLast1D::new(grid);
-
     *out = match interpolator.eval_one(pixel) {
         Ok(res) => res,
         Err(_) => panic!("interpolation failed"),
@@ -728,6 +722,11 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             right: 1.0.into(),
         },
     };
+    let mut hist_centers = hist.centers();
+    let mut cdf = hist.cdf_as_normalized();
+    let mut cdf_grid =
+        RectilinearGrid1D::new(hist_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
+    let mut cdf_interpolator = LinearHoldLast1D::new(cdf_grid);
 
     for j in 0..dims.x {
         center_pixel.j = j;
@@ -788,12 +787,20 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             assert_eq!(subhists.len(), tile_dims.y);
             if hist_reduction_needed {
                 hist = reduce_histogram(&subhists);
+                hist_centers = hist.centers();
+                cdf = hist.cdf_as_normalized();
+                cdf_grid = RectilinearGrid1D::new(
+                    hist_centers.as_slice().unwrap(),
+                    cdf.as_slice().unwrap(),
+                )
+                .unwrap();
+                cdf_interpolator = LinearHoldLast1D::new(cdf_grid);
                 hist_reduction_needed = false;
             }
 
             let in_pix = image[[center_pixel.i, center_pixel.j]];
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
-            adjust_intensity_single_pixel(in_pix, &hist, out_pix);
+            adjust_intensity_single_pixel(&cdf_interpolator, in_pix, out_pix);
         }
     }
 
