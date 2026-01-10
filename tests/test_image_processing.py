@@ -383,7 +383,7 @@ def test_historgram_equalization_unsupported_dtype():
         rlic.equalize_histogram(np.eye(3, dtype="int64"), nbins=3)
 
 
-@pytest.mark.parametrize("nbins", [12, 64, 256])
+@pytest.mark.parametrize("nbins", [12, 64, 256, "auto"])
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests):
     IMAGE_SHAPE = (256, 128)
@@ -395,9 +395,11 @@ def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests)
         dtype=dtype,
     )
 
+    resolved_nbins = 256 if nbins == "auto" else nbins
+
     res_default = rlic.equalize_histogram(
         image,
-        nbins=nbins,
+        nbins=resolved_nbins,
         adaptive_strategy=None,
     )
 
