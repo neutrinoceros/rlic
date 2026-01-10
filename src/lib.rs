@@ -544,18 +544,6 @@ fn reduce_histogram<T: Copy>(subhists: &VecDeque<Histogram<T>>) -> Histogram<T> 
     }
 }
 
-fn compute_histogram<T: AtLeastF32 + numpy::Element + NumCast>(
-    image: ArrayView2<T>,
-    nbins: usize,
-) -> Histogram<T> {
-    let range = get_value_range(image);
-    let mut subhistograms = VecDeque::with_capacity(image.shape()[0] + 1);
-    for row in image.axis_iter(Axis(0)) {
-        subhistograms.push_back(compute_subhistogram(row, range, nbins));
-    }
-    reduce_histogram(&subhistograms)
-}
-
 #[cfg(test)]
 mod test_histogram {
     use crate::{Histogram, Range};
@@ -595,23 +583,6 @@ mod test_histogram {
     }
 }
 
-fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
-    image: ArrayView2<T>,
-    hist: Histogram<T>,
-    out: &mut Array2<T>,
-) {
-    let bin_centers = hist.centers();
-    let cdf = hist.cdf_as_normalized();
-    let grid =
-        RectilinearGrid1D::new(bin_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
-    let interpolator = LinearHoldLast1D::new(grid);
-
-    let locs = image.as_slice().unwrap();
-    match interpolator.eval(locs, out.as_slice_mut().unwrap()) {
-        Ok(_) => (),
-        Err(_) => panic!("interpolation failed"),
-    }
-}
 fn adjust_intensity_single_pixel<T: AtLeastF32 + numpy::Element + NumCast>(
     interpolator: &LinearHoldLast1D<RectilinearGrid1D<'_, T>>,
     pixel: T,
@@ -621,18 +592,6 @@ fn adjust_intensity_single_pixel<T: AtLeastF32 + numpy::Element + NumCast>(
         Ok(res) => res,
         Err(_) => panic!("interpolation failed"),
     };
-}
-
-fn equalize_histogram<'py, T: AtLeastF32 + numpy::Element>(
-    py: Python<'py>,
-    image: PyReadonlyArray2<'py, T>,
-    nbins: usize,
-) -> Bound<'py, PyArray2<T>> {
-    let image = image.as_array();
-    let hist = compute_histogram(image, nbins);
-    let mut out = Array2::<T>::zeros(image.raw_dim());
-    adjust_intensity(image, hist, &mut out);
-    out.to_pyarray(py)
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -848,26 +807,6 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         convolve_iteratively(py, texture, uv, kernel, boundaries, iterations)
     }
     m.add_function(wrap_pyfunction!(convolve_f64, m)?)?;
-
-    #[pyfunction]
-    fn equalize_histogram_f32<'py>(
-        py: Python<'py>,
-        image: PyReadonlyArray2<'py, f32>,
-        nbins: usize,
-    ) -> Bound<'py, PyArray2<f32>> {
-        equalize_histogram(py, image, nbins)
-    }
-    m.add_function(wrap_pyfunction!(equalize_histogram_f32, m)?)?;
-
-    #[pyfunction]
-    fn equalize_histogram_f64<'py>(
-        py: Python<'py>,
-        image: PyReadonlyArray2<'py, f64>,
-        nbins: usize,
-    ) -> Bound<'py, PyArray2<f64>> {
-        equalize_histogram(py, image, nbins)
-    }
-    m.add_function(wrap_pyfunction!(equalize_histogram_f64, m)?)?;
 
     #[pyfunction]
     fn equalize_histogram_sliding_tile_f32<'py>(
