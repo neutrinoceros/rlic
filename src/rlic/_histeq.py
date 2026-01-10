@@ -1,45 +1,47 @@
 # pyright: reportUnreachable=false, reportUnnecessaryComparison=false
 __all__ = [
+    "SlidingTile",
     "Strategy",
+    "StrategySpec",
+    "SUPPORTED_AHE_KINDS",
+    "TileInterpolation",
 ]
 
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal, TypeAlias, TypedDict, cast
+from typing import Literal, Protocol, TypeAlias, TypedDict, TypeVar, final
 
-from rlic._typing import Pair, PairSpec
+from rlic._typing import UNSET, Pair, PairSpec, UnsetType
 
 if sys.version_info >= (3, 11):
-    from typing import NotRequired, assert_never
+    from typing import NotRequired, Self, assert_never
 else:
     from exceptiongroup import ExceptionGroup
-    from typing_extensions import NotRequired, assert_never
+    from typing_extensions import NotRequired, Self, assert_never
 
 if sys.version_info >= (3, 13):
     from copy import replace as copy_replace
 else:
     from dataclasses import replace as copy_replace
 
-SUPPORTED_KINDS = frozenset({"sliding-tile"})
-StrategyKind: TypeAlias = Literal["sliding-tile"]
+SUPPORTED_AHE_KINDS = frozenset({"sliding-tile", "tile-interpolation"})
+StrategyKind: TypeAlias = Literal["sliding-tile", "tile-interpolation"]
 
 
 SlidingTileSpec = TypedDict(
-    "SlidingTileSpec",
+    "SlidingTileSpec", {"kind": Literal["sliding-tile"], "tile-size-max": PairSpec[int]}
+)
+TileInterpolationSpec = TypedDict(
+    "TileInterpolationSpec",
     {
-        "kind": Literal["sliding-tile"],
-        "tile-size": NotRequired[PairSpec[int]],
+        "kind": Literal["tile-interpolation"],
+        "tile-into": NotRequired[PairSpec[int]],
         "tile-size-max": NotRequired[PairSpec[int]],
     },
 )
 
-
-class TileShapeSpec(TypedDict):
-    tile_shape: PairSpec[int]
-
-
-class TileShapeMaxSpec(TypedDict):
-    tile_shape_max: PairSpec[int]
+StrategySpec: TypeAlias = SlidingTileSpec | TileInterpolationSpec
 
 
 def as_pair(s: PairSpec[int], /) -> Pair[int]:
@@ -52,57 +54,141 @@ def as_pair(s: PairSpec[int], /) -> Pair[int]:
             assert_never(unreachable)  # type: ignore[arg-type]
 
 
-MSG_EVEN = "{prefix}{axis} tile size {size} is even. Only odd values are allowed."
-MSG_TOO_LOW = (
-    "{prefix}{axis} tile size {size} is too low. The minimum allowed value is 3"
+def report(exceptions: list[Exception]) -> None:
+    if len(exceptions) == 1:
+        raise exceptions[0]
+    elif exceptions:
+        raise ExceptionGroup(
+            "Found multiple issues with adaptive strategy specifications",
+            exceptions,
+        )
+
+
+MSG_EVEN = "Maximum {axis} tile size {size} is even. Only odd values are allowed."
+MSG_TOO_LOW = "Maximum {axis} tile size {size} is too low. The minimum allowed positive value is 3"
+MSG_TOO_LOW_NEG = "Maximum {axis} tile size {size} is too low. The minimum allowed negative value is -2"
+
+
+def collect_exceptions_tile_size_max(tile_size_max: Pair[int]) -> list[Exception]:
+    exceptions: list[Exception] = []
+    for axis, size in zip(("x", "y"), tile_size_max, strict=True):
+        if size < -2:
+            exceptions.append(ValueError(MSG_TOO_LOW_NEG.format(axis=axis, size=size)))
+        if size < 0:
+            continue
+        if size < 3:
+            exceptions.append(ValueError(MSG_TOO_LOW.format(axis=axis, size=size)))
+        if not size % 2:
+            exceptions.append(ValueError(MSG_EVEN.format(axis=axis, size=size)))
+    return exceptions
+
+
+MSG_INTO_NEG = (
+    "Cannot produce {into} tiles on axis {axis}. The minimum meaningful value is 1"
 )
 
 
+def collect_exceptions_tile_into(tile_into: Pair[int]) -> list[Exception]:
+    exceptions: list[Exception] = []
+    for axis, into in zip(("x", "y"), tile_into, strict=True):
+        if into < 1:
+            exceptions.append(ValueError(MSG_INTO_NEG.format(axis=axis, into=into)))
+
+    return exceptions
+
+
+V = TypeVar("V")
+
+
+class Strategy(Protocol):
+    @classmethod
+    def from_spec(cls, spec: Mapping[str, V], /) -> Self: ...
+    def resolve(self, *, image_shape: Pair[int]) -> Self: ...
+
+
+@final
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Strategy:
-    kind: StrategyKind
-    tile_shape: Pair[int] | None = None
+class SlidingTile:
+    tile_shape_max: Pair[int]
+
+    @classmethod
+    def from_spec(cls, spec: Mapping[str, V], /) -> Self:
+        if spec.get("kind") != "sliding-tile":
+            raise AssertionError
+
+        tsp: Pair[int] | None = None
+        match spec.get("tile-size-max", UNSET):
+            case (int() | (int(), int())) as ts:
+                tsp = as_pair(ts)  # type: ignore[arg-type]
+            case UnsetType():
+                raise TypeError(
+                    "Sliding tile specification is missing a 'tile-size-max' key. "
+                    "Expected a single int, or a pair thereof."
+                )
+            case _ as invalid:
+                raise TypeError(
+                    "Incorrect type associated with key 'tile-size-max'. "
+                    f"Received {invalid} with type {type(invalid)}. "
+                    "Expected a single int, or a pair thereof."
+                )
+
+        exceptions = collect_exceptions_tile_size_max(tsp)
+        report(exceptions)
+        return cls(tile_shape_max=tsp)
+
+    def resolve(self, *, image_shape: Pair[int]) -> Self:
+        assert all(s > 0 for s in image_shape)
+        base_shape = self.tile_shape_max
+        ret_shape_mut = list(base_shape)
+        for i in range(2):
+            s = image_shape[i]
+            if base_shape[i] == -1:
+                ret_shape_mut[i] = s
+            elif base_shape[i] == -2:
+                ret_shape_mut[i] = 2 * s
+            ret_shape_mut[i] |= 1  # add 1 if the value is even
+        ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
+        assert all(s > 0 for s in ret_shape)
+        assert all(s % 2 for s in ret_shape)
+        return copy_replace(self, tile_shape_max=ret_shape)
+
+
+@final
+@dataclass(frozen=True, slots=True, kw_only=True)
+class TileInterpolation:
+    tile_into: Pair[int] | None = None
     tile_shape_max: Pair[int] | None = None
 
     @classmethod
-    def from_spec(cls, spec: SlidingTileSpec, /) -> "Strategy":
+    def from_spec(cls, spec: Mapping[str, V], /) -> Self:
+        if spec.get("kind") != "tile-interpolation":
+            raise AssertionError
+
         exceptions: list[Exception] = []
 
-        match kind := spec.get("kind"):
-            case None:
-                exceptions.append(TypeError("strategy dict is missing a 'kind' key."))
-            case "sliding-tile":
-                pass
-            case _:
-                exceptions.append(
-                    ValueError(
-                        f"Unknown strategy kind {kind!r}. Expected one of {sorted(SUPPORTED_KINDS)}"
-                    )
-                )
-
-        kwarg: TileShapeSpec | TileShapeMaxSpec | None = None
-
-        match (spec.get("tile-size"), spec.get("tile-size-max")):
-            case (None, None):
+        tsp: Pair[int] | None = None
+        tip: Pair[int] | None = None
+        match (spec.get("tile-into", UNSET), spec.get("tile-size-max", UNSET)):
+            case (UnsetType(), UnsetType()):
                 exceptions.append(
                     TypeError(
-                        "Neither 'tile-size' nor 'tile-size-max' keys were found. "
+                        "Neither 'tile-into' nor 'tile-size-max' keys were found. "
                         "Either are allowed, but exactly one is expected."
                     )
                 )
-            case (((int() | (int(), int())) as ts), None):
-                kwarg = {"tile_shape": as_pair(ts)}  # type: ignore[arg-type, assignment]
-            case (None, ((int() | (int(), int())) as ts)):
-                kwarg = {"tile_shape_max": as_pair(ts)}
-            case (ts, None):
+            case (((int() | (int(), int())) as ti), UnsetType()):
+                tip = as_pair(ti)  # type: ignore[arg-type]
+            case (UnsetType(), ((int() | (int(), int())) as ts)):
+                tsp = as_pair(ts)  # type: ignore[arg-type]
+            case (ts, UnsetType()):
                 exceptions.append(
                     TypeError(
-                        "Incorrect type associated with key 'tile-size'. "
+                        "Incorrect type associated with key 'tile-into'. "
                         f"Received {ts} with type {type(ts)}. "
                         "Expected a single int, or a pair thereof."
                     )
                 )
-            case (None, ts):
+            case (UnsetType(), ts):
                 exceptions.append(
                     TypeError(
                         "Incorrect type associated with key 'tile-size-max'. "
@@ -113,64 +199,21 @@ class Strategy:
             case _:
                 exceptions.append(
                     TypeError(
-                        "Both 'tile-size' and 'tile-size-max' keys were provided. "
+                        "Both 'tile-into' and 'tile-size-max' keys were provided. "
                         "Only one of them can be specified at a time."
                     )
                 )
 
-        if kwarg is None:
-            cls.report(exceptions)
-            raise AssertionError
+        if tip is not None:
+            exceptions.extend(collect_exceptions_tile_into(tip))
 
-        key = next(iter(kwarg.keys()))
-        pair = cast("Pair[int]", next(iter(kwarg.values())))
-        if key == "tile_shape_max":
-            prefix = "Maximum "
-        else:
-            prefix = ""
-        for size, axis in zip(pair, ("x", "y"), strict=True):
-            if size < 0:
-                continue
-            if size < 3:
-                exceptions.append(
-                    ValueError(MSG_TOO_LOW.format(prefix=prefix, axis=axis, size=size))
-                )
-            if not size % 2:
-                exceptions.append(
-                    ValueError(MSG_EVEN.format(prefix=prefix, axis=axis, size=size))
-                )
+        if tsp is not None:
+            exceptions.extend(collect_exceptions_tile_size_max(tsp))
 
-        cls.report(exceptions)
+        report(exceptions)
+        return cls(tile_into=tip, tile_shape_max=tsp)
 
-        return Strategy(
-            kind=kind,
-            **kwarg,  # pyright: ignore[reportArgumentType]
-        )
-
-    @staticmethod
-    def report(exceptions: list[Exception]) -> None:
-        if len(exceptions) == 1:
-            raise exceptions[0]
-        elif exceptions:
-            raise ExceptionGroup(
-                "Found multiple issues with adaptive strategy specifications",
-                exceptions,
-            )
-
-    def resolve_tile_shape(self, containing_shape: Pair[int], /) -> "Strategy":
-        if self.tile_shape_max is None:
-            raise AssertionError
-        assert all(s > 0 for s in containing_shape)
-        base_shape = self.tile_shape_max
-        ret_shape_mut = list(base_shape)
-        for i in range(2):
-            s = containing_shape[i]
-            if base_shape[i] == -1:
-                ret_shape_mut[i] = s
-            elif base_shape[i] == -2:
-                ret_shape_mut[i] = 2 * s
-            ret_shape_mut[i] |= 1  # add 1 if the value is even
-        ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
-        assert all(s > 0 for s in ret_shape)
-        assert all(s % 2 for s in ret_shape)
-        return copy_replace(self, tile_shape_max=ret_shape)
+    def resolve(self, *, image_shape: Pair[int]) -> Self:  # type: ignore
+        # this should resolve to tile_shape, not tile_into
+        # https://github.com/neutrinoceros/rlic/issues/366
+        raise NotImplementedError
