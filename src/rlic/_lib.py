@@ -14,18 +14,15 @@ from rlic._boundaries import BoundarySet
 from rlic._core import (
     convolve_f32,
     convolve_f64,
-    equalize_histogram_f32,
-    equalize_histogram_f64,
     equalize_histogram_sliding_tile_f32,
     equalize_histogram_sliding_tile_f64,
 )
 from rlic._histeq import Strategy
 
 if sys.version_info >= (3, 11):
-    from typing import assert_never  # pyright: ignore[reportUnreachable]
+    pass  # pyright: ignore[reportUnreachable]
 else:
     from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
-    from typing_extensions import assert_never  # pyright: ignore[reportUnreachable]
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -304,29 +301,14 @@ def equalize_histogram(
             f"Found unsupported data type: {image.dtype}. "
             f"Expected of of {_SUPPORTED_DTYPES}."
         )
-
     input_dtype = image.dtype
-    if adaptive_strategy is None:
-        histeq: Callable[
-            [ndarray[tuple[int, int], dtype[F]], int],
-            ndarray[tuple[int, int], dtype[F]],
-        ]
-        if input_dtype == np.dtype("float32"):
-            histeq = equalize_histogram_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
-        elif input_dtype == np.dtype("float64"):
-            histeq = equalize_histogram_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
-        else:
-            raise AssertionError
-        return histeq(image, nbins)
-    else:
-        strat = Strategy.from_spec(adaptive_strategy).resolve_tile_shape(image.shape)
-        tile_shape_max = cast("Pair[int]", strat.tile_shape_max)
-        match strat.kind:
-            case "sliding-tile":
-                pass
-            case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
-                assert_never(unreachable)
 
+    if adaptive_strategy is None:
+        adaptive_strategy = {"kind": "sliding-tile", "tile-size-max": -2}
+    strat = Strategy.from_spec(adaptive_strategy).resolve_tile_shape(image.shape)
+    tile_shape_max = cast("Pair[int]", strat.tile_shape_max)
+
+    if strat.kind == "sliding-tile":
         histeq_st: Callable[
             [ndarray[tuple[int, int], dtype[F]], int, Pair[int]],
             ndarray[tuple[int, int], dtype[F]],
@@ -338,3 +320,5 @@ def equalize_histogram(
         else:
             raise AssertionError
         return histeq_st(image, nbins, tile_shape_max)
+    else:
+        raise NotImplementedError
