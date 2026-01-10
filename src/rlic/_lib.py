@@ -6,7 +6,7 @@ __all__ = [
 ]
 
 import sys
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
 
@@ -250,7 +250,7 @@ def equalize_histogram(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
     *,
-    nbins: int = 256,
+    nbins: int | Literal["auto"] = "auto",
     boundaries: BoundarySpec = "closed",
     adaptive_strategy: SlidingTileSpec | None = None,
     contrast_limitation: None = None,
@@ -262,9 +262,10 @@ def equalize_histogram(
     image : 2D array, positional only
       The input gray-scale image.
 
-    nbins: int, keyword-only
+    nbins: int or 'auto', keyword-only
       number of bins to use in histograms
-      By default, this is 256.
+      By default ('auto'), this is set to 256 or the number maximum of pixels in a tile,
+      whichever is smallest.
       Reduce this number for faster computations.
       Increase it to improve the overall contrast of the result.
 
@@ -307,6 +308,13 @@ def equalize_histogram(
         adaptive_strategy = {"kind": "sliding-tile", "tile-size-max": -2}
     strat = Strategy.from_spec(adaptive_strategy).resolve_tile_shape(image.shape)
     tile_shape_max = cast("Pair[int]", strat.tile_shape_max)
+
+    if nbins == "auto":
+        npix_max = tile_shape_max[0] * tile_shape_max[1]
+        nbins = min(npix_max, 256)
+
+    # mypy doesn't narrow this type correctly
+    nbins = cast("int", nbins)  # pyright: ignore[reportUnnecessaryCast]
 
     if strat.kind == "sliding-tile":
         histeq_st: Callable[
