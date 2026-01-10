@@ -1,5 +1,6 @@
 import re
 import sys
+from itertools import product
 
 import numpy as np
 import numpy.testing as npt
@@ -190,16 +191,29 @@ def test_sliding_tile_from_spec(spec, expected):
     assert strategy == expected
 
 
-def _equalize_histogram_numpy(image, nbins):
-    # ref implementation, adapted from scikit-image (exposure.equalize_hist)
-    flat_image = image.ravel()
+def _get_tile(image, center_pixel: tuple[int, int], max_size: int):
+    wing_size = max_size // 2
+    isize, jsize = image.shape
+    i0, j0 = center_pixel
+    iL = max(0, i0 - wing_size)
+    iR = min(i0 + wing_size, isize - 1)
+    jL = max(0, j0 - wing_size)
+    jR = min(j0 + wing_size, jsize - 1)
+    return image[iL : iR + 1, jL : jR + 1]
 
-    hist, bin_edges = np.histogram(flat_image, bins=nbins)
+
+def _get_normalized_cdf(tile, nbins: int):
+    hist, bin_edges = np.histogram(tile.ravel(), bins=nbins)
     bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
     # cumulative distribution function
-    cdf = hist.cumsum(dtype=image.dtype)
-    normalized_cdf = cdf / cdf[-1]
+    cdf = hist.cumsum(dtype=tile.dtype)
+    return (bin_centers, cdf / cdf[-1])
+
+
+def _equalize_histogram_numpy(image, nbins: int):
+    # ref implementation, adapted from scikit-image (exposure.equalize_hist)
+    bin_centers, normalized_cdf = _get_normalized_cdf(image, nbins)
 
     # As of version 2.4, np.interp always promotes to float64, so we
     # have to cast back to single precision when float32 output is desired
@@ -208,6 +222,15 @@ def _equalize_histogram_numpy(image, nbins):
         .reshape(image.shape)
         .astype(image.dtype, copy=False)
     )
+
+
+def _ahe_numpy(image, nbins: int, tile_size_max: int):
+    out = np.zeros_like(image)
+    for i, j in product(*(range(size) for size in image.shape)):
+        tile = _get_tile(image, center_pixel=(i, j), max_size=tile_size_max)
+        bin_centers, normalized_cdf = _get_normalized_cdf(tile, nbins)
+        out[i, j] = np.interp(image[i, j], bin_centers, normalized_cdf)
+    return out
 
 
 @pytest.mark.parametrize(
@@ -309,3 +332,28 @@ def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests)
         },
     )
     npt.assert_array_equal(res_st, res_default)
+
+
+def test_historgram_equalization_sliding_tile_full_ahe():
+    IMAGE_SHAPE = (4, 6)
+    TILE_SIZE_MAX = 3
+    NBINS = 3
+    prng = np.random.default_rng(0)
+    image = np.clip(
+        prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
+        a_min=0.0,
+        a_max=None,
+        dtype="float64",
+    )
+
+    res_ahe = _ahe_numpy(image, nbins=NBINS, tile_size_max=TILE_SIZE_MAX)
+
+    res_st = rlic.equalize_histogram(
+        image,
+        nbins=NBINS,
+        adaptive_strategy={
+            "kind": "sliding-tile",
+            "tile-size-max": TILE_SIZE_MAX,
+        },
+    )
+    npt.assert_allclose(res_st, res_ahe, rtol=5e-16)
