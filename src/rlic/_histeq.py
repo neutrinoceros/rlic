@@ -8,6 +8,7 @@ __all__ = [
 ]
 
 import sys
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, Protocol, TypeAlias, TypedDict, TypeVar, final
@@ -97,6 +98,34 @@ def collect_exceptions_tile_into(tile_into: Pair[int]) -> list[Exception]:
     return exceptions
 
 
+def resolve_tile_shape_max(
+    tile_shape_max: Pair[int], image_shape: Pair[int], *, require_odd: bool
+) -> Pair[int]:
+    assert all(s > 0 for s in image_shape)
+    base_shape = tile_shape_max
+    ret_shape_mut = list(base_shape)
+    for i in range(2):
+        s = image_shape[i]
+        if base_shape[i] == -1:
+            ret_shape_mut[i] = s
+        elif base_shape[i] == -2:
+            ret_shape_mut[i] = 2 * s
+        if require_odd:
+            ret_shape_mut[i] |= 1  # add 1 if the value is even
+    ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
+    assert all(s > 0 for s in ret_shape)
+    if require_odd:
+        assert all(s % 2 for s in ret_shape)
+    return ret_shape
+
+
+def minimal_divisor_size(size: int, into: int) -> int:
+    d, r = divmod(size, into)
+    # 1 if there's a non-zero remainder, 0 otherwise
+    round_up = int(bool(r))
+    return max(1, d + round_up)
+
+
 def get_wing_shape(tile_shape: Pair[int]) -> Pair[int]:
     """Compute the size of a tile's wings.
 
@@ -150,19 +179,9 @@ class SlidingTile:
         return cls(tile_shape_max=tsp)
 
     def resolve(self, *, image_shape: Pair[int]) -> Self:
-        assert all(s > 0 for s in image_shape)
-        base_shape = self.tile_shape_max
-        ret_shape_mut = list(base_shape)
-        for i in range(2):
-            s = image_shape[i]
-            if base_shape[i] == -1:
-                ret_shape_mut[i] = s
-            elif base_shape[i] == -2:
-                ret_shape_mut[i] = 2 * s
-            ret_shape_mut[i] |= 1  # add 1 if the value is even
-        ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
-        assert all(s > 0 for s in ret_shape)
-        assert all(s % 2 for s in ret_shape)
+        ret_shape = resolve_tile_shape_max(
+            self.tile_shape_max, image_shape, require_odd=True
+        )
         return copy_replace(self, tile_shape_max=ret_shape)
 
     def tile_wing_shape(self) -> Pair[int]:
@@ -229,10 +248,23 @@ class TileInterpolation:
         report(exceptions)
         return cls(tile_into=tip, tile_shape_max=tsp)
 
-    def resolve(self, *, image_shape: Pair[int]) -> Self:  # type: ignore
-        # this should resolve to tile_shape, not tile_into
-        # https://github.com/neutrinoceros/rlic/issues/366
-        raise NotImplementedError
+    def resolve(self, *, image_shape: Pair[int]) -> Self:
+        assert all(s > 0 for s in image_shape)
+        assert Counter([self.tile_into, self.tile_shape_max])[None] == 1
+
+        if self.tile_into is not None:
+            tsm = (
+                minimal_divisor_size(image_shape[0], self.tile_into[0]),
+                minimal_divisor_size(image_shape[1], self.tile_into[1]),
+            )
+        elif self.tile_shape_max is not None:
+            tsm = resolve_tile_shape_max(
+                self.tile_shape_max, image_shape, require_odd=False
+            )
+        else:
+            raise AssertionError
+
+        return copy_replace(self, tile_into=None, tile_shape_max=tsm)
 
     def tile_wing_shape(self) -> Pair[int]:  # pragma: no cover
         if self.tile_shape_max is None:
