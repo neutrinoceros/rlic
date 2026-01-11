@@ -16,6 +16,7 @@ from rlic._histeq import (
     SlidingTile,
     TileInterpolation,
     as_pair,
+    minimal_divisor_size,
 )
 
 if sys.version_info >= (3, 13):
@@ -233,6 +234,22 @@ def test_tile_interpolation_from_spec(spec, expected):
 
 
 @pytest.mark.parametrize(
+    "s0, image_shape, expected_shape",
+    [
+        (TileInterpolation(tile_into=(2, 2)), (256, 256), (128, 128)),
+        (TileInterpolation(tile_into=(2, 3)), (256, 256), (128, 86)),
+        (TileInterpolation(tile_into=(5, 1)), (256, 256), (52, 256)),
+        (TileInterpolation(tile_shape_max=(64, 64)), (256, 256), (64, 64)),
+    ],
+)
+def test_tile_interpolation_resolve(s0, image_shape, expected_shape):
+    s1 = s0.resolve(image_shape=image_shape)
+    assert s1 is not s0
+    assert s1.tile_shape_max == expected_shape
+    assert s1 == TileInterpolation(tile_shape_max=s1.tile_shape_max)
+
+
+@pytest.mark.parametrize(
     "nbins, shape, expected",
     [
         (32, (8, 8), 32),
@@ -425,3 +442,24 @@ def test_historgram_equalization_sliding_tile_full_ahe(dtype, rtol):
         },
     )
     npt.assert_allclose(res_st, res_ahe, rtol=rtol)
+
+
+@pytest.mark.parametrize(
+    "size, into, expected",
+    [
+        (3, 1, 3),
+        (3, 2, 2),
+        (3, 3, 1),
+        (4, 1, 4),
+        (4, 2, 2),
+        (4, 3, 2),
+        (4, 4, 1),
+        (5, 1, 5),
+        (5, 2, 3),
+        (5, 3, 2),
+        (5, 4, 2),
+        (5, 5, 1),
+    ],
+)
+def test_minimal_size_divisor(size, into, expected):
+    assert minimal_divisor_size(size, into) == expected
