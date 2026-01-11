@@ -22,9 +22,7 @@ from rlic._core import (
 from rlic._histeq import SUPPORTED_AHE_KINDS, SlidingTile
 from rlic._typing import UNSET, UnsetType
 
-if sys.version_info >= (3, 11):
-    pass  # pyright: ignore[reportUnreachable]
-else:
+if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
 
 if TYPE_CHECKING:
@@ -257,6 +255,18 @@ def _resolve_nbins(nbins: int | Literal["auto"], shape: Pair[int]) -> int:
         return nbins
 
 
+def _resolve_wing_shape(tile_shape: Pair[int]) -> Pair[int]:
+    """Compute the size of a tile's wings.
+
+    It is assumed that a tile has an odd size >=3 in both directions.
+    Wing size is then trivially half of the preceding even number.
+    """
+    assert all(s >= 3 for s in tile_shape)
+    assert all(s % 2 for s in tile_shape)
+
+    return (tile_shape[0] // 2, tile_shape[1] // 2)
+
+
 def equalize_histogram(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
@@ -348,9 +358,10 @@ def equalize_histogram(
                 f"Expected one of {sorted(SUPPORTED_AHE_KINDS)}"
             )
 
-    strat = ahe_type.from_spec(adaptive_strategy).resolve(image_shape=image.shape)
-    nbins = _resolve_nbins(nbins, strat.tile_shape_max)
-    tile_wing_shape = strat.tile_wing_shape()
+    strat = ahe_type.from_spec(adaptive_strategy)
+    tsm = strat.resolve_tile_shape(image.shape)
+    nbins = _resolve_nbins(nbins, tsm)
+    tile_wing_shape = _resolve_wing_shape(tsm)
     pad_width = (tile_wing_shape[1], tile_wing_shape[0])
     pimage = np.pad(image, pad_width=pad_width, mode="reflect")
 
