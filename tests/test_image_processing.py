@@ -8,7 +8,15 @@ import pytest
 from pytest import RaisesExc, RaisesGroup
 
 import rlic
-from rlic._histeq import MSG_EVEN, MSG_TOO_LOW, Strategy, as_pair
+from rlic._histeq import (
+    MSG_EVEN,
+    MSG_INTO_NEG,
+    MSG_TOO_LOW,
+    MSG_TOO_LOW_NEG,
+    SlidingTile,
+    TileInterpolation,
+    as_pair,
+)
 
 if sys.version_info >= (3, 13):
     from copy import replace as copy_replace
@@ -16,60 +24,31 @@ else:
     from dataclasses import replace as copy_replace
 
 
-@pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
-def test_missing_strategy_kind(key):
-    with pytest.raises(TypeError, match=r"^strategy dict is missing a 'kind' key\.$"):
-        Strategy.from_spec({key: 3})
-
-
-def test_empty_spec():
-    with RaisesGroup(
-        RaisesExc(TypeError, match=r"^strategy dict is missing a 'kind' key\.$"),
-        RaisesExc(
-            TypeError,
-            match=r"^Neither 'tile-size' nor 'tile-size-max' keys were found\. Either are allowed, but exactly one is expected\.$",
-        ),
-    ):
-        Strategy.from_spec({})
-
-
-def test_unknown_strategy_kind():
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"^Unknown strategy kind 'not-a-kind'\. "
-            r"Expected one of \['sliding-tile'\]$"
-        ),
-    ):
-        Strategy.from_spec({"kind": "not-a-kind", "tile-size-max": 3})
-
-
-def test_sliding_tile_missing_tile_size():
+def test_sliding_tile_from_spec_missing_tile_size():
     with pytest.raises(
         TypeError,
         match=(
-            r"Neither 'tile-size' nor 'tile-size-max' keys were found\. "
-            r"Either are allowed, but exactly one is expected\."
+            r"Sliding tile specification is missing a 'tile-size-max' key\. "
+            r"Expected a single int, or a pair thereof\."
         ),
     ):
-        Strategy.from_spec({"kind": "sliding-tile"})
+        SlidingTile.from_spec({"kind": "sliding-tile"})
 
 
-@pytest.mark.parametrize("key", ["tile-size", "tile-size-max"])
-def test_sliding_tile_invalid_type_tile_size(key):
+def test_sliding_tile_from_spec_invalid_type_tile_size():
     with pytest.raises(
         TypeError,
         match=(
-            rf"Incorrect type associated with key {key!r}. "
+            r"Incorrect type associated with key 'tile-size-max'\. "
             r"Received 1\.5 with type <class 'float'>\. "
             r"Expected a single int, or a pair thereof\."
         ),
     ):
-        Strategy.from_spec({"kind": "sliding-tile", key: 1.5})
+        SlidingTile.from_spec({"kind": "sliding-tile", "tile-size-max": 1.5})
 
 
 @pytest.mark.parametrize(
-    "tile_shape_max, containing_shape, expected_shape",
+    "tile_shape_max, image_shape, expected_shape",
     [
         ((-1, -1), (5, 7), (5, 7)),
         ((-1, 3), (5, 7), (5, 3)),
@@ -84,53 +63,44 @@ def test_sliding_tile_invalid_type_tile_size(key):
         ((-2, -2), (5, 7), (11, 15)),
     ],
 )
-def test_strategy_resolve_shape(tile_shape_max, containing_shape, expected_shape):
-    s0 = Strategy(kind="sliding-window", tile_shape_max=tile_shape_max)
-    s1 = s0.resolve_tile_shape(containing_shape)
+def test_sliding_tile_resolve(tile_shape_max, image_shape, expected_shape):
+    s0 = SlidingTile(tile_shape_max=tile_shape_max)
+    s1 = s0.resolve(image_shape=image_shape)
     assert s1 is not s0
     assert s1.tile_shape_max == expected_shape
     assert copy_replace(s0, tile_shape_max=s1.tile_shape_max) == s1
 
 
-def test_sliding_tile_both_tile_sizes_keys():
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Both 'tile-size' and 'tile-size-max' keys were provided\. "
-            r"Only one of them can be specified at a time\."
-        ),
-    ):
-        Strategy.from_spec(
-            {"kind": "sliding-tile", "tile-size": 11, "tile-size-max": 13}
-        )
-
-
 @pytest.mark.parametrize(
-    "key, prefix", [("tile-size", ""), ("tile-size-max", "Maximum ")]
+    "cls, kind",
+    [(SlidingTile, "sliding-tile"), (TileInterpolation, "tile-interpolation")],
 )
 @pytest.mark.parametrize(
     "size, axis, msg",
     [
+        ((-3, 3), "x", MSG_TOO_LOW_NEG),
+        ((3, -3), "y", MSG_TOO_LOW_NEG),
         ((1, 3), "x", MSG_TOO_LOW),
         ((3, 1), "y", MSG_TOO_LOW),
         ((4, 3), "x", MSG_EVEN),
         ((3, 4), "y", MSG_EVEN),
     ],
 )
-def test_sliding_single_invalid_tile_size_value(key, size, prefix, axis, msg):
+def test_from_spec_single_invalid_tile_size_value(cls, kind, size, axis, msg):
     if axis == "x":
         s = size[0]
     else:
         s = size[1]
     with pytest.raises(
         ValueError,
-        match=re.escape(msg.format(prefix=prefix, axis=axis, size=s)),
+        match=re.escape(msg.format(axis=axis, size=s)),
     ):
-        Strategy.from_spec({"kind": "sliding-tile", key: size})
+        cls.from_spec({"kind": kind, "tile-size-max": size})
 
 
 @pytest.mark.parametrize(
-    "key, prefix", [("tile-size", ""), ("tile-size-max", "Maximum ")]
+    "cls, kind",
+    [(SlidingTile, "sliding-tile"), (TileInterpolation, "tile-interpolation")],
 )
 @pytest.mark.parametrize(
     "size, msg",
@@ -140,24 +110,38 @@ def test_sliding_single_invalid_tile_size_value(key, size, prefix, axis, msg):
         (4, MSG_EVEN),
     ],
 )
-def test_sliding_two_invalid_tile_size_value(key, size, prefix, msg):
+def test_from_spec_invalid_tile_size_max_value(cls, kind, size, msg):
     ps = as_pair(size)
     with RaisesGroup(
         RaisesExc(
             ValueError,
-            match=re.escape(msg.format(prefix=prefix, axis="x", size=ps[0])),
+            match=re.escape(msg.format(axis="x", size=ps[0])),
         ),
         RaisesExc(
             ValueError,
-            match=re.escape(msg.format(prefix=prefix, axis="y", size=ps[1])),
+            match=re.escape(msg.format(axis="y", size=ps[1])),
         ),
     ):
-        Strategy.from_spec({"kind": "sliding-tile", key: size})
+        cls.from_spec({"kind": kind, "tile-size-max": size})
+
+
+@pytest.mark.parametrize("spec", [-2, -1, 0])
+@pytest.mark.parametrize("axis", ["x", "y"])
+def test_tile_interpolation_from_spec_single_invalid_tile_into_value(spec, axis):
+    if axis == "x":
+        into = (spec, 1)
+    else:
+        into = (1, spec)
+    with pytest.raises(
+        ValueError,
+        match=re.escape(MSG_INTO_NEG.format(axis=axis, into=spec)),
+    ):
+        TileInterpolation.from_spec({"kind": "tile-interpolation", "tile-into": into})
 
 
 @pytest.mark.parametrize("spec", [-2, -1, (-1, -1), (5, -1), (-1, 5)])
-def test_stragegy_from_spec_negative_max_size(spec):
-    strat = Strategy.from_spec({"kind": "sliding-tile", "tile-size-max": spec})
+def test_sliding_tile_from_spec_negative_tile_size_max(spec):
+    strat = SlidingTile.from_spec({"kind": "sliding-tile", "tile-size-max": spec})
     assert strat.tile_shape_max == as_pair(spec)
 
 
@@ -165,29 +149,86 @@ def test_stragegy_from_spec_negative_max_size(spec):
     "spec, expected",
     [
         pytest.param(
-            {"kind": "sliding-tile", "tile-size": 13},
-            Strategy(kind="sliding-tile", tile_shape=(13, 13)),
-            id="int-tile-size",
-        ),
-        pytest.param(
-            {"kind": "sliding-tile", "tile-size": (13, 15)},
-            Strategy(kind="sliding-tile", tile_shape=(13, 15)),
-            id="tuple-tile-size",
-        ),
-        pytest.param(
             {"kind": "sliding-tile", "tile-size-max": 13},
-            Strategy(kind="sliding-tile", tile_shape_max=(13, 13)),
+            SlidingTile(tile_shape_max=(13, 13)),
             id="int-tile-size-max",
         ),
         pytest.param(
             {"kind": "sliding-tile", "tile-size-max": (13, 15)},
-            Strategy(kind="sliding-tile", tile_shape_max=(13, 15)),
+            SlidingTile(tile_shape_max=(13, 15)),
             id="tuple-tile-size-max",
         ),
     ],
 )
 def test_sliding_tile_from_spec(spec, expected):
-    strategy = Strategy.from_spec(spec)
+    strategy = SlidingTile.from_spec(spec)
+    assert strategy == expected
+
+
+def test_tile_interpolation_from_spec_no_tile_spec():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"Neither 'tile-into' nor 'tile-size-max' keys were found\. "
+            r"Either are allowed, but exactly one is expected\."
+        ),
+    ):
+        TileInterpolation.from_spec({"kind": "tile-interpolation"})
+
+
+def test_tile_interpolation_from_spec_both_tile_spec_keys():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"Both 'tile-into' and 'tile-size-max' keys were provided\. "
+            r"Only one of them can be specified at a time\."
+        ),
+    ):
+        TileInterpolation.from_spec(
+            {"kind": "tile-interpolation", "tile-into": 11, "tile-size-max": 13}
+        )
+
+
+@pytest.mark.parametrize("key", ["tile-into", "tile-size-max"])
+def test_tile_interpolation_from_spec_invalid_type(key):
+    with pytest.raises(
+        TypeError,
+        match=(
+            f"Incorrect type associated with key {key!r}. "
+            f"Received None with type <class 'NoneType'>. "
+            "Expected a single int, or a pair thereof."
+        ),
+    ):
+        TileInterpolation.from_spec({"kind": "tile-interpolation", key: None})
+
+
+@pytest.mark.parametrize(
+    "spec, expected",
+    [
+        pytest.param(
+            {"kind": "tile-interpolation", "tile-size-max": 13},
+            TileInterpolation(tile_shape_max=(13, 13)),
+            id="int-tile-size-max",
+        ),
+        pytest.param(
+            {"kind": "tile-interpolation", "tile-size-max": (13, 15)},
+            TileInterpolation(tile_shape_max=(13, 15)),
+            id="tuple-tile-size-max",
+        ),
+        pytest.param(
+            {"kind": "tile-interpolation", "tile-into": 4},
+            TileInterpolation(tile_into=(4, 4)),
+            id="int-tile-into",
+        ),
+        pytest.param(
+            {"kind": "tile-interpolation", "tile-into": (2, 3)},
+            TileInterpolation(tile_into=(2, 3)),
+            id="tuple-tile-into",
+        ),
+    ],
+)
+def test_tile_interpolation_from_spec(spec, expected):
+    strategy = TileInterpolation.from_spec(spec)
     assert strategy == expected
 
 
@@ -290,6 +331,45 @@ def test_historgram_equalization(nbins, min_rms_reduction, dtype, subtests):
             raise AssertionError
     with subtests.test("compare to ref impl"):
         npt.assert_allclose(image_eq, image_ref, rtol=rtol)
+
+
+@pytest.mark.parametrize("key", ["tile-into", "tile-size-max"])
+def test_equalize_histogram_missing_strategy_kind(key):
+    with pytest.raises(
+        TypeError, match=r"^adaptive_strategy is missing a 'kind' key\.$"
+    ):
+        rlic.equalize_histogram(
+            np.eye(5, dtype="float64"),
+            adaptive_strategy={},
+        )
+
+
+def test_equalize_histogram_unknown_strategy_kind():
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"^Unknown strategy kind 'not-a-kind'\. "
+            r"Expected one of \['sliding-tile', 'tile-interpolation'\]$"
+        ),
+    ):
+        rlic.equalize_histogram(
+            np.eye(5, dtype="float64"),
+            adaptive_strategy={"kind": "not-a-kind"},
+        )
+
+
+def test_equalize_histogram_invalid_strategy_kind_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"^Invalid strategy kind None with type <class 'NoneType'>\. "
+            r"Expected one of \['sliding-tile', 'tile-interpolation'\]$"
+        ),
+    ):
+        rlic.equalize_histogram(
+            np.eye(5, dtype="float64"),
+            adaptive_strategy={"kind": None},
+        )
 
 
 def test_historgram_equalization_unsupported_dtype():
