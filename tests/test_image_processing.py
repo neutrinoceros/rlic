@@ -232,15 +232,33 @@ def test_tile_interpolation_from_spec(spec, expected):
     assert strategy == expected
 
 
+@pytest.mark.parametrize(
+    "nbins, shape, expected",
+    [
+        (32, (8, 8), 32),
+        (64, (8, 8), 64),
+        (256, (8, 8), 256),
+        ("auto", (8, 8), 64),
+        ("auto", (4, 4), 16),
+        ("auto", (1024, 2048), 256),
+    ],
+)
+def test_auto_nbins(nbins, shape, expected):
+    res = rlic._lib._resolve_nbins(nbins, shape)
+    assert res == expected
+
+
 def _get_tile(image, center_pixel: tuple[int, int], max_size: int):
     wing_size = max_size // 2
     isize, jsize = image.shape
     i0, j0 = center_pixel
-    iL = max(0, i0 - wing_size)
-    iR = min(i0 + wing_size, isize - 1)
-    jL = max(0, j0 - wing_size)
-    jR = min(j0 + wing_size, jsize - 1)
-    return image[iL : iR + 1, jL : jR + 1]
+
+    pimage = np.pad(image, pad_width=wing_size, mode="reflect")
+    iL = i0
+    iR = i0 + 2 * wing_size
+    jL = j0
+    jR = j0 + 2 * wing_size
+    return pimage[iL : iR + 1, jL : jR + 1]
 
 
 def _get_normalized_cdf(tile, nbins: int):
@@ -383,40 +401,8 @@ def test_historgram_equalization_unsupported_dtype():
         rlic.equalize_histogram(np.eye(3, dtype="int64"), nbins=3)
 
 
-@pytest.mark.parametrize("nbins", [12, 64, 256, "auto"])
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_historgram_equalization_sliding_tile_full_image(nbins, dtype, subtests):
-    IMAGE_SHAPE = (256, 128)
-    prng = np.random.default_rng(0)
-    image = np.clip(
-        prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
-        a_min=0.0,
-        a_max=None,
-        dtype=dtype,
-    )
-
-    resolved_nbins = 256 if nbins == "auto" else nbins
-
-    res_default = rlic.equalize_histogram(
-        image,
-        nbins=resolved_nbins,
-        adaptive_strategy=None,
-    )
-
-    res_st = rlic.equalize_histogram(
-        image,
-        nbins=nbins,
-        adaptive_strategy={
-            "kind": "sliding-tile",
-            # use a sliding tile that always contains the entire
-            # image to help comparing with the non-adaptive case
-            "tile-size-max": -2,
-        },
-    )
-    npt.assert_array_equal(res_st, res_default)
-
-
-def test_historgram_equalization_sliding_tile_full_ahe():
+@pytest.mark.parametrize("dtype, rtol", [("float32", 5e-7), ("float64", 5e-16)])
+def test_historgram_equalization_sliding_tile_full_ahe(dtype, rtol):
     IMAGE_SHAPE = (4, 6)
     TILE_SIZE_MAX = 3
     NBINS = 3
@@ -425,7 +411,7 @@ def test_historgram_equalization_sliding_tile_full_ahe():
         prng.normal(loc=5.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
         a_min=0.0,
         a_max=None,
-        dtype="float64",
+        dtype=dtype,
     )
 
     res_ahe = _ahe_numpy(image, nbins=NBINS, tile_size_max=TILE_SIZE_MAX)
@@ -438,4 +424,4 @@ def test_historgram_equalization_sliding_tile_full_ahe():
             "tile-size-max": TILE_SIZE_MAX,
         },
     )
-    npt.assert_allclose(res_st, res_ahe, rtol=5e-16)
+    npt.assert_allclose(res_st, res_ahe, rtol=rtol)
