@@ -14,6 +14,8 @@ from rlic._boundaries import BoundarySet
 from rlic._core import (
     convolve_f32,
     convolve_f64,
+    equalize_histogram_f32,
+    equalize_histogram_f64,
     equalize_histogram_sliding_tile_f32,
     equalize_histogram_sliding_tile_f64,
 )
@@ -247,6 +249,14 @@ def convolve(
     return retf(texture, (u, v, uv_mode), kernel, (bs.x, bs.y), iterations)
 
 
+def _resolve_nbins(nbins: int | Literal["auto"], shape: Pair[int]) -> int:
+    if nbins == "auto":
+        npix_max = shape[0] * shape[1]
+        return min(npix_max, 256)
+    else:
+        return nbins
+
+
 def equalize_histogram(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
@@ -306,7 +316,19 @@ def equalize_histogram(
 
     input_dtype = image.dtype
     if adaptive_strategy is None:
-        adaptive_strategy = {"kind": "sliding-tile", "tile-size-max": -2}
+        histeq: Callable[
+            [ndarray[tuple[int, int], dtype[F]], int],
+            ndarray[tuple[int, int], dtype[F]],
+        ]
+        if input_dtype == np.dtype("float32"):
+            histeq = equalize_histogram_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        elif input_dtype == np.dtype("float64"):
+            histeq = equalize_histogram_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        else:
+            raise AssertionError
+        nbins = _resolve_nbins(nbins, image.shape)
+        return histeq(image, nbins)
+
     ahe_type: type[Strategy]
     match adaptive_strategy.get("kind", UNSET):
         case "sliding-tile":
@@ -327,13 +349,7 @@ def equalize_histogram(
             )
 
     strat = ahe_type.from_spec(adaptive_strategy).resolve(image_shape=image.shape)
-
-    if nbins == "auto":
-        npix_max = strat.tile_shape_max[0] * strat.tile_shape_max[1]
-        nbins = min(npix_max, 256)
-
-    # mypy doesn't narrow this type correctly
-    nbins = cast("int", nbins)  # pyright: ignore[reportUnnecessaryCast]
+    nbins = _resolve_nbins(nbins, strat.tile_shape_max)
 
     if isinstance(strat, SlidingTile):  # pyright: ignore[reportUnnecessaryIsInstance]
         histeq_st: Callable[
