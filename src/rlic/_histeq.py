@@ -21,11 +21,6 @@ else:
     from exceptiongroup import ExceptionGroup
     from typing_extensions import NotRequired, Self, assert_never
 
-if sys.version_info >= (3, 13):
-    from copy import replace as copy_replace
-else:
-    from dataclasses import replace as copy_replace
-
 SUPPORTED_AHE_KINDS = frozenset({"sliding-tile", "tile-interpolation"})
 StrategyKind: TypeAlias = Literal["sliding-tile", "tile-interpolation"]
 
@@ -98,11 +93,11 @@ def collect_exceptions_tile_into(tile_into: Pair[int]) -> list[Exception]:
     return exceptions
 
 
-def resolve_tile_shape_max(
-    tile_shape_max: Pair[int], image_shape: Pair[int], *, require_odd: bool
+def resolve_tile_shape(
+    tile_shape: Pair[int], image_shape: Pair[int], *, require_odd: bool
 ) -> Pair[int]:
     assert all(s > 0 for s in image_shape)
-    base_shape = tile_shape_max
+    base_shape = tile_shape
     ret_shape_mut = list(base_shape)
     for i in range(2):
         s = image_shape[i]
@@ -126,26 +121,13 @@ def minimal_divisor_size(size: int, into: int) -> int:
     return max(1, d + round_up)
 
 
-def get_wing_shape(tile_shape: Pair[int]) -> Pair[int]:
-    """Compute the size of a tile's wings.
-
-    It is assumed that a tile has an odd size >=3 in both directions.
-    Wing size is then trivially half of the preceding even number.
-    """
-    assert all(s >= 3 for s in tile_shape)
-    assert all(s % 2 for s in tile_shape)
-
-    return (tile_shape[0] // 2, tile_shape[1] // 2)
-
-
 V = TypeVar("V")
 
 
 class Strategy(Protocol):
     @classmethod
     def from_spec(cls, spec: Mapping[str, V], /) -> Self: ...
-    def resolve(self, *, image_shape: Pair[int]) -> Self: ...
-    def tile_wing_shape(self) -> Pair[int]: ...
+    def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]: ...
 
 
 @final
@@ -178,14 +160,8 @@ class SlidingTile:
         report(exceptions)
         return cls(tile_shape_max=tsp)
 
-    def resolve(self, *, image_shape: Pair[int]) -> Self:
-        ret_shape = resolve_tile_shape_max(
-            self.tile_shape_max, image_shape, require_odd=True
-        )
-        return copy_replace(self, tile_shape_max=ret_shape)
-
-    def tile_wing_shape(self) -> Pair[int]:
-        return get_wing_shape(self.tile_shape_max)
+    def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
+        return resolve_tile_shape(self.tile_shape_max, image_shape, require_odd=True)
 
 
 @final
@@ -248,7 +224,7 @@ class TileInterpolation:
         report(exceptions)
         return cls(tile_into=tip, tile_shape_max=tsp)
 
-    def resolve(self, *, image_shape: Pair[int]) -> Self:
+    def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
         assert all(s > 0 for s in image_shape)
         assert Counter([self.tile_into, self.tile_shape_max])[None] == 1
 
@@ -258,15 +234,10 @@ class TileInterpolation:
                 minimal_divisor_size(image_shape[1], self.tile_into[1]),
             )
         elif self.tile_shape_max is not None:
-            tsm = resolve_tile_shape_max(
+            tsm = resolve_tile_shape(
                 self.tile_shape_max, image_shape, require_odd=False
             )
         else:
             raise AssertionError
 
-        return copy_replace(self, tile_into=None, tile_shape_max=tsm)
-
-    def tile_wing_shape(self) -> Pair[int]:  # pragma: no cover
-        if self.tile_shape_max is None:
-            raise AssertionError
-        return get_wing_shape(self.tile_shape_max)
+        return tsm

@@ -1,5 +1,4 @@
 import re
-import sys
 from itertools import product
 
 import numpy as np
@@ -18,11 +17,6 @@ from rlic._histeq import (
     as_pair,
     minimal_divisor_size,
 )
-
-if sys.version_info >= (3, 13):
-    from copy import replace as copy_replace
-else:
-    from dataclasses import replace as copy_replace
 
 
 def test_sliding_tile_from_spec_missing_tile_size():
@@ -65,11 +59,8 @@ def test_sliding_tile_from_spec_invalid_type_tile_size():
     ],
 )
 def test_sliding_tile_resolve(tile_shape_max, image_shape, expected_shape):
-    s0 = SlidingTile(tile_shape_max=tile_shape_max)
-    s1 = s0.resolve(image_shape=image_shape)
-    assert s1 is not s0
-    assert s1.tile_shape_max == expected_shape
-    assert copy_replace(s0, tile_shape_max=s1.tile_shape_max) == s1
+    st = SlidingTile(tile_shape_max=tile_shape_max)
+    assert st.resolve_tile_shape(image_shape) == expected_shape
 
 
 @pytest.mark.parametrize(
@@ -234,7 +225,7 @@ def test_tile_interpolation_from_spec(spec, expected):
 
 
 @pytest.mark.parametrize(
-    "s0, image_shape, expected_shape",
+    "strat, image_shape, expected_shape",
     [
         (TileInterpolation(tile_into=(2, 2)), (256, 256), (128, 128)),
         (TileInterpolation(tile_into=(2, 3)), (256, 256), (128, 86)),
@@ -242,11 +233,8 @@ def test_tile_interpolation_from_spec(spec, expected):
         (TileInterpolation(tile_shape_max=(64, 64)), (256, 256), (64, 64)),
     ],
 )
-def test_tile_interpolation_resolve(s0, image_shape, expected_shape):
-    s1 = s0.resolve(image_shape=image_shape)
-    assert s1 is not s0
-    assert s1.tile_shape_max == expected_shape
-    assert s1 == TileInterpolation(tile_shape_max=s1.tile_shape_max)
+def test_tile_interpolation_resolve(strat, image_shape, expected_shape):
+    assert strat.resolve_tile_shape(image_shape) == expected_shape
 
 
 @pytest.mark.parametrize(
