@@ -97,6 +97,18 @@ def collect_exceptions_tile_into(tile_into: Pair[int]) -> list[Exception]:
     return exceptions
 
 
+def get_wing_shape(tile_shape: Pair[int]) -> Pair[int]:
+    """Compute the size of a tile's wings.
+
+    It is assumed that a tile has an odd size >=3 in both directions.
+    Wing size is then trivially half of the preceding even number.
+    """
+    assert all(s >= 3 for s in tile_shape)
+    assert all(s % 2 for s in tile_shape)
+
+    return (tile_shape[0] // 2, tile_shape[1] // 2)
+
+
 V = TypeVar("V")
 
 
@@ -104,6 +116,7 @@ class Strategy(Protocol):
     @classmethod
     def from_spec(cls, spec: Mapping[str, V], /) -> Self: ...
     def resolve(self, *, image_shape: Pair[int]) -> Self: ...
+    def tile_wing_shape(self) -> Pair[int]: ...
 
 
 @final
@@ -151,6 +164,9 @@ class SlidingTile:
         assert all(s > 0 for s in ret_shape)
         assert all(s % 2 for s in ret_shape)
         return copy_replace(self, tile_shape_max=ret_shape)
+
+    def tile_wing_shape(self) -> Pair[int]:
+        return get_wing_shape(self.tile_shape_max)
 
 
 @final
@@ -217,3 +233,8 @@ class TileInterpolation:
         # this should resolve to tile_shape, not tile_into
         # https://github.com/neutrinoceros/rlic/issues/366
         raise NotImplementedError
+
+    def tile_wing_shape(self) -> Pair[int]:  # pragma: no cover
+        if self.tile_shape_max is None:
+            raise AssertionError
+        return get_wing_shape(self.tile_shape_max)
