@@ -8,10 +8,9 @@ from pytest import RaisesExc, RaisesGroup
 
 import rlic
 from rlic._histeq import (
-    MSG_EVEN,
-    MSG_INTO_NEG,
-    MSG_TOO_LOW,
-    MSG_TOO_LOW_NEG,
+    INTO_NEG,
+    TS_EVEN,
+    TS_INVALID,
     SlidingTile,
     TileInterpolation,
     as_pair,
@@ -52,10 +51,6 @@ def test_sliding_tile_from_spec_invalid_type_tile_size():
         ((-1, -1), (6, 8), (7, 9)),
         ((-1, 3), (6, 8), (7, 3)),
         ((3, -1), (6, 8), (3, 9)),
-        # negative values are special cased:
-        # -1 means "match the containing shape"
-        # -2 means "double the containing shape"
-        ((-2, -2), (5, 7), (11, 15)),
     ],
 )
 def test_sliding_tile_resolve(tile_shape, image_shape, expected_shape):
@@ -70,12 +65,12 @@ def test_sliding_tile_resolve(tile_shape, image_shape, expected_shape):
 @pytest.mark.parametrize(
     "size, axis, msg",
     [
-        ((-3, 3), "x", MSG_TOO_LOW_NEG),
-        ((3, -3), "y", MSG_TOO_LOW_NEG),
-        ((1, 3), "x", MSG_TOO_LOW),
-        ((3, 1), "y", MSG_TOO_LOW),
-        ((4, 3), "x", MSG_EVEN),
-        ((3, 4), "y", MSG_EVEN),
+        ((-3, 3), "x", TS_INVALID),
+        ((3, -3), "y", TS_INVALID),
+        ((1, 3), "x", TS_INVALID),
+        ((3, 1), "y", TS_INVALID),
+        ((4, 3), "x", TS_EVEN),
+        ((3, 4), "y", TS_EVEN),
     ],
 )
 def test_from_spec_single_invalid_tile_size_value(cls, kind, size, axis, msg):
@@ -97,9 +92,9 @@ def test_from_spec_single_invalid_tile_size_value(cls, kind, size, axis, msg):
 @pytest.mark.parametrize(
     "size, msg",
     [
-        (1, MSG_TOO_LOW),
-        ((1, 1), MSG_TOO_LOW),
-        (4, MSG_EVEN),
+        (1, TS_INVALID),
+        ((1, 1), TS_INVALID),
+        (4, TS_EVEN),
     ],
 )
 def test_from_spec_invalid_tile_size_value(cls, kind, size, msg):
@@ -126,12 +121,12 @@ def test_tile_interpolation_from_spec_single_invalid_tile_into_value(spec, axis)
         into = (1, spec)
     with pytest.raises(
         ValueError,
-        match=re.escape(MSG_INTO_NEG.format(axis=axis, into=spec)),
+        match=re.escape(INTO_NEG.format(axis=axis, into=spec)),
     ):
         TileInterpolation.from_spec({"kind": "tile-interpolation", "tile-into": into})
 
 
-@pytest.mark.parametrize("spec", [-2, -1, (-1, -1), (5, -1), (-1, 5)])
+@pytest.mark.parametrize("spec", [-1, (-1, -1), (5, -1), (-1, 5)])
 def test_sliding_tile_from_spec_negative_tile_size(spec):
     strat = SlidingTile.from_spec({"kind": "sliding-tile", "tile-size": spec})
     assert strat.tile_shape == as_pair(spec)

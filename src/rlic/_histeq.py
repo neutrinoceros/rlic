@@ -60,26 +60,25 @@ def report(exceptions: list[Exception]) -> None:
         )
 
 
-MSG_EVEN = "Maximum {axis} tile size {size} is even. Only odd values are allowed."
-MSG_TOO_LOW = "Maximum {axis} tile size {size} is too low. The minimum allowed positive value is 3"
-MSG_TOO_LOW_NEG = "Maximum {axis} tile size {size} is too low. The minimum allowed negative value is -2"
+TS_EVEN = "{axis} tile size {size} is even. Only odd values are allowed."
+TS_INVALID = (
+    "{axis} tile size {size} is invalid. Expected an odd value >=3 (or exactly -1)."
+)
 
 
 def collect_exceptions_tile_size(tile_size: Pair[int]) -> list[Exception]:
     exceptions: list[Exception] = []
     for axis, size in zip(("x", "y"), tile_size, strict=True):
-        if size < -2:
-            exceptions.append(ValueError(MSG_TOO_LOW_NEG.format(axis=axis, size=size)))
-        if size < 0:
+        if size == -1:
             continue
         if size < 3:
-            exceptions.append(ValueError(MSG_TOO_LOW.format(axis=axis, size=size)))
+            exceptions.append(ValueError(TS_INVALID.format(axis=axis, size=size)))
         if not size % 2:
-            exceptions.append(ValueError(MSG_EVEN.format(axis=axis, size=size)))
+            exceptions.append(ValueError(TS_EVEN.format(axis=axis, size=size)))
     return exceptions
 
 
-MSG_INTO_NEG = (
+INTO_NEG = (
     "Cannot produce {into} tiles on axis {axis}. The minimum meaningful value is 1"
 )
 
@@ -88,7 +87,7 @@ def collect_exceptions_tile_into(tile_into: Pair[int]) -> list[Exception]:
     exceptions: list[Exception] = []
     for axis, into in zip(("x", "y"), tile_into, strict=True):
         if into < 1:
-            exceptions.append(ValueError(MSG_INTO_NEG.format(axis=axis, into=into)))
+            exceptions.append(ValueError(INTO_NEG.format(axis=axis, into=into)))
 
     return exceptions
 
@@ -103,8 +102,6 @@ def resolve_tile_shape(
         s = image_shape[i]
         if base_shape[i] == -1:
             ret_shape_mut[i] = s
-        elif base_shape[i] == -2:
-            ret_shape_mut[i] = 2 * s
         if require_odd:
             ret_shape_mut[i] |= 1  # add 1 if the value is even
     ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
