@@ -26,14 +26,14 @@ StrategyKind: TypeAlias = Literal["sliding-tile", "tile-interpolation"]
 
 
 SlidingTileSpec = TypedDict(
-    "SlidingTileSpec", {"kind": Literal["sliding-tile"], "tile-size-max": PairSpec[int]}
+    "SlidingTileSpec", {"kind": Literal["sliding-tile"], "tile-size": PairSpec[int]}
 )
 TileInterpolationSpec = TypedDict(
     "TileInterpolationSpec",
     {
         "kind": Literal["tile-interpolation"],
         "tile-into": NotRequired[PairSpec[int]],
-        "tile-size-max": NotRequired[PairSpec[int]],
+        "tile-size": NotRequired[PairSpec[int]],
     },
 )
 
@@ -65,9 +65,9 @@ MSG_TOO_LOW = "Maximum {axis} tile size {size} is too low. The minimum allowed p
 MSG_TOO_LOW_NEG = "Maximum {axis} tile size {size} is too low. The minimum allowed negative value is -2"
 
 
-def collect_exceptions_tile_size_max(tile_size_max: Pair[int]) -> list[Exception]:
+def collect_exceptions_tile_size(tile_size: Pair[int]) -> list[Exception]:
     exceptions: list[Exception] = []
-    for axis, size in zip(("x", "y"), tile_size_max, strict=True):
+    for axis, size in zip(("x", "y"), tile_size, strict=True):
         if size < -2:
             exceptions.append(ValueError(MSG_TOO_LOW_NEG.format(axis=axis, size=size)))
         if size < 0:
@@ -133,7 +133,7 @@ class Strategy(Protocol):
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SlidingTile:
-    tile_shape_max: Pair[int]
+    tile_shape: Pair[int]
 
     @classmethod
     def from_spec(cls, spec: Mapping[str, V], /) -> Self:
@@ -141,34 +141,34 @@ class SlidingTile:
             raise AssertionError
 
         tsp: Pair[int] | None = None
-        match spec.get("tile-size-max", UNSET):
+        match spec.get("tile-size", UNSET):
             case (int() | (int(), int())) as ts:
                 tsp = as_pair(ts)  # type: ignore[arg-type]
             case UnsetType():
                 raise TypeError(
-                    "Sliding tile specification is missing a 'tile-size-max' key. "
+                    "Sliding tile specification is missing a 'tile-size' key. "
                     "Expected a single int, or a pair thereof."
                 )
             case _ as invalid:
                 raise TypeError(
-                    "Incorrect type associated with key 'tile-size-max'. "
+                    "Incorrect type associated with key 'tile-size'. "
                     f"Received {invalid} with type {type(invalid)}. "
                     "Expected a single int, or a pair thereof."
                 )
 
-        exceptions = collect_exceptions_tile_size_max(tsp)
+        exceptions = collect_exceptions_tile_size(tsp)
         report(exceptions)
-        return cls(tile_shape_max=tsp)
+        return cls(tile_shape=tsp)
 
     def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
-        return resolve_tile_shape(self.tile_shape_max, image_shape, require_odd=True)
+        return resolve_tile_shape(self.tile_shape, image_shape, require_odd=True)
 
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
 class TileInterpolation:
     tile_into: Pair[int] | None = None
-    tile_shape_max: Pair[int] | None = None
+    tile_shape: Pair[int] | None = None
 
     @classmethod
     def from_spec(cls, spec: Mapping[str, V], /) -> Self:
@@ -179,11 +179,11 @@ class TileInterpolation:
 
         tsp: Pair[int] | None = None
         tip: Pair[int] | None = None
-        match (spec.get("tile-into", UNSET), spec.get("tile-size-max", UNSET)):
+        match (spec.get("tile-into", UNSET), spec.get("tile-size", UNSET)):
             case (UnsetType(), UnsetType()):
                 exceptions.append(
                     TypeError(
-                        "Neither 'tile-into' nor 'tile-size-max' keys were found. "
+                        "Neither 'tile-into' nor 'tile-size' keys were found. "
                         "Either are allowed, but exactly one is expected."
                     )
                 )
@@ -202,7 +202,7 @@ class TileInterpolation:
             case (UnsetType(), ts):
                 exceptions.append(
                     TypeError(
-                        "Incorrect type associated with key 'tile-size-max'. "
+                        "Incorrect type associated with key 'tile-size'. "
                         f"Received {ts} with type {type(ts)}. "
                         "Expected a single int, or a pair thereof."
                     )
@@ -210,7 +210,7 @@ class TileInterpolation:
             case _:
                 exceptions.append(
                     TypeError(
-                        "Both 'tile-into' and 'tile-size-max' keys were provided. "
+                        "Both 'tile-into' and 'tile-size' keys were provided. "
                         "Only one of them can be specified at a time."
                     )
                 )
@@ -219,25 +219,23 @@ class TileInterpolation:
             exceptions.extend(collect_exceptions_tile_into(tip))
 
         if tsp is not None:
-            exceptions.extend(collect_exceptions_tile_size_max(tsp))
+            exceptions.extend(collect_exceptions_tile_size(tsp))
 
         report(exceptions)
-        return cls(tile_into=tip, tile_shape_max=tsp)
+        return cls(tile_into=tip, tile_shape=tsp)
 
     def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
         assert all(s > 0 for s in image_shape)
-        assert Counter([self.tile_into, self.tile_shape_max])[None] == 1
+        assert Counter([self.tile_into, self.tile_shape])[None] == 1
 
         if self.tile_into is not None:
-            tsm = (
+            ts = (
                 minimal_divisor_size(image_shape[0], self.tile_into[0]),
                 minimal_divisor_size(image_shape[1], self.tile_into[1]),
             )
-        elif self.tile_shape_max is not None:
-            tsm = resolve_tile_shape(
-                self.tile_shape_max, image_shape, require_odd=False
-            )
+        elif self.tile_shape is not None:
+            ts = resolve_tile_shape(self.tile_shape, image_shape, require_odd=False)
         else:
             raise AssertionError
 
-        return tsm
+        return ts

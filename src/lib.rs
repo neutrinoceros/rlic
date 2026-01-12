@@ -643,31 +643,31 @@ struct ViewRange {
 fn get_tile_range(
     dims: ArrayDimensions,
     center_pixel: PixelIndex,
-    tile_shape_max: ArrayDimensions,
+    tile_shape: ArrayDimensions,
 ) -> ViewRange {
-    // since tile_shape_max only contains odd numbers,
+    // since tile_shape only contains odd numbers,
     // the result of an integer division by 2 always corresponds
     // to the maximum number of pixels on one side of the central one,
     // *excluding* the latter.
-    let half_tile_shape_max = ArrayDimensions {
-        x: tile_shape_max.x / 2,
-        y: tile_shape_max.y / 2,
+    let half_tile_shape = ArrayDimensions {
+        x: tile_shape.x / 2,
+        y: tile_shape.y / 2,
     };
     ViewRange {
         x: Range {
-            left: center_pixel.j.saturating_sub(half_tile_shape_max.x),
-            right: if center_pixel.j + half_tile_shape_max.x > dims.x - 1 {
+            left: center_pixel.j.saturating_sub(half_tile_shape.x),
+            right: if center_pixel.j + half_tile_shape.x > dims.x - 1 {
                 dims.x - 1
             } else {
-                center_pixel.j + half_tile_shape_max.x
+                center_pixel.j + half_tile_shape.x
             },
         },
         y: Range {
-            left: center_pixel.i.saturating_sub(half_tile_shape_max.y),
-            right: if center_pixel.i + half_tile_shape_max.y > dims.y - 1 {
+            left: center_pixel.i.saturating_sub(half_tile_shape.y),
+            right: if center_pixel.i + half_tile_shape.y > dims.y - 1 {
                 dims.y - 1
             } else {
-                center_pixel.i + half_tile_shape_max.y
+                center_pixel.i + half_tile_shape.y
             },
         },
     }
@@ -700,7 +700,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     py: Python<'py>,
     image: PyReadonlyArray2<'py, T>,
     nbins: usize,
-    tile_shape_max: (usize, usize),
+    tile_shape: (usize, usize),
 ) -> Bound<'py, PyArray2<T>> {
     let image = image.as_array();
     let dims = ArrayDimensions {
@@ -708,14 +708,14 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         y: image.shape()[0],
     };
 
-    let tile_shape_max = ArrayDimensions {
-        x: tile_shape_max.1,
-        y: tile_shape_max.0,
+    let tile_shape = ArrayDimensions {
+        x: tile_shape.1,
+        y: tile_shape.0,
     };
 
     let mut center_pixel = PixelIndex { i: 0, j: 0 };
     let mut out = Array2::<T>::zeros(image.raw_dim());
-    let mut subhists = VecDeque::with_capacity(tile_shape_max.y + 1);
+    let mut subhists = VecDeque::with_capacity(tile_shape.y + 1);
     let mut hist = Histogram {
         bins: (Array1::<usize>::zeros(nbins)),
         range: Range {
@@ -747,7 +747,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
 
         for i in 0..dims.y {
             center_pixel.i = i;
-            let tile_range = get_tile_range(dims, center_pixel, tile_shape_max);
+            let tile_range = get_tile_range(dims, center_pixel, tile_shape);
             if tile_range != previous_tile_range {
                 tile = get_tile_view(&image, tile_range);
                 tile_dims = ArrayDimensions {
@@ -874,9 +874,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         py: Python<'py>,
         image: PyReadonlyArray2<'py, f32>,
         nbins: usize,
-        tile_shape_max: (usize, usize),
+        tile_shape: (usize, usize),
     ) -> Bound<'py, PyArray2<f32>> {
-        equalize_histogram_sliding_tile(py, image, nbins, tile_shape_max)
+        equalize_histogram_sliding_tile(py, image, nbins, tile_shape)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f32, m)?)?;
 
@@ -885,9 +885,9 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         py: Python<'py>,
         image: PyReadonlyArray2<'py, f64>,
         nbins: usize,
-        tile_shape_max: (usize, usize),
+        tile_shape: (usize, usize),
     ) -> Bound<'py, PyArray2<f64>> {
-        equalize_histogram_sliding_tile(py, image, nbins, tile_shape_max)
+        equalize_histogram_sliding_tile(py, image, nbins, tile_shape)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f64, m)?)?;
 
