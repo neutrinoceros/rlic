@@ -249,8 +249,8 @@ def convolve(
 
 def _resolve_nbins(nbins: int | Literal["auto"], shape: Pair[int]) -> int:
     if nbins == "auto":
-        npix_max = shape[0] * shape[1]
-        return min(npix_max, 256)
+        npix = shape[0] * shape[1]
+        return min(npix, 256)
     else:
         return nbins
 
@@ -359,9 +359,9 @@ def equalize_histogram(
             )
 
     strat = ahe_type.from_spec(adaptive_strategy)
-    tsm = strat.resolve_tile_shape(image.shape)
-    nbins = _resolve_nbins(nbins, tsm)
-    tile_wing_shape = _resolve_wing_shape(tsm)
+    ts = strat.resolve_tile_shape(image.shape)
+    nbins = _resolve_nbins(nbins, ts)
+    tile_wing_shape = _resolve_wing_shape(ts)
     pad_width = (tile_wing_shape[1], tile_wing_shape[0])
     pimage = np.pad(image, pad_width=pad_width, mode="reflect")
 
@@ -376,7 +376,7 @@ def equalize_histogram(
             histeq_st = equalize_histogram_sliding_tile_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
         else:
             raise AssertionError
-        res = histeq_st(pimage, nbins, strat.tile_shape_max)  # type: ignore[arg-type]
+        res = histeq_st(pimage, nbins, strat.tile_shape)  # type: ignore[arg-type]
     # elif isinstance(strat, TileInterpolation):
     #    raise NotImplementedError
     else:
