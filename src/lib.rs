@@ -448,12 +448,12 @@ fn convolve_iteratively<'py, T: AtLeastF32 + numpy::Element>(
 
 #[derive(Clone, Copy, PartialEq)]
 struct Range<T> {
-    left: T,
-    right: T,
+    lo: T,
+    hi: T,
 }
 impl<T: Sub<Output = T> + Copy> Range<T> {
     fn span(&self) -> T {
-        self.right - self.left
+        self.hi - self.lo
     }
 }
 
@@ -468,7 +468,7 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
     }
 
     fn edges(&self) -> Array1<T> {
-        Array1::<T>::linspace(self.range.left, self.range.right, self.bins.len() + 1)
+        Array1::<T>::linspace(self.range.lo, self.range.hi, self.bins.len() + 1)
     }
 
     fn centers(&self) -> Array1<T> {
@@ -515,7 +515,7 @@ fn compute_subhistogram<T: AtLeastF32>(
     // pixels that contain exactly vmax are counted in the extra bin
     let mut bins = Array1::<usize>::zeros(nbins + 1);
     for v in arr.iter() {
-        let f = ((*v - range.left) / bin_width).floor();
+        let f = ((*v - range.lo) / bin_width).floor();
         let idx = <usize as NumCast>::from(f).unwrap();
         bins[idx] += 1;
     }
@@ -566,18 +566,15 @@ mod test_histogram {
         let nbins = 8usize;
         let hist = Histogram {
             bins: Array1::<usize>::ones(nbins),
-            range: Range {
-                left: 0.0,
-                right: 8.0,
-            },
+            range: Range { lo: 0.0, hi: 8.0 },
         };
         assert_eq!(hist.bin_width(), 1.0);
 
         let edges = hist.edges();
         let edges = edges.as_slice().unwrap();
         assert_eq!(edges.len(), nbins + 1);
-        assert_eq!(*edges.first().unwrap(), hist.range.left);
-        assert_eq!(*edges.last().unwrap(), hist.range.right);
+        assert_eq!(*edges.first().unwrap(), hist.range.lo);
+        assert_eq!(*edges.last().unwrap(), hist.range.hi);
         assert_eq!(edges, vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
 
         let centers = hist.centers();
@@ -655,16 +652,16 @@ fn get_tile_range(
     };
     ViewRange {
         x: Range {
-            left: center_pixel.j.saturating_sub(half_tile_shape.x),
-            right: if center_pixel.j + half_tile_shape.x > dims.x - 1 {
+            lo: center_pixel.j.saturating_sub(half_tile_shape.x),
+            hi: if center_pixel.j + half_tile_shape.x > dims.x - 1 {
                 dims.x - 1
             } else {
                 center_pixel.j + half_tile_shape.x
             },
         },
         y: Range {
-            left: center_pixel.i.saturating_sub(half_tile_shape.y),
-            right: if center_pixel.i + half_tile_shape.y > dims.y - 1 {
+            lo: center_pixel.i.saturating_sub(half_tile_shape.y),
+            hi: if center_pixel.i + half_tile_shape.y > dims.y - 1 {
                 dims.y - 1
             } else {
                 center_pixel.i + half_tile_shape.y
@@ -677,23 +674,20 @@ fn get_tile_view<'a, T: numpy::Element>(
     image: &'a ArrayView2<'a, T>,
     range: ViewRange,
 ) -> ArrayView2<'a, T> {
-    image.slice(s![
-        range.y.left..range.y.right + 1,
-        range.x.left..range.x.right + 1,
-    ])
+    image.slice(s![range.y.lo..range.y.hi + 1, range.x.lo..range.x.hi + 1,])
 }
 
 fn get_value_range<A: AtLeastF32 + numpy::Element, D>(arr: ArrayView<A, D>) -> Range<A>
 where
     D: Dimension,
 {
-    let mut left = A::infinity();
-    let mut right = -A::infinity();
+    let mut lo = A::infinity();
+    let mut hi = -A::infinity();
     for v in arr.iter() {
-        left = left.min(*v);
-        right = right.max(*v);
+        lo = lo.min(*v);
+        hi = hi.max(*v);
     }
-    Range { left, right }
+    Range { lo, hi }
 }
 
 fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
@@ -719,8 +713,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     let mut hist = Histogram {
         bins: (Array1::<usize>::zeros(nbins)),
         range: Range {
-            left: 0.0.into(),
-            right: 1.0.into(),
+            lo: 0.0.into(),
+            hi: 1.0.into(),
         },
     };
     let mut hist_centers = hist.centers();
@@ -731,8 +725,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     let mut subhists_need_reinit = true;
     let mut hist_reduction_needed = true;
     let mut previous_tile_range = ViewRange {
-        x: Range { left: 0, right: 0 },
-        y: Range { left: 0, right: 0 },
+        x: Range { lo: 0, hi: 0 },
+        y: Range { lo: 0, hi: 0 },
     };
 
     for j in 0..dims.x {
@@ -740,8 +734,8 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
         let mut tile: ArrayView2<T> = image.slice(s![.., ..]);
         let mut tile_dims: ArrayDimensions = dims;
         let mut vrange: Range<T> = Range {
-            left: 0.0.into(),
-            right: 0.0.into(),
+            lo: 0.0.into(),
+            hi: 0.0.into(),
         };
         let mut row_vrange: Range<T> = vrange;
 
@@ -754,7 +748,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                     x: tile.shape()[1],
                     y: tile.shape()[0],
                 };
-                if tile_range.y.left != previous_tile_range.y.left {
+                if tile_range.y.lo != previous_tile_range.y.lo {
                     subhists.pop_front();
                 }
                 vrange = get_value_range(tile);
@@ -764,12 +758,12 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
                 subhists_need_reinit = true;
             }
 
-            if row_vrange.left < vrange.left {
-                vrange.left = row_vrange.left;
+            if row_vrange.lo < vrange.lo {
+                vrange.lo = row_vrange.lo;
                 subhists_need_reinit = true;
             }
-            if row_vrange.right > vrange.right {
-                vrange.right = row_vrange.right;
+            if row_vrange.hi > vrange.hi {
+                vrange.hi = row_vrange.hi;
                 subhists_need_reinit = true;
             }
 
