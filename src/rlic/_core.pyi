@@ -45,3 +45,13 @@ def equalize_histogram_sliding_tile_f64(
     nbins: int,
     tile_shape: Pair[int],
 ) -> ndarray[tuple[int, int], dtype[f64]]: ...
+def equalize_histogram_tile_interpolation_f32(
+    image: ndarray[tuple[int, int], dtype[f32]],
+    nbins: int,
+    tile_shape: Pair[int],
+) -> ndarray[tuple[int, int], dtype[f32]]: ...
+def equalize_histogram_tile_interpolation_f64(
+    image: ndarray[tuple[int, int], dtype[f64]],
+    nbins: int,
+    tile_shape: Pair[int],
+) -> ndarray[tuple[int, int], dtype[f64]]: ...

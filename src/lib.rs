@@ -451,6 +451,7 @@ struct Range<T> {
     lo: T,
     hi: T,
 }
+
 impl<T: Sub<Output = T> + Copy> Range<T> {
     fn span(&self) -> T {
         self.hi - self.lo
@@ -616,6 +617,7 @@ struct ViewRange {
     x: Range<usize>,
     y: Range<usize>,
 }
+
 fn get_tile_range(
     dims: ArrayDimensions,
     center_pixel: PixelIndex,
@@ -786,6 +788,186 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
     out.to_pyarray(py)
 }
 
+struct ECRQuadruple<T> {
+    top_left: T,
+    top_right: T,
+    bottom_left: T,
+    bottom_right: T,
+}
+
+struct InterpolatorInputs<T: Float + numpy::Element> {
+    start: T,
+    step: T,
+    vals: Array1<T>,
+}
+
+impl<T: Float + numpy::Element> InterpolatorInputs<T> {
+    fn as_interpolator(&self) -> LinearHoldLast1D<RegularGrid1D<'_, T>> {
+        let grid =
+            RegularGrid1D::new(self.start, self.step, self.vals.as_slice().unwrap()).unwrap();
+        LinearHoldLast1D::new(grid)
+    }
+}
+struct EffectiveContextualRegion<'a, T: Float + numpy::Element> {
+    top_left: &'a InterpolatorInputs<T>,
+    top_right: &'a InterpolatorInputs<T>,
+    bottom_left: &'a InterpolatorInputs<T>,
+    bottom_right: &'a InterpolatorInputs<T>,
+}
+
+impl<T: AtLeastF32 + NumCast + numpy::Element> EffectiveContextualRegion<'_, T> {
+    fn get_normalized_intensities(&self, intensity: T) -> ECRQuadruple<T> {
+        ECRQuadruple {
+            top_left: adjust_intensity_single_pixel(&self.top_left.as_interpolator(), intensity),
+            top_right: adjust_intensity_single_pixel(&self.top_right.as_interpolator(), intensity),
+            bottom_left: adjust_intensity_single_pixel(
+                &self.bottom_left.as_interpolator(),
+                intensity,
+            ),
+            bottom_right: adjust_intensity_single_pixel(
+                &self.bottom_right.as_interpolator(),
+                intensity,
+            ),
+        }
+    }
+}
+
+struct Stencil<T> {
+    x: Array1<T>,
+    y: Array1<T>,
+}
+struct TargetTile<'a, T: Float + numpy::Element> {
+    ecr: EffectiveContextualRegion<'a, T>,
+    stencil: &'a Stencil<T>,
+}
+fn equalize_histogram_tile_interpolation<'py, T: AtLeastF32 + numpy::Element>(
+    py: Python<'py>,
+    pimage: PyReadonlyArray2<'py, T>,
+    nbins: usize,
+    tile_shape: (usize, usize),
+) -> Bound<'py, PyArray2<T>> {
+    let pimage = pimage.as_array();
+    let pdims = ArrayDimensions {
+        x: pimage.shape()[1],
+        y: pimage.shape()[0],
+    };
+    let tile_shape = ArrayDimensions {
+        x: tile_shape.1,
+        y: tile_shape.0,
+    };
+    // assumptions:
+    // - the full p(added)image is an integer multiple of tile sizes in every direction
+    // - there's always *exactly* one entirely ghost tile in each direction
+    // - it follows that every internal tile
+    //   has a top, left, bottom and right neighbor
+    // - external tiles do not need connectivity data (they are not to be iterated on)
+
+    // ... define internal tiles ...
+    // any "internal" may be only *partially* internal to the non-padded image,
+    // but it'll always have a non-zero intersection with the unpadded domain
+
+    let sample_mosaic_shape = ArrayDimensions {
+        x: pdims.x / tile_shape.x,
+        y: pdims.y / tile_shape.y,
+    };
+
+    let mut sample_interpolators = vec![];
+
+    for i in (0..pdims.y).step_by(tile_shape.y) {
+        let mut row_interpolators = vec![];
+        for j in (0..pdims.x).step_by(tile_shape.x) {
+            let vrange = ViewRange {
+                x: Range {
+                    lo: j,
+                    hi: j + tile_shape.x,
+                },
+                y: Range {
+                    lo: i,
+                    hi: i + tile_shape.y,
+                },
+            };
+            let tile_view = get_tile_view(&pimage, vrange);
+            let hist = compute_histogram(tile_view, nbins);
+            let cdf = hist.cdf_as_normalized();
+            let ii = InterpolatorInputs {
+                start: hist.first_bin_center(),
+                step: hist.bin_width(),
+                vals: cdf,
+            };
+            row_interpolators.push(ii);
+        }
+        sample_interpolators.push(row_interpolators);
+    }
+    assert_eq!(sample_interpolators.len(), sample_mosaic_shape.y);
+    for si in sample_interpolators.iter().take(sample_mosaic_shape.y) {
+        assert_eq!(si.len(), sample_mosaic_shape.x);
+    }
+    let half_tile_offset_x = tile_shape.x / 2;
+    let half_tile_offset_y = tile_shape.y / 2;
+    let mut tiles: Vec<Vec<TargetTile<T>>> = vec![];
+
+    // x offset, in pixel width, between the top left tile center and the center
+    // of the first pixel in the target tile. Since all tile sizes are even,
+    // it follows that this is always 0.5
+    let xoff: T = 0.5.into();
+    let mut alpha = Array1::<T>::zeros(tile_shape.x);
+    let tsx = <T as NumCast>::from(tile_shape.x).unwrap();
+    for j in 0..tile_shape.x {
+        let fj = <T as NumCast>::from(j).unwrap();
+        alpha[j] = xoff + fj / tsx;
+    }
+
+    // y offset, in pixel height, between the top left tile center and the center
+    // of the first pixel in the target tile.
+    let yoff: T = 0.5.into();
+    let mut beta = Array1::<T>::zeros(tile_shape.y);
+    let tsy = <T as NumCast>::from(tile_shape.y).unwrap();
+    for i in 0..tile_shape.y {
+        let fi = <T as NumCast>::from(i).unwrap();
+        beta[i] = yoff + fi / tsy;
+    }
+
+    let stencil = Stencil { x: alpha, y: beta };
+
+    for imos in 0..sample_mosaic_shape.y {
+        let mut row = vec![];
+        for jmos in 0..sample_mosaic_shape.x {
+            row.push(TargetTile {
+                ecr: EffectiveContextualRegion {
+                    top_left: &sample_interpolators[imos][jmos],
+                    top_right: &sample_interpolators[imos][jmos + 1],
+                    bottom_left: &sample_interpolators[imos + 1][jmos],
+                    bottom_right: &sample_interpolators[imos + 1][jmos + 1],
+                },
+                stencil: &stencil,
+            })
+        }
+        tiles.push(row);
+    }
+    let one: T = 1.0.into();
+
+    let mut out = Array2::<T>::zeros(pimage.raw_dim());
+    for (itiles, row) in tiles.iter().enumerate().take(sample_mosaic_shape.y - 1) {
+        let ioff = half_tile_offset_y + itiles * tile_shape.y;
+        for (jtiles, tile) in row.iter().enumerate().take(sample_mosaic_shape.x - 1) {
+            let joff = half_tile_offset_x + jtiles * tile_shape.x;
+            for i in 0..tile_shape.y {
+                for j in 0..tile_shape.x {
+                    let v = pimage[[ioff + i, joff + j]];
+                    let q = tile.ecr.get_normalized_intensities(v);
+                    let a = tile.stencil.x[j];
+                    let b = tile.stencil.y[i];
+                    // my convention for a VS b is completely different from Fizer 1987
+                    // maybe I should align them.
+                    out[[ioff + i, joff + j]] = b
+                        * (a * q.bottom_right + (one - a) * q.bottom_left)
+                        + (one - b) * (a * q.top_right + (one - a) * q.top_left);
+                }
+            }
+        }
+    }
+    out.to_pyarray(py)
+}
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -866,6 +1048,34 @@ fn _core<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
         equalize_histogram_sliding_tile(py, image, nbins, tile_shape)
     }
     m.add_function(wrap_pyfunction!(equalize_histogram_sliding_tile_f64, m)?)?;
+
+    #[pyfunction]
+    fn equalize_histogram_tile_interpolation_f32<'py>(
+        py: Python<'py>,
+        image: PyReadonlyArray2<'py, f32>,
+        nbins: usize,
+        tile_shape: (usize, usize),
+    ) -> Bound<'py, PyArray2<f32>> {
+        equalize_histogram_tile_interpolation(py, image, nbins, tile_shape)
+    }
+    m.add_function(wrap_pyfunction!(
+        equalize_histogram_tile_interpolation_f32,
+        m
+    )?)?;
+
+    #[pyfunction]
+    fn equalize_histogram_tile_interpolation_f64<'py>(
+        py: Python<'py>,
+        image: PyReadonlyArray2<'py, f64>,
+        nbins: usize,
+        tile_shape: (usize, usize),
+    ) -> Bound<'py, PyArray2<f64>> {
+        equalize_histogram_tile_interpolation(py, image, nbins, tile_shape)
+    }
+    m.add_function(wrap_pyfunction!(
+        equalize_histogram_tile_interpolation_f64,
+        m
+    )?)?;
 
     Ok(())
 }
