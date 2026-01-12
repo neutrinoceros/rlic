@@ -376,7 +376,7 @@ def equalize_histogram(
             histeq_st = equalize_histogram_sliding_tile_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
         else:
             raise AssertionError
-        res = histeq_st(pimage, nbins, strat.tile_shape)  # type: ignore[arg-type]
+        res = histeq_st(pimage, nbins, ts)  # type: ignore[arg-type]
     # elif isinstance(strat, TileInterpolation):
     #    raise NotImplementedError
     else:
