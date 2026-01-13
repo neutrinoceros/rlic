@@ -612,12 +612,11 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
 fn adjust_intensity_single_pixel<T: AtLeastF32 + numpy::Element + NumCast>(
     interpolator: &LinearHoldLast1D<RectilinearGrid1D<'_, T>>,
     pixel: T,
-    out: &mut T,
-) {
-    *out = match interpolator.eval_one(pixel) {
+) -> T {
+    match interpolator.eval_one(pixel) {
         Ok(res) => res,
         Err(_) => panic!("interpolation failed"),
-    };
+    }
 }
 
 fn equalize_histogram<'py, T: AtLeastF32 + numpy::Element>(
@@ -797,7 +796,7 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
 
             let in_pix = image[[center_pixel.i, center_pixel.j]];
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
-            adjust_intensity_single_pixel(&cdf_interpolator, in_pix, out_pix);
+            *out_pix = adjust_intensity_single_pixel(&cdf_interpolator, in_pix);
         }
     }
 
