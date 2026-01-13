@@ -11,6 +11,7 @@ import sys
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import Enum, auto
 from typing import Literal, Protocol, TypeAlias, TypedDict, TypeVar, final
 
 from rlic._typing import UNSET, Pair, PairSpec, UnsetType
@@ -61,20 +62,46 @@ def report(exceptions: list[Exception]) -> None:
 
 
 TS_EVEN = "{axis} tile size {size} is even. Only odd values are allowed."
-TS_INVALID = (
-    "{axis} tile size {size} is invalid. Expected an odd value >=3 (or exactly -1)."
+TS_ODD = "{axis} tile size {size} is odd. Only even values are allowed."
+TS_INVALID_BASE = "{axis} tile size {size} is invalid. "
+TS_INVALID_EXPECTED = "Expected an {parity} value >={min_value} (or exactly -1)."
+TS_INVALID_EXPECTED_ODD = TS_INVALID_BASE + TS_INVALID_EXPECTED.format(
+    parity="odd", min_value=3
+)
+TS_INVALID_EXPECTED_EVEN = TS_INVALID_BASE + TS_INVALID_EXPECTED.format(
+    parity="even", min_value=2
 )
 
 
-def collect_exceptions_tile_size(tile_size: Pair[int]) -> list[Exception]:
+class Parity(Enum):
+    ODD = auto()
+    EVEN = auto()
+
+
+def collect_exceptions_tile_size(
+    tile_size: Pair[int], *, require: Parity
+) -> list[Exception]:
     exceptions: list[Exception] = []
+
+    match require:
+        case Parity.ODD:
+            ts_invalid = TS_INVALID_EXPECTED_ODD
+            min_value = 3
+        case Parity.EVEN:
+            ts_invalid = TS_INVALID_EXPECTED_EVEN
+            min_value = 2
+        case _ as unreachable:
+            assert_never(unreachable)
+
     for axis, size in zip(("x", "y"), tile_size, strict=True):
         if size == -1:
             continue
-        if size < 3:
-            exceptions.append(ValueError(TS_INVALID.format(axis=axis, size=size)))
-        if not size % 2:
+        if size < min_value:
+            exceptions.append(ValueError(ts_invalid.format(axis=axis, size=size)))
+        if require is Parity.ODD and not size % 2:
             exceptions.append(ValueError(TS_EVEN.format(axis=axis, size=size)))
+        if require is Parity.EVEN and size > 0 and size % 2:
+            exceptions.append(ValueError(TS_ODD.format(axis=axis, size=size)))
     return exceptions
 
 
@@ -92,9 +119,7 @@ def collect_exceptions_tile_into(tile_into: Pair[int]) -> list[Exception]:
     return exceptions
 
 
-def resolve_tile_shape(
-    tile_shape: Pair[int], image_shape: Pair[int], *, require_odd: bool
-) -> Pair[int]:
+def resolve_neg_tile_shapes(tile_shape: Pair[int], image_shape: Pair[int]) -> Pair[int]:
     assert all(s > 0 for s in image_shape)
     base_shape = tile_shape
     ret_shape_mut = list(base_shape)
@@ -102,12 +127,8 @@ def resolve_tile_shape(
         s = image_shape[i]
         if base_shape[i] == -1:
             ret_shape_mut[i] = s
-        if require_odd:
-            ret_shape_mut[i] |= 1  # add 1 if the value is even
     ret_shape = (ret_shape_mut[0], ret_shape_mut[1])
     assert all(s > 0 for s in ret_shape)
-    if require_odd:
-        assert all(s % 2 for s in ret_shape)
     return ret_shape
 
 
@@ -153,12 +174,14 @@ class SlidingTile:
                     "Expected a single int, or a pair thereof."
                 )
 
-        exceptions = collect_exceptions_tile_size(tsp)
+        exceptions = collect_exceptions_tile_size(tsp, require=Parity.ODD)
         report(exceptions)
         return cls(tile_shape=tsp)
 
     def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
-        return resolve_tile_shape(self.tile_shape, image_shape, require_odd=True)
+        # only return odd values, rounding up to the next odd number if needed
+        ret_mut = [s | 1 for s in resolve_neg_tile_shapes(self.tile_shape, image_shape)]
+        return ret_mut[0], ret_mut[1]
 
 
 @final
@@ -216,7 +239,7 @@ class TileInterpolation:
             exceptions.extend(collect_exceptions_tile_into(tip))
 
         if tsp is not None:
-            exceptions.extend(collect_exceptions_tile_size(tsp))
+            exceptions.extend(collect_exceptions_tile_size(tsp, require=Parity.EVEN))
 
         report(exceptions)
         return cls(tile_into=tip, tile_shape=tsp)
@@ -226,13 +249,15 @@ class TileInterpolation:
         assert Counter([self.tile_into, self.tile_shape])[None] == 1
 
         if self.tile_into is not None:
-            ts = (
+            ts_mut = [
                 minimal_divisor_size(image_shape[0], self.tile_into[0]),
                 minimal_divisor_size(image_shape[1], self.tile_into[1]),
-            )
+            ]
         elif self.tile_shape is not None:
-            ts = resolve_tile_shape(self.tile_shape, image_shape, require_odd=False)
+            ts_mut = list(resolve_neg_tile_shapes(self.tile_shape, image_shape))
         else:
             raise AssertionError
 
-        return ts
+        # only return even values, rounding down to the previous even number if needed
+        ts_mut = [(s | 1) ^ 1 for s in ts_mut]
+        return ts_mut[0], ts_mut[1]

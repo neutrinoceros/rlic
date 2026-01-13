@@ -10,7 +10,9 @@ import rlic
 from rlic._histeq import (
     INTO_NEG,
     TS_EVEN,
-    TS_INVALID,
+    TS_INVALID_EXPECTED_EVEN,
+    TS_INVALID_EXPECTED_ODD,
+    TS_ODD,
     SlidingTile,
     TileInterpolation,
     as_pair,
@@ -59,21 +61,17 @@ def test_sliding_tile_resolve(tile_shape, image_shape, expected_shape):
 
 
 @pytest.mark.parametrize(
-    "cls, kind",
-    [(SlidingTile, "sliding-tile"), (TileInterpolation, "tile-interpolation")],
-)
-@pytest.mark.parametrize(
     "size, axis, msg",
     [
-        ((-3, 3), "x", TS_INVALID),
-        ((3, -3), "y", TS_INVALID),
-        ((1, 3), "x", TS_INVALID),
-        ((3, 1), "y", TS_INVALID),
+        ((-3, 3), "x", TS_INVALID_EXPECTED_ODD),
+        ((3, -3), "y", TS_INVALID_EXPECTED_ODD),
+        ((1, 3), "x", TS_INVALID_EXPECTED_ODD),
+        ((3, 1), "y", TS_INVALID_EXPECTED_ODD),
         ((4, 3), "x", TS_EVEN),
         ((3, 4), "y", TS_EVEN),
     ],
 )
-def test_from_spec_single_invalid_tile_size_value(cls, kind, size, axis, msg):
+def test_sliding_tile_from_spec_single_invalid_tile_size_value(size, axis, msg):
     if axis == "x":
         s = size[0]
     else:
@@ -82,22 +80,39 @@ def test_from_spec_single_invalid_tile_size_value(cls, kind, size, axis, msg):
         ValueError,
         match=re.escape(msg.format(axis=axis, size=s)),
     ):
-        cls.from_spec({"kind": kind, "tile-size": size})
+        SlidingTile.from_spec({"kind": "sliding-tile", "tile-size": size})
 
 
 @pytest.mark.parametrize(
-    "cls, kind",
-    [(SlidingTile, "sliding-tile"), (TileInterpolation, "tile-interpolation")],
+    "size, axis, msg",
+    [
+        ((-4, 4), "x", TS_INVALID_EXPECTED_EVEN),
+        ((4, -4), "y", TS_INVALID_EXPECTED_EVEN),
+        ((3, 4), "x", TS_ODD),
+        ((4, 3), "y", TS_ODD),
+    ],
 )
+def test_tile_interpolation_from_spec_single_invalid_tile_size_value(size, axis, msg):
+    if axis == "x":
+        s = size[0]
+    else:
+        s = size[1]
+    with pytest.raises(
+        ValueError,
+        match=re.escape(msg.format(axis=axis, size=s)),
+    ):
+        TileInterpolation.from_spec({"kind": "tile-interpolation", "tile-size": size})
+
+
 @pytest.mark.parametrize(
     "size, msg",
     [
-        (1, TS_INVALID),
-        ((1, 1), TS_INVALID),
+        (1, TS_INVALID_EXPECTED_ODD),
+        ((1, 1), TS_INVALID_EXPECTED_ODD),
         (4, TS_EVEN),
     ],
 )
-def test_from_spec_invalid_tile_size_value(cls, kind, size, msg):
+def test_sliding_tile_from_spec_invalid_tile_size_value(size, msg):
     ps = as_pair(size)
     with RaisesGroup(
         RaisesExc(
@@ -109,7 +124,30 @@ def test_from_spec_invalid_tile_size_value(cls, kind, size, msg):
             match=re.escape(msg.format(axis="y", size=ps[1])),
         ),
     ):
-        cls.from_spec({"kind": kind, "tile-size": size})
+        SlidingTile.from_spec({"kind": "sliding-tile", "tile-size": size})
+
+
+@pytest.mark.parametrize(
+    "size, msg",
+    [
+        (0, TS_INVALID_EXPECTED_EVEN),
+        ((0, 0), TS_INVALID_EXPECTED_EVEN),
+        (3, TS_ODD),
+    ],
+)
+def test_tile_interpolation_from_spec_invalid_tile_size_value(size, msg):
+    ps = as_pair(size)
+    with RaisesGroup(
+        RaisesExc(
+            ValueError,
+            match=re.escape(msg.format(axis="x", size=ps[0])),
+        ),
+        RaisesExc(
+            ValueError,
+            match=re.escape(msg.format(axis="y", size=ps[1])),
+        ),
+    ):
+        TileInterpolation.from_spec({"kind": "tile-interpolation", "tile-size": size})
 
 
 @pytest.mark.parametrize("spec", [-2, -1, 0])
@@ -193,13 +231,13 @@ def test_tile_interpolation_from_spec_invalid_type(key):
     "spec, expected",
     [
         pytest.param(
-            {"kind": "tile-interpolation", "tile-size": 13},
-            TileInterpolation(tile_shape=(13, 13)),
+            {"kind": "tile-interpolation", "tile-size": 14},
+            TileInterpolation(tile_shape=(14, 14)),
             id="int-tile-size",
         ),
         pytest.param(
-            {"kind": "tile-interpolation", "tile-size": (13, 15)},
-            TileInterpolation(tile_shape=(13, 15)),
+            {"kind": "tile-interpolation", "tile-size": (12, 14)},
+            TileInterpolation(tile_shape=(12, 14)),
             id="tuple-tile-size",
         ),
         pytest.param(
