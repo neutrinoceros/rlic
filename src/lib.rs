@@ -2,7 +2,7 @@ use crate::boundaries::BoundarySet;
 use either::Either;
 use interpn::one_dim::linear::LinearHoldLast1D;
 use interpn::one_dim::Interp1D;
-use interpn::RectilinearGrid1D;
+use interpn::RegularGrid1D;
 use num_traits::{Float, NumCast, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{s, Array1, Array2, ArrayView, ArrayView1, ArrayView2, Axis, Dimension};
@@ -467,20 +467,8 @@ impl<T: AtLeastF32 + NumCast> Histogram<T> {
         self.range.span() / <T as NumCast>::from(self.bins.len()).unwrap()
     }
 
-    fn edges(&self) -> Array1<T> {
-        Array1::<T>::linspace(self.range.lo, self.range.hi, self.bins.len() + 1)
-    }
-
-    fn centers(&self) -> Array1<T> {
-        let nbins = self.bins.len();
-        let mut centers = Array1::<T>::zeros(nbins);
-        let half: T = 0.5.into();
-        let offset = half * self.bin_width();
-        let edges = self.edges();
-        for i in 0..nbins {
-            centers[i] = edges[i] + offset;
-        }
-        centers
+    fn first_bin_center(&self) -> T {
+        self.range.lo + self.bin_width() / 2.0.into()
     }
 
     fn cdf(&self) -> Array1<usize> {
@@ -569,18 +557,7 @@ mod test_histogram {
             range: Range { lo: 0.0, hi: 8.0 },
         };
         assert_eq!(hist.bin_width(), 1.0);
-
-        let edges = hist.edges();
-        let edges = edges.as_slice().unwrap();
-        assert_eq!(edges.len(), nbins + 1);
-        assert_eq!(*edges.first().unwrap(), hist.range.lo);
-        assert_eq!(*edges.last().unwrap(), hist.range.hi);
-        assert_eq!(edges, vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
-
-        let centers = hist.centers();
-        let centers = centers.as_slice().unwrap();
-        assert_eq!(centers.len(), nbins);
-        assert_eq!(centers, vec![0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]);
+        assert_eq!(hist.first_bin_center(), 0.5);
 
         let cdf = hist.cdf();
         let cdf = cdf.as_slice().unwrap();
@@ -597,10 +574,13 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     hist: Histogram<T>,
     out: &mut Array2<T>,
 ) {
-    let bin_centers = hist.centers();
     let cdf = hist.cdf_as_normalized();
-    let grid =
-        RectilinearGrid1D::new(bin_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
+    let grid = RegularGrid1D::new(
+        hist.first_bin_center(),
+        hist.bin_width(),
+        cdf.as_slice().unwrap(),
+    )
+    .unwrap();
     let interpolator = LinearHoldLast1D::new(grid);
 
     let locs = image.as_slice().unwrap();
@@ -610,7 +590,7 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     }
 }
 fn adjust_intensity_single_pixel<T: AtLeastF32 + numpy::Element + NumCast>(
-    interpolator: &LinearHoldLast1D<RectilinearGrid1D<'_, T>>,
+    interpolator: &LinearHoldLast1D<RegularGrid1D<'_, T>>,
     pixel: T,
 ) -> T {
     match interpolator.eval_one(pixel) {
@@ -716,10 +696,13 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             hi: 1.0.into(),
         },
     };
-    let mut hist_centers = hist.centers();
     let mut cdf = hist.cdf_as_normalized();
-    let mut cdf_grid =
-        RectilinearGrid1D::new(hist_centers.as_slice().unwrap(), cdf.as_slice().unwrap()).unwrap();
+    let mut cdf_grid = RegularGrid1D::new(
+        hist.first_bin_center(),
+        hist.bin_width(),
+        cdf.as_slice().unwrap(),
+    )
+    .unwrap();
     let mut cdf_interpolator = LinearHoldLast1D::new(cdf_grid);
     let mut subhists_need_reinit = true;
     let mut hist_reduction_needed = true;
@@ -783,10 +766,10 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
             assert_eq!(subhists.len(), tile_dims.y);
             if hist_reduction_needed {
                 hist = reduce_histogram(&subhists);
-                hist_centers = hist.centers();
                 cdf = hist.cdf_as_normalized();
-                cdf_grid = RectilinearGrid1D::new(
-                    hist_centers.as_slice().unwrap(),
+                cdf_grid = RegularGrid1D::new(
+                    hist.first_bin_center(),
+                    hist.bin_width(),
                     cdf.as_slice().unwrap(),
                 )
                 .unwrap();

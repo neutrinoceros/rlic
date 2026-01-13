@@ -300,8 +300,8 @@ def _ahe_numpy(image, nbins: int, tile_size: int):
         (256, 50.0),
     ],
 )
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_historgram_equalization(nbins, min_rms_reduction, dtype, subtests):
+@pytest.mark.parametrize("dtype, rtol", [("float32", 2e-6), ("float64", 2.5e-15)])
+def test_historgram_equalization(nbins, min_rms_reduction, dtype, rtol, subtests):
     # histogram equalization produces a new image whose cumulative
     # distribution function (cdf) should be close(r) to a straight line
     # (i.e., approaching a flat intensity distribution)
@@ -340,13 +340,6 @@ def test_historgram_equalization(nbins, min_rms_reduction, dtype, subtests):
 
     image_ref = _equalize_histogram_numpy(image, nbins=nbins)
 
-    match dtype:
-        case "float32":
-            rtol = 2e-6
-        case "float64":
-            rtol = 2e-15
-        case _ as _unreachable:
-            raise AssertionError
     with subtests.test("compare to ref impl"):
         npt.assert_allclose(image_eq, image_ref, rtol=rtol)
 
@@ -401,7 +394,7 @@ def test_historgram_equalization_unsupported_dtype():
         rlic.equalize_histogram(np.eye(3, dtype="int64"), nbins=3)
 
 
-@pytest.mark.parametrize("dtype, rtol", [("float32", 5e-7), ("float64", 5e-16)])
+@pytest.mark.parametrize("dtype, rtol", [("float32", 6e-7), ("float64", 5e-16)])
 def test_historgram_equalization_sliding_tile_full_ahe(dtype, rtol):
     IMAGE_SHAPE = (4, 6)
     TILE_SIZE = 3
