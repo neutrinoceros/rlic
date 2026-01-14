@@ -879,11 +879,11 @@ fn equalize_histogram_tile_interpolation<'py, T: AtLeastF32 + numpy::Element>(
             let vrange = ViewRange {
                 x: Range {
                     lo: j,
-                    hi: j + tile_shape.x,
+                    hi: j + tile_shape.x - 1,
                 },
                 y: Range {
                     lo: i,
-                    hi: i + tile_shape.y,
+                    hi: i + tile_shape.y - 1,
                 },
             };
             let tile_view = get_tile_view(&pimage, vrange);
@@ -929,9 +929,9 @@ fn equalize_histogram_tile_interpolation<'py, T: AtLeastF32 + numpy::Element>(
 
     let stencil = Stencil { x: alpha, y: beta };
 
-    for imos in 0..sample_mosaic_shape.y {
+    for imos in 0..sample_mosaic_shape.y - 1 {
         let mut row = vec![];
-        for jmos in 0..sample_mosaic_shape.x {
+        for jmos in 0..sample_mosaic_shape.x - 1 {
             row.push(TargetTile {
                 ecr: EffectiveContextualRegion {
                     top_left: &sample_interpolators[imos][jmos],
