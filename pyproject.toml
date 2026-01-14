@@ -57,6 +57,7 @@ covcheck = [
 test = [
     "pytest>=9.0.0",
     "runtime-introspect>=0.3.0",
+    "scikit-image>=0.25.2",
 ]
 typecheck = [
     "exceptiongroup>=1.0.0", # keep in sync with conditional runtime dep

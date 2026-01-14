@@ -458,6 +458,33 @@ def test_historgram_equalization_sliding_tile_full_ahe(dtype, rtol):
     npt.assert_allclose(res_st, res_ahe, rtol=rtol)
 
 
+@pytest.mark.parametrize("dtype, rtol", [("float32", 1e-15), ("float64", 1e-15)])
+def test_historgram_equalization_tile_interpolation_ref_impl(dtype, rtol):
+    from skimage.exposure import equalize_adapthist
+
+    IMAGE_SHAPE = (256, 256)
+    TILE_SIZE = 64
+    NBINS = 3
+    prng = np.random.default_rng(0)
+    image = np.clip(
+        prng.normal(loc=0.0, scale=1.0, size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE),
+        a_min=0.0,
+        a_max=1.0,  # imposed by equalize_adapthist
+        dtype=dtype,
+    )
+    ref = equalize_adapthist(image, kernel_size=TILE_SIZE, clip_limit=0.0, nbins=NBINS)
+
+    res_ti = rlic.equalize_histogram(
+        image,
+        nbins=NBINS,
+        adaptive_strategy={
+            "kind": "tile-interpolation",
+            "tile-size": TILE_SIZE,
+        },
+    )
+    npt.assert_allclose(res_ti, ref, rtol=rtol)
+
+
 @pytest.mark.parametrize("dtype, rtol", [("float32", 1.25), ("float64", 1.25)])
 def test_historgram_equalization_tile_interpolation_full_ahe(dtype, rtol):
     IMAGE_SHAPE = (64, 64)
