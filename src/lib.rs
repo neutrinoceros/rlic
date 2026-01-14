@@ -154,7 +154,7 @@ mod test_pixel_select {
     }
 }
 
-trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> {}
+trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> + std::fmt::Display + std::fmt::Debug {}
 impl AtLeastF32 for f32 {}
 impl AtLeastF32 for f64 {}
 
