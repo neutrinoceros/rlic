@@ -805,7 +805,15 @@ fn equalize_histogram_sliding_tile<'py, T: AtLeastF32 + numpy::Element>(
 
             let in_pix = image[[center_pixel.i, center_pixel.j]];
             let out_pix = &mut out[[center_pixel.i, center_pixel.j]];
-            *out_pix = adjust_intensity_single_pixel(&cdf_interpolator, in_pix);
+            if hist.range.span() == 0.0.into() {
+                if hist.range.hi == 0.0.into() {
+                    *out_pix = 0.0.into();
+                } else {
+                    *out_pix = 1.0.into();
+                }
+            } else {
+                *out_pix = adjust_intensity_single_pixel(&cdf_interpolator, in_pix);
+            }
         }
     }
 
