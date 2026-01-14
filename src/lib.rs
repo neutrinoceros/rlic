@@ -498,11 +498,20 @@ fn compute_subhistogram<T: AtLeastF32>(
     range: Range<T>,
     nbins: usize,
 ) -> Histogram<T> {
+    if range.span() == 0.0.into() {
+        // fast path for perfectly uniform regions
+        // (mostly needed to avoid divide-by-zero panics)
+        let bins = Array1::<usize>::zeros(nbins);
+        let bins = bins.slice(s![..-1]).to_owned();
+        return Histogram { bins, range }
+    }
+
     let bin_width = range.span() / <T as NumCast>::from(nbins).unwrap();
 
     // padding one extra bin on the right allows for a branchless optimization:
     // pixels that contain exactly vmax are counted in the extra bin
     let mut bins = Array1::<usize>::zeros(nbins + 1);
+
     for v in arr.iter() {
         let f = ((*v - range.lo) / bin_width).floor();
         let idx = <usize as NumCast>::from(f).unwrap();
@@ -575,6 +584,21 @@ fn adjust_intensity<T: AtLeastF32 + numpy::Element + NumCast>(
     hist: Histogram<T>,
     out: &mut Array2<T>,
 ) {
+    if hist.range.span() == 0.0.into() {
+        let v: T;
+        if hist.range.hi == 0.0.into() {
+            v = 0.0.into();
+        } else {
+            v = 1.0.into();
+        }
+        for i in 0..out.shape()[0] {
+            for j in 0..out.shape()[1] {
+                out[[i, j]] = v;
+            }
+        }
+        return
+    }
+
     let cdf = hist.cdf_as_normalized();
     let grid = RegularGrid1D::new(
         hist.first_bin_center(),
