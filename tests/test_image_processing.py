@@ -473,7 +473,7 @@ def test_historgram_equalization_tile_interpolation_full_ahe(dtype, rtol):
 
     res_ahe = _ahe_numpy(image, nbins=NBINS, tile_size=TILE_SIZE)
 
-    res_st = rlic.equalize_histogram(
+    res_ti = rlic.equalize_histogram(
         image,
         nbins=NBINS,
         adaptive_strategy={
@@ -481,7 +481,7 @@ def test_historgram_equalization_tile_interpolation_full_ahe(dtype, rtol):
             "tile-size": TILE_SIZE,
         },
     )
-    npt.assert_allclose(res_st, res_ahe, rtol=rtol)
+    npt.assert_allclose(res_ti, res_ahe, rtol=rtol)
 
 
 @pytest.mark.parametrize(
