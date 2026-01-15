@@ -505,6 +505,35 @@ def test_minimal_size_divisor(size, into, expected):
     assert minimal_divisor_size(size, into) == expected
 
 
+@pytest.mark.parametrize("image_shape", [(5, 6), (6, 5), (5, 5)])
+def test_resolve_pad_width_tile_interpolation_odd_image(image_shape):
+    strat = TileInterpolation(tile_shape=(4, 4))
+    with pytest.raises(
+        ValueError,
+        match="^"
+        + re.escape(
+            "Tile interpolation is only supported for images with even sizes "
+            f"in all directions. Received image with shape {image_shape}"
+        )
+        + "$",
+    ):
+        strat.resolve_pad_width(image_shape)
+
+
+@pytest.mark.parametrize(
+    "strat, image_shape, expected",
+    [
+        (SlidingTile(tile_shape=(3, 3)), (4, 4), (1, 1)),
+        (SlidingTile(tile_shape=(5, 5)), (5, 6), (2, 2)),
+        (TileInterpolation(tile_shape=(2, 2)), (4, 4), (2, 2)),
+        (TileInterpolation(tile_shape=(4, 4)), (4, 4), (4, 4)),
+        (TileInterpolation(tile_shape=(2, 4)), (8, 8), (2, 4)),
+    ],
+)
+def test_resolve_pad_width(strat, image_shape, expected):
+    assert strat.resolve_pad_width(image_shape) == expected
+
+
 @pytest.mark.parametrize(
     "adaptive_strategy",
     [

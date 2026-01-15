@@ -21,7 +21,11 @@ from rlic._core import (
     equalize_histogram_tile_interpolation_f32,
     equalize_histogram_tile_interpolation_f64,
 )
-from rlic._histeq import SUPPORTED_AHE_KINDS, SlidingTile, TileInterpolation
+from rlic._histeq import (
+    SUPPORTED_AHE_KINDS,
+    SlidingTile,
+    TileInterpolation,
+)
 from rlic._typing import UNSET, UnsetType
 
 if sys.version_info >= (3, 11):
@@ -260,18 +264,6 @@ def _resolve_nbins(nbins: int | Literal["auto"], shape: Pair[int]) -> int:
         return nbins
 
 
-def _resolve_wing_shape(tile_shape: Pair[int]) -> Pair[int]:
-    """Compute the size of a tile's wings.
-
-    It is assumed that a tile has an odd size >=3 in both directions.
-    Wing size is then trivially half of the preceding even number.
-    """
-    assert all(s >= 3 for s in tile_shape)
-    assert all(s % 2 for s in tile_shape)
-
-    return (tile_shape[0] // 2, tile_shape[1] // 2)
-
-
 def equalize_histogram(
     image: ndarray[tuple[int, int], dtype[F]],
     /,
@@ -367,14 +359,7 @@ def equalize_histogram(
     ts = strat.resolve_tile_shape(image.shape)
     nbins = _resolve_nbins(nbins, ts)
 
-    match strat:
-        case SlidingTile():
-            pad_width = _resolve_wing_shape(ts)
-        case TileInterpolation():
-            pad_width = ts
-        case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
-            assert_never(unreachable)  # pyright: ignore[reportUnreachable]
-
+    pad_width = strat.resolve_pad_width(image.shape)
     pimage = np.pad(image, pad_width=pad_width, mode="reflect")
 
     match strat:

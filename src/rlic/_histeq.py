@@ -12,6 +12,7 @@ from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum, auto
+from math import ceil
 from typing import Literal, Protocol, TypeAlias, TypedDict, TypeVar, final
 
 from rlic._typing import UNSET, Pair, PairSpec, UnsetType
@@ -145,7 +146,8 @@ V = TypeVar("V")
 class Strategy(Protocol):
     @classmethod
     def from_spec(cls, spec: Mapping[str, V], /) -> Self: ...
-    def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]: ...
+    def resolve_tile_shape(self, image_shape: Pair[int], /) -> Pair[int]: ...
+    def resolve_pad_width(self, image_shape: Pair[int], /) -> Pair[int]: ...
 
 
 @final
@@ -178,10 +180,19 @@ class SlidingTile:
         report(exceptions)
         return cls(tile_shape=tsp)
 
-    def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
+    def resolve_tile_shape(self, image_shape: Pair[int], /) -> Pair[int]:
         # only return odd values, rounding up to the next odd number if needed
         ret_mut = [s | 1 for s in resolve_neg_tile_shapes(self.tile_shape, image_shape)]
         return ret_mut[0], ret_mut[1]
+
+    def resolve_pad_width(self, _image_shape: Pair[int], /) -> Pair[int]:
+        # it is assumed that a tile has an odd size >=3 in both directions.
+        # wing size is then trivially half of the preceding even number.
+
+        ts = self.tile_shape
+        assert all(s >= 3 for s in ts)
+        assert all(s % 2 for s in ts)
+        return (ts[0] // 2, ts[1] // 2)
 
 
 @final
@@ -244,7 +255,7 @@ class TileInterpolation:
         report(exceptions)
         return cls(tile_into=tip, tile_shape=tsp)
 
-    def resolve_tile_shape(self, image_shape: Pair[int]) -> Pair[int]:
+    def resolve_tile_shape(self, image_shape: Pair[int], /) -> Pair[int]:
         assert all(s > 0 for s in image_shape)
         assert Counter([self.tile_into, self.tile_shape])[None] == 1
 
@@ -261,3 +272,33 @@ class TileInterpolation:
         # only return even values, rounding down to the previous even number if needed
         ts_mut = [(s | 1) ^ 1 for s in ts_mut]
         return ts_mut[0], ts_mut[1]
+
+    def resolve_pad_width(self, image_shape: Pair[int], /) -> Pair[int]:
+        # the padded image should be (in every direction):
+        # - an integral multiple of the tile size
+        # - as small as possible
+        # further more, the pad_width must be at least the size of a single tile
+        if self.tile_shape is None:
+            raise AssertionError
+        if any(s % 2 for s in image_shape):
+            # a direct consequence of using a staggered tiling scheme in the hot loop,
+            # and not wanting to allow left/right biases, is that we can allow allow
+            # even-sized tile shapes. Combined with the requirements on pad width above,
+            # this implies that solutions only exists for even-sized images.
+            raise ValueError(
+                "Tile interpolation is only supported for images with even sizes in all directions. "
+                f"Received image with shape {image_shape}"
+            )
+
+        ts = self.tile_shape
+        sh = image_shape
+
+        res = (
+            (ceil(sh[0] / ts[0] + 2) * ts[0] - sh[0]) // 2,
+            (ceil(sh[1] / ts[1] + 2) * ts[1] - sh[1]) // 2,
+        )
+        assert not (sh[0] + 2 * res[0]) % ts[0]
+        assert not (sh[1] + 2 * res[1]) % ts[1]
+        assert res[0] >= ts[0]
+        assert res[1] >= ts[1]
+        return res
