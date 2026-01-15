@@ -154,7 +154,7 @@ mod test_pixel_select {
     }
 }
 
-trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> + std::fmt::Display + std::fmt::Debug {}
+trait AtLeastF32: Float + From<f32> + Signed + AddAssign<<Self as Mul>::Output> {}
 impl AtLeastF32 for f32 {}
 impl AtLeastF32 for f64 {}
 
@@ -667,6 +667,13 @@ where
     for v in arr.iter() {
         lo = lo.min(*v);
         hi = hi.max(*v);
+    }
+    if hi == lo {
+        if hi == 0.0.into() {
+            hi = 1.0.into();
+        } else {
+            lo = 0.0.into();
+        }
     }
     Range { lo, hi }
 }

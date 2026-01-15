@@ -505,7 +505,6 @@ def test_minimal_size_divisor(size, into, expected):
     assert minimal_divisor_size(size, into) == expected
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize(
     "adaptive_strategy",
     [
