@@ -668,6 +668,13 @@ where
         lo = lo.min(*v);
         hi = hi.max(*v);
     }
+    if hi == lo {
+        if hi == 0.0.into() {
+            hi = 1.0.into();
+        } else {
+            lo = 0.0.into();
+        }
+    }
     Range { lo, hi }
 }
 

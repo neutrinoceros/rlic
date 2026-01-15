@@ -503,3 +503,19 @@ def test_historgram_equalization_tile_interpolation_full_ahe(dtype, rtol):
 )
 def test_minimal_size_divisor(size, into, expected):
     assert minimal_divisor_size(size, into) == expected
+
+
+@pytest.mark.parametrize(
+    "adaptive_strategy",
+    [
+        None,
+        {"kind": "sliding-tile", "tile-size": 5},
+        {"kind": "tile-interpolation", "tile-size": 64},
+    ],
+)
+def test_uniform_image(adaptive_strategy):
+    IMAGE_SHAPE = (128, 128)
+    image = np.ones(IMAGE_SHAPE, dtype="float64")
+    res = rlic.equalize_histogram(image, nbins=8, adaptive_strategy=adaptive_strategy)
+    assert res is not image
+    npt.assert_array_equal(res, image)
