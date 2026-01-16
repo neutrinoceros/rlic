@@ -523,11 +523,11 @@ def test_resolve_pad_width_tile_interpolation_odd_image(image_shape):
 @pytest.mark.parametrize(
     "strat, image_shape, expected",
     [
-        (SlidingTile(tile_shape=(3, 3)), (4, 4), (1, 1)),
-        (SlidingTile(tile_shape=(5, 5)), (5, 6), (2, 2)),
-        (TileInterpolation(tile_shape=(2, 2)), (4, 4), (2, 2)),
-        (TileInterpolation(tile_shape=(4, 4)), (4, 4), (4, 4)),
-        (TileInterpolation(tile_shape=(2, 4)), (8, 8), (2, 4)),
+        (SlidingTile(tile_shape=(3, 3)), (4, 4), ((1, 1), (1, 1))),
+        (SlidingTile(tile_shape=(5, 5)), (5, 6), ((2, 2), (2, 2))),
+        (TileInterpolation(tile_shape=(2, 2)), (4, 4), ((2, 2), (2, 2))),
+        (TileInterpolation(tile_shape=(4, 4)), (4, 4), ((4, 4), (4, 4))),
+        (TileInterpolation(tile_shape=(2, 4)), (8, 8), ((2, 2), (4, 4))),
     ],
 )
 def test_resolve_pad_width(strat, image_shape, expected):
@@ -543,7 +543,7 @@ def test_resolve_pad_width(strat, image_shape, expected):
     ],
 )
 def test_uniform_image(adaptive_strategy):
-    IMAGE_SHAPE = (128, 128)
+    IMAGE_SHAPE = (128, 130)
     image = np.ones(IMAGE_SHAPE, dtype="float64")
     res = rlic.equalize_histogram(image, nbins=8, adaptive_strategy=adaptive_strategy)
     assert res is not image
