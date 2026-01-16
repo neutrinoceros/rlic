@@ -391,4 +391,4 @@ def equalize_histogram(
             assert_never(unreachable)
 
     # unpad result
-    return res[pad_width[0] : -pad_width[0], pad_width[1] : -pad_width[1]]  # type: ignore[return-value]
+    return res[pad_width[0][0] : -pad_width[0][1], pad_width[1][0] : -pad_width[1][1]]  # type: ignore[return-value]

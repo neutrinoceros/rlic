@@ -147,7 +147,7 @@ class Strategy(Protocol):
     @classmethod
     def from_spec(cls, spec: Mapping[str, V], /) -> Self: ...
     def resolve_tile_shape(self, image_shape: Pair[int], /) -> Pair[int]: ...
-    def resolve_pad_width(self, image_shape: Pair[int], /) -> Pair[int]: ...
+    def resolve_pad_width(self, image_shape: Pair[int], /) -> Pair[Pair[int]]: ...
 
 
 @final
@@ -185,14 +185,15 @@ class SlidingTile:
         ret_mut = [s | 1 for s in resolve_neg_tile_shapes(self.tile_shape, image_shape)]
         return ret_mut[0], ret_mut[1]
 
-    def resolve_pad_width(self, _image_shape: Pair[int], /) -> Pair[int]:
+    def resolve_pad_width(self, _image_shape: Pair[int], /) -> Pair[Pair[int]]:
         # it is assumed that a tile has an odd size >=3 in both directions.
         # wing size is then trivially half of the preceding even number.
 
         ts = self.tile_shape
         assert all(s >= 3 for s in ts)
         assert all(s % 2 for s in ts)
-        return (ts[0] // 2, ts[1] // 2)
+        pw = (ts[0] // 2, ts[1] // 2)
+        return ((pw[0], pw[0]), (pw[1], pw[1]))
 
 
 @final
@@ -273,7 +274,7 @@ class TileInterpolation:
         ts_mut = [(s | 1) ^ 1 for s in ts_mut]
         return ts_mut[0], ts_mut[1]
 
-    def resolve_pad_width(self, image_shape: Pair[int], /) -> Pair[int]:
+    def resolve_pad_width(self, image_shape: Pair[int], /) -> Pair[Pair[int]]:
         # the padded image should be (in every direction):
         # - an integral multiple of the tile size
         # - as small as possible
@@ -293,12 +294,12 @@ class TileInterpolation:
         ts = self.tile_shape
         sh = image_shape
 
-        res = (
+        pw = (
             (ceil(sh[0] / ts[0] + 2) * ts[0] - sh[0]) // 2,
             (ceil(sh[1] / ts[1] + 2) * ts[1] - sh[1]) // 2,
         )
-        assert not (sh[0] + 2 * res[0]) % ts[0]
-        assert not (sh[1] + 2 * res[1]) % ts[1]
-        assert res[0] >= ts[0]
-        assert res[1] >= ts[1]
-        return res
+        assert not (sh[0] + 2 * pw[0]) % ts[0]
+        assert not (sh[1] + 2 * pw[1]) % ts[1]
+        assert pw[0] >= ts[0]
+        assert pw[1] >= ts[1]
+        return ((pw[0], pw[0]), (pw[1], pw[1]))
