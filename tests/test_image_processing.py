@@ -63,16 +63,16 @@ def test_sliding_tile_resolve(tile_shape, image_shape, expected_shape):
 @pytest.mark.parametrize(
     "size, axis, msg",
     [
-        ((-3, 3), "x", TS_INVALID_EXPECTED_ODD),
-        ((3, -3), "y", TS_INVALID_EXPECTED_ODD),
-        ((1, 3), "x", TS_INVALID_EXPECTED_ODD),
-        ((3, 1), "y", TS_INVALID_EXPECTED_ODD),
-        ((4, 3), "x", TS_EVEN),
-        ((3, 4), "y", TS_EVEN),
+        ((-3, 3), "y", TS_INVALID_EXPECTED_ODD),
+        ((3, -3), "x", TS_INVALID_EXPECTED_ODD),
+        ((1, 3), "y", TS_INVALID_EXPECTED_ODD),
+        ((3, 1), "x", TS_INVALID_EXPECTED_ODD),
+        ((4, 3), "y", TS_EVEN),
+        ((3, 4), "x", TS_EVEN),
     ],
 )
 def test_sliding_tile_from_spec_single_invalid_tile_size_value(size, axis, msg):
-    if axis == "x":
+    if axis == "y":
         s = size[0]
     else:
         s = size[1]
@@ -86,14 +86,14 @@ def test_sliding_tile_from_spec_single_invalid_tile_size_value(size, axis, msg):
 @pytest.mark.parametrize(
     "size, axis, msg",
     [
-        ((-4, 4), "x", TS_INVALID_EXPECTED_EVEN),
-        ((4, -4), "y", TS_INVALID_EXPECTED_EVEN),
-        ((3, 4), "x", TS_ODD),
-        ((4, 3), "y", TS_ODD),
+        ((-4, 4), "y", TS_INVALID_EXPECTED_EVEN),
+        ((4, -4), "x", TS_INVALID_EXPECTED_EVEN),
+        ((3, 4), "y", TS_ODD),
+        ((4, 3), "x", TS_ODD),
     ],
 )
 def test_tile_interpolation_from_spec_single_invalid_tile_size_value(size, axis, msg):
-    if axis == "x":
+    if axis == "y":
         s = size[0]
     else:
         s = size[1]
@@ -117,11 +117,11 @@ def test_sliding_tile_from_spec_invalid_tile_size_value(size, msg):
     with RaisesGroup(
         RaisesExc(
             ValueError,
-            match=re.escape(msg.format(axis="x", size=ps[0])),
+            match=re.escape(msg.format(axis="x", size=ps[1])),
         ),
         RaisesExc(
             ValueError,
-            match=re.escape(msg.format(axis="y", size=ps[1])),
+            match=re.escape(msg.format(axis="y", size=ps[0])),
         ),
     ):
         SlidingTile.from_spec({"kind": "sliding-tile", "tile-size": size})

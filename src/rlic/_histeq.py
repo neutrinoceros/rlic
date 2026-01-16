@@ -93,7 +93,7 @@ def collect_exceptions_tile_size(
         case _ as unreachable:
             assert_never(unreachable)
 
-    for axis, size in zip(("x", "y"), tile_size, strict=True):
+    for axis, size in zip(("y", "x"), tile_size, strict=True):
         if size == -1:
             continue
         if size < min_value:

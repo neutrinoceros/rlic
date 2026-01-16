@@ -369,10 +369,9 @@ def equalize_histogram(
 
     match strat:
         case SlidingTile():
-            tile_wing_shape = _resolve_wing_shape(ts)
-            pad_width = (tile_wing_shape[1], tile_wing_shape[0])
+            pad_width = _resolve_wing_shape(ts)
         case TileInterpolation():
-            pad_width = (ts[1], ts[0])
+            pad_width = ts
         case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison]
             assert_never(unreachable)  # pyright: ignore[reportUnreachable]
 
