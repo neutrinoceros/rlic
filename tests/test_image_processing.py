@@ -537,9 +537,11 @@ def test_resolve_pad_width(strat, image_shape, expected):
 @pytest.mark.parametrize(
     "adaptive_strategy",
     [
-        None,
-        {"kind": "sliding-tile", "tile-size": 5},
-        {"kind": "tile-interpolation", "tile-size": 64},
+        pytest.param(None, id="non-adaptive"),
+        pytest.param({"kind": "sliding-tile", "tile-size": 5}, id="sliding-tile"),
+        pytest.param(
+            {"kind": "tile-interpolation", "tile-size": 64}, id="tile-interpolation"
+        ),
     ],
 )
 def test_uniform_image(adaptive_strategy):
