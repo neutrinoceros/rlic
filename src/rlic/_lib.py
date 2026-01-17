@@ -320,6 +320,13 @@ def equalize_histogram(
             f"Found unsupported data type: {image.dtype}. "
             f"Expected of of {_SUPPORTED_DTYPES}."
         )
+    if not image.flags.c_contiguous:
+        # - low-level interpolation routines require the array be contiguous
+        # - hot loops are optimized for C order arrays
+        # the image is never to be mutated so this won't compromise
+        # correctness or consistency
+        # this type:ignore comment can be removed when Python 3.10 is dropped
+        image = np.copy(image, order="C")  # type: ignore[assignment]
 
     input_dtype = image.dtype
     if adaptive_strategy is None:

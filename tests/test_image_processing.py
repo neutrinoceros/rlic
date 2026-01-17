@@ -553,7 +553,7 @@ def test_uniform_image(adaptive_strategy):
 @pytest.mark.parametrize(
     "adaptive_strategy",
     [
-        pytest.param(None, id="non-adaptive", marks=pytest.mark.xfail),
+        pytest.param(None, id="non-adaptive"),
         pytest.param({"kind": "sliding-tile", "tile-size": 5}, id="sliding-tile"),
         pytest.param(
             {"kind": "tile-interpolation", "tile-size": 16}, id="tile-interpolation"
