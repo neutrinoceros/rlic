@@ -548,3 +548,21 @@ def test_uniform_image(adaptive_strategy):
     res = rlic.equalize_histogram(image, nbins=8, adaptive_strategy=adaptive_strategy)
     assert res is not image
     npt.assert_array_equal(res, image)
+
+
+@pytest.mark.parametrize(
+    "adaptive_strategy",
+    [
+        pytest.param(None, id="non-adaptive"),
+        pytest.param({"kind": "sliding-tile", "tile-size": 5}, id="sliding-tile"),
+        pytest.param(
+            {"kind": "tile-interpolation", "tile-size": 16}, id="tile-interpolation"
+        ),
+    ],
+)
+def test_non_contiguous_image(adaptive_strategy):
+    IMAGE_SHAPE = (128, 128)
+    image = np.ones(IMAGE_SHAPE, dtype="float64")[::2, ::2]
+    res = rlic.equalize_histogram(image, nbins=8, adaptive_strategy=adaptive_strategy)
+    assert res is not image
+    npt.assert_array_equal(res, image)
