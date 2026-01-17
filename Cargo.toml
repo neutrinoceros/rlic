@@ -11,12 +11,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # "extension-module" tells pyo3 we want to build an extension module (skips linking against libpython.so)
-# "abi3-py39" tells pyo3 (and maturin) to build using the stable ABI with minimum Python version 3.9
-# keep in sync with requires-python (pyproject.toml)
-#
-# maturin 1.8.6 (2025-05-13) reduced the need to keep this version in sync, but
-# I don't want to rely on it yet, as it's too new at the time of writing
-pyo3 = { version = "0.27.2", features = ["extension-module", "abi3-py310"] }
+# "abi3" tells pyo3 (and maturin) to build using the stable ABI
+# the Python version used for building determines the minimum compatible installation target
+pyo3 = { version = "0.27.2", features = ["extension-module", "abi3"] }
 numpy = "0.27.1"
 num-traits = "0.2.19"
 either = "1.15.0"
