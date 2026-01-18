@@ -2,7 +2,7 @@
 name = "rlic"
 version = "0.5.3" # keep in sync with pyproject.toml
 edition = "2021"
-rust-version = "1.87" # 2025-05-15
+rust-version = "1.74" # 2023-11-16
 
 [lib]
 name = "_core"
@@ -20,7 +20,6 @@ pyo3 = { version = "0.27.2", features = ["extension-module", "abi3-py310"] }
 numpy = "0.27.1"
 num-traits = "0.2.19"
 either = "1.15.0"
-interpn = "0.9.1"
 
 [profile.release]
 # https://nnethercote.github.io/perf-book/build-configuration.html#codegen-units
@@ -32,5 +31,5 @@ strip = "symbols"
 
 [features]
 default = ["fma", "branchless"]
-fma = ["interpn/fma"]
+fma = []
 branchless = []
