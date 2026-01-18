@@ -110,9 +110,7 @@ skip_covered = false
 # use exclude_also to *extend* the default exclude_lines,
 # and allow purely defensive code patterns
 exclude_also = [
-    "^\\s*raise AssertionError\\b",
-    "^\\s*raise NotImplementedError\\b",
-    "^\\s*raise RuntimeError\\b",
+    "^\\s*raise (Assertion|NotImplemented)Error\\b",
     "^\\s*case _ as _?unreachable:",
 ]
 
