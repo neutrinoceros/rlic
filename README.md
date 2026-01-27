@@ -10,13 +10,18 @@
 Convolution](https://en.wikipedia.org/wiki/Line_integral_convolution) algorithm
 for in-memory `numpy` arrays, written in Rust.
 
-## Development status
+## Development status and scope
 
 `rLIC` is currently in beta. As of version 0.5.0, the only public API,
 `rlic.convolve`, is considered feature complete and stable. However, minor
 behavior changes may still happen, particularly where performance can be
-improved as a result. The library as a whole may still grow additional APIs,
-which wouldn't immediately be marked as stable.
+improved as a result.
+
+Post-processing is out-of-scope for this library.
+For histogram equalization, an operation very commonly applies to LIC
+images, please see `rLIC`'s sister project
+[`ahe`](https://pypi.org/project/ahe), which follows the same minimalist
+philosophy and originated within `rLIC`'s code base.
 
 ## Free-threading support
 
