@@ -18,7 +18,7 @@ behavior changes may still happen, particularly where performance can be
 improved as a result.
 
 Post-processing is out-of-scope for this library.
-For histogram equalization, an operation very commonly applies to LIC
+For histogram equalization, an operation very commonly applied to LIC
 images, please see `rLIC`'s sister project
 [`ahe`](https://pypi.org/project/ahe), which follows the same minimalist
 philosophy and originated within `rLIC`'s code base.
