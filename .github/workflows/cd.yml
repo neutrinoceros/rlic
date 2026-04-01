@@ -91,7 +91,7 @@ jobs:
 
     - uses: dtolnay/rust-toolchain@stable # zizmor: ignore[unpinned-uses]
     - name: Build wheels - x86_64
-      uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+      uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: x86_64
         args: --release --out dist --no-default-features -F fma
@@ -119,7 +119,7 @@ jobs:
         enable-cache: false
     - uses: dtolnay/rust-toolchain@stable # zizmor: ignore[unpinned-uses]
     - name: Build wheels - arm64
-      uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+      uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: aarch64-apple-darwin
         args: --release --out dist
@@ -155,7 +155,7 @@ jobs:
         enable-cache: false
     - uses: dtolnay/rust-toolchain@stable # zizmor: ignore[unpinned-uses]
     - name: Build wheels
-      uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+      uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: ${{ matrix.target }}
         args: --release --out dist --no-default-features -F fma
@@ -191,7 +191,7 @@ jobs:
         enable-cache: false
     - uses: dtolnay/rust-toolchain@stable # zizmor: ignore[unpinned-uses]
     - name: Build wheels
-      uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+      uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: aarch64-pc-windows-msvc
         args: --release --out dist
@@ -230,7 +230,7 @@ jobs:
       with:
         enable-cache: false
     - name: Build wheels
-      uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+      uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: ${{ matrix.target }}
         manylinux: '2_28'
@@ -269,7 +269,7 @@ jobs:
         python-version: '3.10'
         architecture: x64
     - name: Build wheels
-      uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+      uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: ${{ matrix.target }}
         manylinux: musllinux_1_2
