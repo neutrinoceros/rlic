@@ -18,7 +18,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -29,11 +28,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
     "Typing :: Typed",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "exceptiongroup>=1.0.0 ; python_full_version < '3.11'", # keep in sync with typecheck dep group
-    "numpy>=1.22.0",
-    "typing-extensions>=4.1.0 ; python_full_version < '3.11'",
+    "numpy>=1.23.2",
 ]
 
 [project.readme]
@@ -59,7 +56,6 @@ test = [
     "runtime-introspect>=0.3.0",
 ]
 typecheck = [
-    "exceptiongroup>=1.0.0", # keep in sync with conditional runtime dep
     "basedpyright>=1.26.0",
     "mypy>=1.13.0",
     "pyright>=1.1.391",
