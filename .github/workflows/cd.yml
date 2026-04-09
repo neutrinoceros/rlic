@@ -97,7 +97,7 @@ jobs:
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: x86_64
-        args: --release --out dist --no-default-features -F fma -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -130,7 +130,7 @@ jobs:
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: aarch64-apple-darwin
-        args: --release --out dist -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist -F pyo3/abi3 -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -173,7 +173,7 @@ jobs:
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: ${{ matrix.target }}
-        args: --release --out dist --no-default-features -F fma -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -213,7 +213,7 @@ jobs:
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: aarch64-pc-windows-msvc
-        args: --release --out dist -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist -F pyo3/abi3 -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -253,7 +253,7 @@ jobs:
       with:
         target: ${{ matrix.target }}
         manylinux: '2_28'
-        args: --release --out dist --no-default-features -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.10
+        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.10
     - name: Test wheel
       if: matrix.target == 'x86_64'
       run: |
@@ -295,7 +295,7 @@ jobs:
       with:
         target: ${{ matrix.target }}
         manylinux: musllinux_1_2
-        args: --release --out dist --no-default-features -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.10
+        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.10
     - name: Upload wheels
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
