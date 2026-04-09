@@ -11,9 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # "extension-module" tells pyo3 we want to build an extension module (skips linking against libpython.so)
-# "abi3" tells pyo3 (and maturin) to build using the stable ABI
-# the Python version used for building determines the minimum compatible installation target
-pyo3 = { version = "0.27.2", features = ["extension-module", "abi3"] }
+pyo3 = { version = "0.27.2", features = ["extension-module"] }
 numpy = "0.27.1"
 num-traits = "0.2.19"
 either = "1.15.0"
