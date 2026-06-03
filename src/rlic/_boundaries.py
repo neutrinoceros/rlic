@@ -8,15 +8,8 @@ __all__ = [
     "BoundarySet",
 ]
 
-import sys
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, TypeAlias, TypedDict
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-    from exceptiongroup import ExceptionGroup
-    from typing_extensions import assert_never
+from typing import TYPE_CHECKING, Literal, TypeAlias, TypedDict, assert_never
 
 if TYPE_CHECKING:
     from rlic._typing import Pair, PairSpec

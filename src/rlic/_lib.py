@@ -4,7 +4,6 @@ __all__ = [
     "convolve",
 ]
 
-import sys
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
@@ -14,9 +13,6 @@ from rlic._core import (
     convolve_f32,
     convolve_f64,
 )
-
-if sys.version_info < (3, 11):
-    from exceptiongroup import ExceptionGroup  # pyright: ignore[reportUnreachable]
 
 if TYPE_CHECKING:
     from collections.abc import Callable
