@@ -223,12 +223,12 @@ def convolve(
         ],
         ndarray[tuple[int, int], dtype[F]],
     ]
-    # about type: and pyright: comments:
+    # about type: ignore comments
     # https://github.com/numpy/numpy/issues/28572
     if input_dtype == np.dtype("float32"):
-        retf = convolve_f32  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        retf = convolve_f32  # type: ignore
     elif input_dtype == np.dtype("float64"):
-        retf = convolve_f64  # type: ignore[assignment] # pyright: ignore[reportAssignmentType]
+        retf = convolve_f64  # type: ignore
     else:
         raise AssertionError
 
