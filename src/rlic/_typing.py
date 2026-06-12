@@ -1,6 +1,7 @@
 __all__ = [
     "D1",
     "D2",
+    "F",
     "FArray1D",
     "FArray2D",
     "Pair",
@@ -29,8 +30,8 @@ class UnsetType(Enum):
 
 UNSET = UnsetType.UNSET
 
-DT = TypeVar("DT", f32, f64)
+F = TypeVar("F", f32, f64)
 D1 = tuple[int]
 D2 = tuple[int, int]
-FArray1D = np.ndarray[D1, np.dtype[DT]]
-FArray2D = np.ndarray[D2, np.dtype[DT]]
+FArray1D = np.ndarray[D1, np.dtype[F]]
+FArray2D = np.ndarray[D2, np.dtype[F]]
