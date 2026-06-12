@@ -26,11 +26,13 @@ class BoundaryDictSpec(TypedDict):
 BoundarySpec: TypeAlias = BoundaryStr | BoundaryDictSpec
 
 # boundaries that can be combined with another value on the opposite side
-COMBO_ALLOWED_BOUNDS = frozenset({"closed"})
+COMBO_ALLOWED_BOUNDS: frozenset[str] = frozenset({"closed"})
 # boundaries that require the exact same value be used on the opposite side
-COMBO_DISALLOWED_BOUNDS = frozenset({"periodic"})
+COMBO_DISALLOWED_BOUNDS: frozenset[str] = frozenset({"periodic"})
 
-SUPPORTED_BOUNDS = frozenset(COMBO_ALLOWED_BOUNDS | COMBO_DISALLOWED_BOUNDS)
+SUPPORTED_BOUNDS: frozenset[str] = frozenset(
+    COMBO_ALLOWED_BOUNDS | COMBO_DISALLOWED_BOUNDS
+)
 
 
 def as_pair(b: PairSpec[BoundaryStr], /) -> Pair[BoundaryStr]:

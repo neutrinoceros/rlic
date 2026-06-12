@@ -3,12 +3,13 @@ import pytest
 from pytest import RaisesExc, RaisesGroup
 
 import rlic
+from rlic._typing import D2
 
 img = u = v = np.eye(64)
 kernel = np.linspace(0, 1, 10, dtype="float64")
 
 
-def test_invalid_iterations():
+def test_invalid_iterations() -> None:
     with pytest.raises(
         ValueError,
         match=(
@@ -19,7 +20,7 @@ def test_invalid_iterations():
         rlic.convolve(img, u, v, kernel=kernel, iterations=-1)
 
 
-def test_invalid_uv_mode():
+def test_invalid_uv_mode() -> None:
     with pytest.raises(
         ValueError,
         match=(
@@ -30,7 +31,7 @@ def test_invalid_uv_mode():
         rlic.convolve(img, u, v, kernel=kernel, uv_mode="astral")
 
 
-def test_invalid_texture_ndim():
+def test_invalid_texture_ndim() -> None:
     img = np.ones((16, 16, 16))
     with RaisesGroup(
         RaisesExc(
@@ -52,7 +53,7 @@ def test_invalid_texture_ndim():
         rlic.convolve(img, u, v, kernel=kernel)
 
 
-def test_invalid_texture_shape_and_ndim():
+def test_invalid_texture_shape_and_ndim() -> None:
     img = np.ones((16, 16, 16))
 
     with RaisesGroup(
@@ -75,7 +76,7 @@ def test_invalid_texture_shape_and_ndim():
         rlic.convolve(img, u, v, kernel=kernel)
 
 
-def test_invalid_texture_values():
+def test_invalid_texture_values() -> None:
     img = -np.ones((64, 64))
     with pytest.raises(
         ValueError,
@@ -95,7 +96,7 @@ def test_invalid_texture_values():
         ((64, 66), (64, 64), (64, 64)),
     ],
 )
-def test_mismatched_shapes(texture_shape, u_shape, v_shape):
+def test_mismatched_shapes(texture_shape: D2, u_shape: D2, v_shape: D2) -> None:
     prng = np.random.default_rng(0)
     texture = prng.random(texture_shape)
     u = prng.random(u_shape)
@@ -112,7 +113,7 @@ def test_mismatched_shapes(texture_shape, u_shape, v_shape):
         rlic.convolve(texture, u, v, kernel=kernel)
 
 
-def test_invalid_kernel_ndim():
+def test_invalid_kernel_ndim() -> None:
     with pytest.raises(
         ValueError,
         match=(
@@ -124,7 +125,7 @@ def test_invalid_kernel_ndim():
 
 
 @pytest.mark.parametrize("polluting_value", [-np.inf, np.inf, np.nan])
-def test_non_finite_kernel(polluting_value):
+def test_non_finite_kernel(polluting_value: np.float64) -> None:
     kernel = np.ones(11)
     kernel[5] = polluting_value
     with pytest.raises(
@@ -134,7 +135,7 @@ def test_non_finite_kernel(polluting_value):
         rlic.convolve(img, u, v, kernel=kernel)
 
 
-def test_invalid_texture_dtype():
+def test_invalid_texture_dtype() -> None:
     img = np.ones((64, 64), dtype="complex128")
     with RaisesGroup(
         RaisesExc(
@@ -153,7 +154,7 @@ def test_invalid_texture_dtype():
         rlic.convolve(img, u, v, kernel=kernel)
 
 
-def test_invalid_kernel_dtype():
+def test_invalid_kernel_dtype() -> None:
     with RaisesGroup(
         RaisesExc(
             TypeError,
@@ -171,7 +172,7 @@ def test_invalid_kernel_dtype():
         rlic.convolve(img, u, v, kernel=-np.ones(5, dtype="complex128"))
 
 
-def test_mismatched_dtypes():
+def test_mismatched_dtypes() -> None:
     img = np.ones((64, 64), dtype="float32")
     with pytest.raises(
         TypeError,
@@ -186,7 +187,7 @@ def test_mismatched_dtypes():
         rlic.convolve(img, u, v, kernel=kernel)
 
 
-def test_all_validators_before_returns():
+def test_all_validators_before_returns() -> None:
     # until v0.3.2, iterations=0 implied an early return that skipped
     # most validators.
     kernel = np.full(11, np.nan)
@@ -197,6 +198,6 @@ def test_all_validators_before_returns():
         rlic.convolve(img, u, v, kernel=kernel, iterations=0)
 
 
-def test_invalid_boundary_type():
+def test_invalid_boundary_type() -> None:
     with pytest.raises(TypeError, match=r"^Invalid boundary specification "):
         rlic.convolve(img, u, v, kernel=kernel, boundaries=None)

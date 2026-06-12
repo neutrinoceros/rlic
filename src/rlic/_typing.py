@@ -1,4 +1,8 @@
 __all__ = [
+    "D1",
+    "D2",
+    "FArray1D",
+    "FArray2D",
     "Pair",
     "PairSpec",
     "UVMode",
@@ -7,6 +11,10 @@ __all__ = [
 ]
 from enum import Enum, auto
 from typing import Literal, TypeAlias, TypeVar
+
+import numpy as np
+from numpy import float32 as f32
+from numpy import float64 as f64
 
 T = TypeVar("T")
 Pair: TypeAlias = tuple[T, T]
@@ -20,3 +28,9 @@ class UnsetType(Enum):
 
 
 UNSET = UnsetType.UNSET
+
+DT = TypeVar("DT", f32, f64)
+D1 = tuple[int]
+D2 = tuple[int, int]
+FArray1D = np.ndarray[D1, np.dtype[DT]]
+FArray2D = np.ndarray[D2, np.dtype[DT]]

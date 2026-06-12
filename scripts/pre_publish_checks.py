@@ -19,15 +19,15 @@ from packaging.version import Version
 logger.remove()
 logger.add(sys.stderr, colorize=True, format="<level>{level:<5} {message}</level>")
 
-REV_REGEXP = re.compile(
+REV_REGEXP: re.Pattern = re.compile(
     r"(?P<prefix>https://raw\.githubusercontent\.com/neutrinoceros/rlic/)[^/]*(?P<suffix>.*)",
 )
-STABLE_VER_REGEXP = re.compile(r"^\d+\.*\d+\.\d+$")
-STABLE_TAG_REGEXP = re.compile(r"^v\d+\.*\d+\.\d+$")
-ROOT = Path(__file__).parents[1]
-README = ROOT / "README.md"
-PYPROJECT_TOML = ROOT / "pyproject.toml"
-CARGO_TOML = ROOT / "Cargo.toml"
+STABLE_VER_REGEXP: re.Pattern = re.compile(r"^\d+\.*\d+\.\d+$")
+STABLE_TAG_REGEXP: re.Pattern = re.compile(r"^v\d+\.*\d+\.\d+$")
+ROOT: Path = Path(__file__).parents[1]
+README: Path = ROOT / "README.md"
+PYPROJECT_TOML: Path = ROOT / "pyproject.toml"
+CARGO_TOML: Path = ROOT / "Cargo.toml"
 
 
 @dataclass(frozen=True)
