@@ -3,15 +3,16 @@ from itertools import combinations
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
+from numpy.typing import DTypeLike
 
 import rlic
 
-prng = np.random.default_rng(0)
+prng: np.random.Generator = np.random.default_rng(0)
 
-NX = 128
+NX: int = 128
 
 
-def get_convolve_args(nx=NX, klen=11, dtype="float64"):
+def get_convolve_args(nx: int = NX, klen: int = 11, dtype: DTypeLike = "float64"):
     return (
         prng.random((nx, nx), dtype=dtype),
         prng.random((nx, nx), dtype=dtype),
@@ -23,38 +24,38 @@ def get_convolve_args(nx=NX, klen=11, dtype="float64"):
 img, u, v, kernel = get_convolve_args()
 
 
-def test_no_iterations():
+def test_no_iterations() -> None:
     out = rlic.convolve(img, u, v, kernel=kernel, iterations=0)
     assert_array_equal(out, img)
 
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_single_iteration(dtype):
+def test_single_iteration(dtype: DTypeLike) -> None:
     img, u, v, kernel = get_convolve_args(dtype=dtype)
     out_impl = rlic.convolve(img, u, v, kernel=kernel)
     out_expl = rlic.convolve(img, u, v, kernel=kernel, iterations=1)
     assert_array_equal(out_impl, out_expl)
 
 
-def test_multiple_iterations():
+def test_multiple_iterations() -> None:
     outs = [rlic.convolve(img, u, v, kernel=kernel, iterations=n) for n in range(3)]
     for o1, o2 in combinations(outs, 2):
         assert np.all(o2 != o1)
 
 
-def test_uv_symmetry():
+def test_uv_symmetry() -> None:
     out1 = rlic.convolve(img, u, v, kernel=kernel)
     out2 = rlic.convolve(img.T, v.T, u.T, kernel=kernel).T
     assert_array_equal(out2, out1)
 
 
-def test_uv_mode_default():
+def test_uv_mode_default() -> None:
     out_vel_impl = rlic.convolve(img, u, v, kernel=kernel)
     out_vel_expl = rlic.convolve(img, u, v, kernel=kernel, uv_mode="velocity")
     assert_array_equal(out_vel_impl, out_vel_expl)
 
 
-def test_uv_modes_diff():
+def test_uv_modes_diff() -> None:
     kernel = np.ones(5, dtype="float64")
     u0 = np.ones((NX, NX))
     ii = np.broadcast_to(np.arange(NX), (NX, NX))
@@ -75,7 +76,7 @@ def test_uv_modes_diff():
 
 
 @pytest.mark.parametrize("kernel_size", [3, 4])
-def test_uv_modes_equiv(kernel_size):
+def test_uv_modes_equiv(kernel_size: int) -> None:
     # with a kernel shorter than 5, uv_mode='polarization' doesn't do anything more or
     # different than uv_mode='velocity'
     kernel = np.ones(kernel_size, dtype="float64")
@@ -84,7 +85,7 @@ def test_uv_modes_equiv(kernel_size):
     assert_array_equal(out_pol, out_vel)
 
 
-def test_uv_mode_polarization_sym():
+def test_uv_mode_polarization_sym() -> None:
     NX = 5
     kernel = np.array([1, 1, 1, 1, 1], dtype="float64")
     shape = (NX, NX)
@@ -126,7 +127,7 @@ def test_uv_mode_polarization_sym():
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 @pytest.mark.parametrize("niterations", [0, 1, 5])
-def test_nan_vectors(dtype, niterations):
+def test_nan_vectors(dtype: DTypeLike, niterations: int) -> None:
     img, _, _, kernel = get_convolve_args(dtype=dtype)
     u = v = np.full_like(img, np.nan)
 
@@ -139,7 +140,7 @@ def test_nan_vectors(dtype, niterations):
     assert scaling_factor[0, 0] == kernel[len(kernel) // 2] ** niterations
 
 
-def test_boundaries():
+def test_boundaries() -> None:
     img, _, _, kernel = get_convolve_args(dtype="float64", nx=64, klen=128)
     ONE = np.ones_like(img)
     ZERO = np.zeros_like(img)

@@ -9,6 +9,7 @@ from rlic._boundaries import (
     COMBO_DISALLOWED_BOUNDS,
     SUPPORTED_BOUNDS,
     BoundarySet,
+    BoundarySpec,
 )
 
 
@@ -33,7 +34,7 @@ from rlic._boundaries import (
         ),
     ],
 )
-def test_from_spec(spec, expected_output):
+def test_from_spec(spec: BoundarySpec, expected_output: BoundarySet) -> None:
     result = BoundarySet.from_spec(spec)
     assert result == expected_output
 
@@ -42,14 +43,14 @@ def test_from_spec(spec, expected_output):
     "spec",
     [
         123,
-        None,
+        None,  # statically invalid type, but could still happen at runtime
         ["a", "b"],  # List is not a valid input type
         {"x": "a"},  # Missing 'y' key
         {"y": "b"},  # Missing 'x' key
         {"x": "a", "y": "b", "z": "c"},  # extra key not allowed
     ],
 )
-def test_from_spec_invalid_type(spec):
+def test_from_spec_invalid_type(spec: BoundarySpec) -> None:
     assert BoundarySet.from_spec(spec) is None
 
 
@@ -60,7 +61,7 @@ def test_from_spec_invalid_type(spec):
         for (b1, b2) in product(SUPPORTED_BOUNDS, SUPPORTED_BOUNDS)
     ],
 )
-def test_validate_simple_bounds(bound_input):
+def test_validate_simple_bounds(bound_input: BoundarySet) -> None:
     assert not bound_input.collect_exceptions()
     assert bound_input.validate() is None
 
@@ -72,7 +73,7 @@ def test_validate_simple_bounds(bound_input):
         for (b1, b2) in product(COMBO_ALLOWED_BOUNDS, COMBO_ALLOWED_BOUNDS)
     ],
 )
-def test_validate_bounds_combos(bound_input):
+def test_validate_bounds_combos(bound_input: BoundarySet) -> None:
     assert not bound_input.collect_exceptions()
     assert bound_input.validate() is None
 
@@ -85,7 +86,7 @@ def test_validate_bounds_combos(bound_input):
         if b1 != b2
     ],
 )
-def test_invalid_combos(bound_input):
+def test_invalid_combos(bound_input: BoundarySet) -> None:
     with pytest.raises(ValueError, match=r"^left x boundary '\w+' cannot be combined"):
         bound_input.validate()
 
@@ -114,14 +115,14 @@ def test_invalid_combos(bound_input):
         )
     ],
 )
-def test_unknown_bounds(bound_input):
+def test_unknown_bounds(bound_input: BoundarySet) -> None:
     with pytest.raises(
         ValueError, match=r"^Unknown (left|right) (x|y) boundary 'unknown'$"
     ):
         bound_input.validate()
 
 
-def test_multiple_errors():
+def test_multiple_errors() -> None:
     with RaisesGroup(
         RaisesExc(ValueError, match=r"^Unknown left x boundary 'unknown'$"),
         RaisesExc(ValueError, match=r"^left y boundary 'periodic' cannot be combined"),
