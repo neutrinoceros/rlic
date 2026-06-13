@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - BLD: allow selecting arbitrary (supported) Python target ABIs at build time
 - DEP: drop support for Python 3.10, require 3.11 or newer
+- DEP: upgrade MSRV to 1.83
 
 ## 0.5.3 - 2025-11-15
 
