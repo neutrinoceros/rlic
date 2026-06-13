@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - DEP: bump rust-numpy and pyo3 to 0.30.x
-
+- WHL: add support for free-threaded CPython 3.15+
 
 ## 0.5.4 - 2026-10-07
 
