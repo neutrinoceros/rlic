@@ -38,9 +38,7 @@ jobs:
         persist-credentials: false
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
-        enable-cache: true
-        prune-cache: false
-        cache-suffix: build
+        enable-cache: false
     - name: Build sdist
       run: uv build --sdist
     - name: Upload sdist
@@ -187,7 +185,7 @@ jobs:
         path: dist
 
   windows-arm64:
-    # this job is separate because it requires a newer Python version, and a dedicated runner
+    # this job is separate because it requires a dedicated runner
     name: windows (arm64)
     runs-on: windows-11-arm
     steps:
