@@ -3,10 +3,12 @@ import pytest
 from pytest import RaisesExc, RaisesGroup
 
 import rlic
-from rlic._typing import D2
+from rlic._typing import D2, FArray1D, FArray2D, f64
 
-img = u = v = np.eye(64)
-kernel = np.linspace(0, 1, 10, dtype="float64")
+img: FArray2D[f64] = np.eye(64)
+u: FArray2D[f64] = img.copy()
+v: FArray2D[f64] = img.copy()
+kernel: FArray1D[f64] = np.linspace(0, 1, 10, dtype="float64")
 
 
 def test_invalid_iterations() -> None:
