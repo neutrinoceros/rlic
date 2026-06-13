@@ -25,8 +25,7 @@ philosophy and originated within `rLIC`'s code base.
 ## Free-threading support
 
 `rlic.convolve` is trivially thread-safe, because it does not mutate any external
-data. As of version 0.5.1, Wheels are not yet distributed for free-threaded
-CPython, but this build target is still supported and tested.
+data. Wheels available for Python 3.15t and later.
 
 ## Installation
 ```
