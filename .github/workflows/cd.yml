@@ -78,7 +78,7 @@ jobs:
       matrix:
         platform:
         - {pyver: '3.11', abi: abi3}
-        #- {pyver: 3.15t, abi: abi3t}
+        # - {pyver: 3.15t, abi: abi3t}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
@@ -172,6 +172,7 @@ jobs:
       with:
         python-version: ${{ matrix.platform.pyver }}
         architecture: ${{ matrix.target }}
+        allow-prereleases: true
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         enable-cache: false
@@ -218,6 +219,7 @@ jobs:
       with:
         python-version: ${{ matrix.platform.pyver }}
         architecture: arm64
+        allow-prereleases: true
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         enable-cache: false
@@ -265,6 +267,7 @@ jobs:
       with:
         python-version: ${{ matrix.platform.pyver }}
         architecture: x64
+        allow-prereleases: true
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         enable-cache: false
@@ -310,6 +313,7 @@ jobs:
       with:
         python-version: ${{ matrix.platform.pyver }}
         architecture: x64
+        allow-prereleases: true
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
         enable-cache: false
