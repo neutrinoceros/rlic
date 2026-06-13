@@ -81,7 +81,7 @@ jobs:
       matrix:
         platform:
         - {pyver: '3.11', abi: abi3}
-        # - {pyver: 3.15t, abi: abi3t}
+        - {pyver: 3.15t, abi: abi3t}
         target:
         - runs-on: macos-15-intel
           arch-short: x64
@@ -126,7 +126,7 @@ jobs:
       matrix:
         platform:
         - {pyver: '3.11', abi: abi3}
-        #- {pyver: 3.15t, abi: abi3t}
+        - {pyver: 3.15t, abi: abi3t}
         target:
         - runs-on: windows-latest
           arch-short: x64
@@ -172,7 +172,7 @@ jobs:
       matrix:
         platform:
         - {pyver: '3.11', abi: abi3}
-        #- {pyver: 3.15t, abi: abi3t}
+        - {pyver: 3.15t, abi: abi3t}
         target:
         - x86_64
         - aarch64
@@ -215,7 +215,7 @@ jobs:
       matrix:
         platform:
         - {pyver: '3.11', abi: abi3}
-        #- {pyver: 3.15t, abi: abi3t}
+        - {pyver: 3.15t, abi: abi3t}
         target:
         - x86_64-unknown-linux-musl
         - aarch64-unknown-linux-musl
