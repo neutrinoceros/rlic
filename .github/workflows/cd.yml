@@ -73,13 +73,19 @@ jobs:
 
   macos-intel:
     runs-on: macos-15-intel
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - {pyver: '3.11', abi: abi3}
+        #- {pyver: 3.15t, abi: abi3t}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.platform.pyver }}
         enable-cache: false
     - name: Configure uv
       # this step is needed to avoid a collision with system PyPy
@@ -88,14 +94,14 @@ jobs:
     - id: discovery
       run: |
         uv python install
-        interpreter="$(uv python find 3.11)"
+        interpreter="$(uv python find ${{ matrix.platform.pyver }})"
         echo "interpreter=$interpreter" >> $GITHUB_OUTPUT
     - run: rustup update
     - name: Build wheels - x86_64
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: x86_64
-        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist --no-default-features -F pyo3/${{ matrix.platform.abi }} -F fma -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -110,25 +116,31 @@ jobs:
 
   macos-arm64:
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - {pyver: '3.11', abi: abi3}
+        #- {pyver: 3.15t, abi: abi3t}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.platform.pyver }}
         enable-cache: false
     - id: discovery
       run: |
         uv python install
-        interpreter="$(uv python find 3.11)"
+        interpreter="$(uv python find ${{ matrix.platform.pyver }})"
         echo "interpreter=$interpreter" >> $GITHUB_OUTPUT
     - run: rustup update
     - name: Build wheels - arm64
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: aarch64-apple-darwin
-        args: --release --out dist -F pyo3/abi3 -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist -F pyo3/${{ matrix.platform.abi }} -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -145,6 +157,9 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
+        platform:
+        - {pyver: '3.11', abi: abi3}
+        #- {pyver: 3.15t, abi: abi3t}
         target:
         - x86
         - x64
@@ -154,7 +169,7 @@ jobs:
         persist-credentials: false
     - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.platform.pyver }}
         architecture: ${{ matrix.target }}
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
@@ -164,14 +179,14 @@ jobs:
         echo "UV_PYTHON_PREFERENCE=only-system" >> $env:GITHUB_ENV
     - id: discovery
       run: |
-        $interpreter="$(uv python find 3.11)"
+        $interpreter="$(uv python find ${{ matrix.platform.pyver }})"
         echo "interpreter=$interpreter" >> $env:GITHUB_OUTPUT
     - run: rustup update
     - name: Build wheels
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: ${{ matrix.target }}
-        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist --no-default-features -F pyo3/${{ matrix.platform.abi }} -F fma -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -188,13 +203,19 @@ jobs:
     # this job is separate because it requires a dedicated runner
     name: windows (arm64)
     runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - {pyver: '3.11', abi: abi3}
+        #- {pyver: 3.15t, abi: abi3t}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
     - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.platform.pyver }}
         architecture: arm64
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
@@ -204,14 +225,14 @@ jobs:
         echo "UV_PYTHON_PREFERENCE=only-system" >> $env:GITHUB_ENV
     - id: discovery
       run: |
-        $interpreter="$(uv python find 3.11)"
+        $interpreter="$(uv python find ${{ matrix.platform.pyver }})"
         echo "interpreter=$interpreter" >> $env:GITHUB_OUTPUT
     - run: rustup update
     - name: Build wheels
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
         target: aarch64-pc-windows-msvc
-        args: --release --out dist -F pyo3/abi3 -i ${{ steps.discovery.outputs.interpreter }}
+        args: --release --out dist -F pyo3/${{ matrix.platform.abi }} -i ${{ steps.discovery.outputs.interpreter }}
     - name: Test wheel
       run: |
         uv sync --only-group test
@@ -229,6 +250,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform:
+        - {pyver: '3.11', abi: abi3}
+        #- {pyver: 3.15t, abi: abi3t}
         target:
         - x86_64
         - aarch64
@@ -238,7 +262,7 @@ jobs:
         persist-credentials: false
     - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.platform.pyver }}
         architecture: x64
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
@@ -251,7 +275,7 @@ jobs:
       with:
         target: ${{ matrix.target }}
         manylinux: '2_28'
-        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.11
+        args: --release --out dist --no-default-features -F pyo3/${{ matrix.platform.abi }} -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.11
     - name: Test wheel
       if: matrix.target == 'x86_64'
       run: |
@@ -271,6 +295,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform:
+        - {pyver: '3.11', abi: abi3}
+        #- {pyver: 3.15t, abi: abi3t}
         target:
         - x86_64-unknown-linux-musl
         - aarch64-unknown-linux-musl
@@ -280,7 +307,7 @@ jobs:
         persist-credentials: false
     - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.platform.pyver }}
         architecture: x64
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
@@ -293,7 +320,7 @@ jobs:
       with:
         target: ${{ matrix.target }}
         manylinux: musllinux_1_2
-        args: --release --out dist --no-default-features -F pyo3/abi3 -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.11
+        args: --release --out dist --no-default-features -F pyo3/${{ matrix.platform.abi }} -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python3.11
     - name: Upload wheels
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
