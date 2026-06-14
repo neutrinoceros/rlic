@@ -363,6 +363,12 @@ jobs:
         pattern: wheels-*
         merge-multiple: true
 
+    - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+      with:
+        enable-cache: false
+
+    - run: uvx abi3audit dist/*.whl --verbose
+
     - run: rm -v dist/*cp315t* || true # tmp
 
     - name: Publish package distributions to PyPI
