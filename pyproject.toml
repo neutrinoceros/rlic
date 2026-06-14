@@ -71,9 +71,15 @@ uv-only = [
 default-groups = [
     "uv-only",
 ]
+index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
 vectorplot = { git = "https://github.com/neutrinoceros/scikits-vectorplot", rev = "9175a46f7d320a187d089eda34abe7819c73984f" }  # v0.2.0post5
+
+[[tool.uv.index]]
+name = "sp-nightlies"
+url = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+exclude-newer = false
 
 [tool.maturin]
 module-name = "rlic._core"
