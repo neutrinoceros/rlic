@@ -71,6 +71,9 @@ uv-only = [
 default-groups = [
     "uv-only",
 ]
+no-build-package = [
+    "numpy",
+]
 index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
