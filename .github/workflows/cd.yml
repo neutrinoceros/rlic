@@ -13,6 +13,9 @@ on:
 
 permissions: {}
 
+env:
+  UV_PYTHON_PREFERENCE: only-system
+
 jobs:
   pre-publication-checks:
     runs-on: ubuntu-latest
@@ -91,8 +94,9 @@ jobs:
       with:
         enable-cache: false
     - name: Configure uv
+      if: ${{ matrix.platform.pyver == '3.15t' }}
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - run: rustup update
     - name: Build wheels - x86_64
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
@@ -131,8 +135,9 @@ jobs:
       with:
         enable-cache: false
     - name: Configure uv
+      if: ${{ matrix.platform.pyver == '3.15t' }}
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - run: rustup update
     - name: Build wheels - arm64
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
@@ -175,8 +180,9 @@ jobs:
       with:
         enable-cache: false
     - name: Configure uv
+      if: ${{ matrix.platform.pyver == '3.15t' }}
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $env:GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - id: discovery
       run: |
         $interpreter="$(uv python find ${{ matrix.platform.pyver }})"
@@ -222,8 +228,9 @@ jobs:
       with:
         enable-cache: false
     - name: Configure uv
+      if: ${{ matrix.platform.pyver == '3.15t' }}
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $env:GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $env:$GITHUB_ENV
     - id: discovery
       run: |
         $interpreter="$(uv python find ${{ matrix.platform.pyver }})"
@@ -270,8 +277,9 @@ jobs:
       with:
         enable-cache: false
     - name: Configure uv
+      if: ${{ matrix.platform.pyver == '3.15t' }}
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - name: Build wheels
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
@@ -316,8 +324,9 @@ jobs:
       with:
         enable-cache: false
     - name: Configure uv
+      if: ${{ matrix.platform.pyver == '3.15t' }}
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - name: Build wheels
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
