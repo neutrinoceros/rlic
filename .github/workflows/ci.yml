@@ -266,13 +266,17 @@ jobs:
         persist-credentials: false
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
-        python-version: '3.14'
+        python-version: '3.15'
         enable-cache: false
     - name: Configure uv
       run: |
         echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
-    - run: uv lock --upgrade -p "$UV_PYTHON"
-    - run: uv sync --no-editable --no-default-groups --group test
+    # tmp, needed while numpy cp315t nightlies are behind on some platforms
+    - run: |
+        uv venv
+        uv pip install . --group test
+    #- run: uv lock --upgrade -p "$UV_PYTHON"
+    #- run: uv sync --no-editable --no-default-groups --group test
     - name: Test
       run: uv run --no-sync pytest --color=yes
 
