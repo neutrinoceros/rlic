@@ -254,8 +254,8 @@ jobs:
         - {pyver: '3.11', abi: abi3}
         #- {pyver: 3.15t, abi: abi3t}
         target:
-        - x86_64
-        - aarch64
+        - {full: x86_64, short: x64}
+        - {full: aarch66, short: arm64}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
@@ -263,7 +263,7 @@ jobs:
     - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
         python-version: ${{ matrix.platform.pyver }}
-        architecture: x64
+        architecture: ${{ matrix.target.short }}
         allow-prereleases: ${{ matrix.platform.pyver == '3.15t' }}
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
@@ -275,7 +275,7 @@ jobs:
     - name: Build wheels
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
-        target: ${{ matrix.target }}
+        target: ${{ matrix.target.full }}
         manylinux: '2_28'
         args: --release --out dist --no-default-features -F pyo3/${{ matrix.platform.abi }} -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python${{ matrix.platform.pyver }}
     - name: Test wheel
@@ -301,8 +301,8 @@ jobs:
         - {pyver: '3.11', abi: abi3}
         #- {pyver: 3.15t, abi: abi3t}
         target:
-        - x86_64-unknown-linux-musl
-        - aarch64-unknown-linux-musl
+        - {full: x86_64-unknown-linux-musl, short: x64}
+        - {full: aarch64-unknown-linux-musl, short: arm64}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
@@ -310,7 +310,7 @@ jobs:
     - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
         python-version: ${{ matrix.platform.pyver }}
-        architecture: x64
+        architecture: ${{ matrix.target.short }}
         allow-prereleases: ${{ matrix.platform.pyver == '3.15t' }}
     - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
       with:
@@ -322,7 +322,7 @@ jobs:
     - name: Build wheels
       uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad # v1.50.1
       with:
-        target: ${{ matrix.target }}
+        target: ${{ matrix.target.full }}
         manylinux: musllinux_1_2
         args: --release --out dist --no-default-features -F pyo3/${{ matrix.platform.abi }} -F fma ${{ startsWith( matrix.target , 'aarch64' ) && '-F branchless' || '' }} -i python${{ matrix.platform.pyver }}
     - name: Upload wheels
