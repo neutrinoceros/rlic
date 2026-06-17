@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DEP: drop support for Python 3.10, require 3.11 or newer
 - DEP: upgrade MSRV to 1.83
 - DEP: bump rust-numpy and pyo3 to 0.29
+- WHL: drop win32 support (stop distributing wheels)
 
 ## 0.5.3 - 2025-11-15
 
