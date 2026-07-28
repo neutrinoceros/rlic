@@ -59,6 +59,7 @@ typecheck = [
     "basedpyright>=1.26.0",
     "mypy>=1.13.0",
     "pyright>=1.1.391",
+    "ty>=0.0.64",
 ]
 # uv sync includes this group by default, which works in combination
 # with tool.uv.sources and tool.uv.default-groups. Don't use this group
