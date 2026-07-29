@@ -303,6 +303,10 @@ jobs:
         cache-suffix: typecheck
 
     - run: uv sync --group typecheck
+
+    - name: Typecheck (ty)
+      run: uv run --no-sync ty check src
+
     - name: Typecheck (mypy)
       run: uv run --no-sync mypy src
 
