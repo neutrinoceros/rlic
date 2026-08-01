@@ -58,6 +58,7 @@ test = [
 typecheck = [
     "basedpyright>=1.26.0",
     "mypy>=1.13.0",
+    "pyrefly>=1.2.0",
     "pyright>=1.1.391",
     "ty>=0.0.64",
 ]
@@ -119,6 +120,9 @@ exclude_also = [
     "^\\s*raise (Assertion|NotImplemented)Error\\b",
     "^\\s*case _ as _?unreachable:",
 ]
+
+[tool.pyrefly]
+preset = "strict"
 
 [tool.pyright]
 reportImplicitStringConcatenation = false

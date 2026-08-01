@@ -307,6 +307,11 @@ jobs:
     - name: Typecheck (ty)
       run: uv run --no-sync ty check src
 
+    - name: Typecheck (pyrefly)
+      run: |
+        uv run --no-sync pyrefly check src
+        uv run --no-sync pyrefly coverage check --fail-under=100 src
+
     - name: Typecheck (mypy)
       run: uv run --no-sync mypy src
 
