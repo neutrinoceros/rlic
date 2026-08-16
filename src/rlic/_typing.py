@@ -7,10 +7,7 @@ __all__ = [
     "Pair",
     "PairSpec",
     "UVMode",
-    "UnsetType",
-    "UNSET",
 ]
-from enum import Enum, auto
 from typing import Literal, TypeAlias, TypeVar
 
 import numpy as np
@@ -22,13 +19,6 @@ Pair: TypeAlias = tuple[T, T]
 PairSpec: TypeAlias = T | Pair[T]
 
 UVMode = Literal["velocity", "polarization"]
-
-
-class UnsetType(Enum):
-    UNSET = auto()
-
-
-UNSET = UnsetType.UNSET
 
 F = TypeVar("F", f32, f64)
 D1 = tuple[int]
