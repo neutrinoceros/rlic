@@ -81,8 +81,7 @@ dependencies = [
 [[package]]
 name = "numpy"
 version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a5b15d63a5ff39e378daed0e1340d3a5964703ea9712eb09a0dc66fade996f4"
+source = "git+https://github.com/Icxolu/rust-numpy?branch=abi3t#97d7b8da5083e157fe4b9a747dd79c25494d9513"
 dependencies = [
  "libc",
  "ndarray",
