@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DEP: upgrade MSRV to 1.83
 - DEP: bump rust-numpy and pyo3 to 0.29
 - WHL: drop win32 support (stop distributing wheels)
+- BLD: drop x86_64-v3 in favor of (implicit) x86_64 in .cargo/config.toml
 
 ## 0.5.3 - 2025-11-15
 
