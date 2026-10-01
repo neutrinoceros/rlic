@@ -107,6 +107,13 @@ filterwarnings = [
   "error",
 ]
 
+[tool.coverage.paths]
+source = [
+    "/home/runner/work/rlic", # Ubuntu
+    "/Users/runner/work/rlic", # macOS
+    "d:\\a\\rlic", # Windows
+]
+
 [tool.coverage.run]
 branch = true
 
