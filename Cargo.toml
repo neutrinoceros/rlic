@@ -26,6 +26,5 @@ panic = "abort"
 strip = "symbols"
 
 [features]
-default = ["fma", "branchless"]
-fma = []
+default = ["branchless"]
 branchless = []
