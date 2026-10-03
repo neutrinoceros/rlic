@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- BUG: fix backward compatibility for older x86-64 architectures without FMA extension via
+  runtime dispatch
 - BLD: allow selecting arbitrary (supported) Python target ABIs at build time
 - DEP: drop support for Python 3.10, require 3.11 or newer
 - DEP: upgrade MSRV to 1.83
