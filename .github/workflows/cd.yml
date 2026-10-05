@@ -102,10 +102,6 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         enable-cache: false
-    - name: Configure uv
-      if: ${{ matrix.platform.pyver == '3.15t' }}
-      run: |
-        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - run: rustup update
     - name: Build wheels
       uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -153,10 +149,6 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         enable-cache: false
-    - name: Configure uv
-      if: ${{ matrix.platform.pyver == '3.15t' }}
-      run: |
-        echo "UV_PRERELEASE=allow" >> $env:GITHUB_ENV
     - run: rustup update
     - name: Build wheels
       uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -198,10 +190,6 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         enable-cache: false
-    - name: Configure uv
-      if: ${{ matrix.platform.pyver == '3.15t' }}
-      run: |
-        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - name: Build wheels
       uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
       with:
@@ -245,10 +233,6 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         enable-cache: false
-    - name: Configure uv
-      if: ${{ matrix.platform.pyver == '3.15t' }}
-      run: |
-        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
     - name: Build wheels
       uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
       with:
