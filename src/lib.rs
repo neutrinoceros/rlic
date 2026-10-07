@@ -1,5 +1,6 @@
 use crate::boundaries::BoundarySet;
 use either::Either;
+use multiversion::multiversion;
 use num_traits::{Float, Signed};
 use numpy::borrow::{PyReadonlyArray1, PyReadonlyArray2};
 use numpy::ndarray::{Array2, ArrayView1, ArrayView2};
@@ -171,9 +172,6 @@ fn time_to_next_pixel<T: AtLeastF32>(velocity: T, current_frac: T) -> T {
         let half: T = 0.5.into();
         let d1 = current_frac;
 
-        #[cfg(not(feature = "fma"))]
-        let remaining_frac = (one + signum(velocity)) * (half - d1) + d1;
-        #[cfg(feature = "fma")]
         let remaining_frac = (one + signum(velocity)).mul_add(half - d1, d1);
         abs(remaining_frac / velocity)
     }
@@ -221,15 +219,7 @@ fn update_state<T: AtLeastF32>(
         *coord_parallel = coord_parallel.wrapping_sub(1);
         *frac_parallel = 1.0.into();
     }
-
-    #[cfg(not(feature = "fma"))]
-    {
-        *frac_orthogonal += *time_parallel * *velocity_orthogonal;
-    }
-    #[cfg(feature = "fma")]
-    {
-        *frac_orthogonal = (*time_parallel).mul_add(*velocity_orthogonal, *frac_orthogonal);
-    }
+    *frac_orthogonal = (*time_parallel).mul_add(*velocity_orthogonal, *frac_orthogonal);
 }
 
 #[inline(always)]
@@ -272,9 +262,19 @@ fn advance<T: AtLeastF32>(
     boundaries.apply(idx);
 }
 
+#[multiversion(targets("x86_64+fma"))]
+fn advance_helper<T: AtLeastF32>(
+    uv: &UVPoint<T>,
+    idx: &mut PixelIndex,
+    pix_frac: &mut PixelFraction<T>,
+    boundaries: &BoundarySet,
+) {
+    advance(uv, idx, pix_frac, boundaries);
+}
+
 #[cfg(test)]
 mod test_advance {
-    use crate::{advance, ArrayDimensions, BoundarySet, PixelFraction, PixelIndex, UVPoint};
+    use crate::{advance_helper, ArrayDimensions, BoundarySet, PixelFraction, PixelIndex, UVPoint};
 
     #[test]
     fn zero_vel() {
@@ -288,7 +288,7 @@ mod test_advance {
             ),
             ArrayDimensions { x: 10, y: 10 },
         );
-        advance(&uv, &mut idx, &mut pix_frac, &boundaries);
+        advance_helper(&uv, &mut idx, &mut pix_frac, &boundaries);
         assert_eq!(idx.j, 5);
         assert_eq!(idx.i, 5);
         assert_eq!(pix_frac.x, 0.5);
@@ -349,18 +349,12 @@ fn convole_single_pixel<T: AtLeastF32>(
             Direction::Forward => p.clone(),
             Direction::Backward => -p,
         };
-        advance(&mp, &mut idx, &mut pix_frac, boundaries);
-        #[cfg(not(feature = "fma"))]
-        {
-            *pixel_value += kernel[[k]] * select_pixel(input, idx);
-        }
-        #[cfg(feature = "fma")]
-        {
-            *pixel_value = kernel[[k]].mul_add(select_pixel(input, idx), *pixel_value);
-        }
+        advance_helper(&mp, &mut idx, &mut pix_frac, boundaries);
+        *pixel_value = kernel[[k]].mul_add(select_pixel(input, idx), *pixel_value);
     }
 }
 
+#[multiversion(targets("x86_64+avx2+fma", "x86_64+avx"))]
 fn convolve<'py, T: AtLeastF32>(
     uv: &UVField<'py, T>,
     kernel: ArrayView1<'py, T>,
@@ -373,14 +367,7 @@ fn convolve<'py, T: AtLeastF32>(
     for i in 0..boundaries.y.image_size {
         for j in 0..boundaries.x.image_size {
             let pixel_value = &mut output[[i, j]];
-            #[cfg(not(feature = "fma"))]
-            {
-                *pixel_value += kernel[[kmid]] * input[[i, j]];
-            }
-            #[cfg(feature = "fma")]
-            {
-                *pixel_value = kernel[[kmid]].mul_add(input[[i, j]], *pixel_value);
-            }
+            *pixel_value = kernel[[kmid]].mul_add(input[[i, j]], *pixel_value);
             let starting_point = PixelIndex { i, j };
             convole_single_pixel(
                 pixel_value,
