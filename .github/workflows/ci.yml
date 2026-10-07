@@ -72,7 +72,7 @@ jobs:
         persist-credentials: false
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7   # v10.2.0
       with:
-        python-version: '3.14'
+        python-version: '3.15'
         enable-cache: false
     - name: resolve MSRV
       id: resolve-msrv
@@ -144,14 +144,14 @@ jobs:
         - ubuntu-latest
         python-version:
         - '3.11'
-        - '3.14'
-        - 3.14t
+        - '3.15'
+        - 3.15t
         build-flags: ['']
         label: ['']
 
         include:
         - os: ubuntu-latest
-          python-version: '3.14'
+          python-version: '3.15'
           build-flags: --config-setting 'build-args=--profile=dev'
           label: (debug build)
 
@@ -213,7 +213,7 @@ jobs:
         persist-credentials: false
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
-        python-version: '3.14'
+        python-version: '3.15'
         cache-suffix: covcheck-merge
 
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -265,7 +265,7 @@ jobs:
       matrix:
         python-version:
         - '3.11'
-        - '3.14'
+        - '3.15'
     runs-on: ubuntu-latest
     name: type check
 
