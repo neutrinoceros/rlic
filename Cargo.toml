@@ -2,7 +2,7 @@
 name = "rlic"
 version = "0.5.4" # keep in sync with pyproject.toml
 edition = "2021"
-rust-version = "1.83" # 2024-11-28
+rust-version = "1.85" # 2025-02-20
 
 [lib]
 name = "_core"
@@ -11,8 +11,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # "extension-module" tells pyo3 we want to build an extension module (skips linking against libpython.so)
-pyo3 = { version = "0.29.3", features = ["extension-module"] }
-numpy = "0.29.0"
+pyo3 = { version = "0.30.1", features = ["extension-module"] }
+numpy = "0.30.0"
 num-traits = "0.2.19"
 either = "1.19.0"
 multiversion = "0.8.0"
