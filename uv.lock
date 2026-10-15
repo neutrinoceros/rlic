@@ -617,7 +617,7 @@ wheels = [
 
 [[package]]
 name = "rlic"
-version = "0.5.4"
+version = "0.5.5"
 source = { editable = "." }
 default-groups = ["uv-only"]
 dependencies = [
